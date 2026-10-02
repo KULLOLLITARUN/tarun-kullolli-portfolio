@@ -10,6 +10,7 @@ import Contact from './components/Contact.jsx'
 import RecruiterView from './components/RecruiterView.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import Tour from './components/Tour.jsx'
+import Cursor from './components/Cursor.jsx'
 
 const forceRecruiter = new URLSearchParams(window.location.search).has('recruiter') ? true : undefined
 
@@ -82,13 +83,13 @@ export default function App() {
 
   return (
     <>
+      <Cursor />
       <a className="skip-link" href="#main">
         Skip to content
       </a>
       <Nav
         recruiter={recruiter}
         onToggleRecruiter={() => setRecruiter((r) => !r)}
-        onTour={startTour}
         onPalette={() => setPaletteOpen(true)}
       />
       <main id="main">
@@ -96,7 +97,7 @@ export default function App() {
           <RecruiterView onCopyEmail={copyEmail} />
         ) : (
           <>
-            <Hero />
+            <Hero onTour={startTour} />
             <Experiments />
             <Acts />
             <SystemIndex />

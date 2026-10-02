@@ -139,6 +139,90 @@ kbd {
   transform: none;
 }
 
+/* ── Reticle cursor (fine pointers only) ────────────────── */
+html.has-cursor,
+html.has-cursor * {
+  cursor: none !important;
+}
+html.has-cursor input,
+html.has-cursor textarea {
+  cursor: text !important;
+}
+.cursor-box,
+.cursor-core,
+.cursor-spark {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 200;
+  pointer-events: none;
+  transition: opacity var(--t-med);
+}
+/* Corner brackets: a detection box that snaps around interactive elements. */
+.cursor-box {
+  transform-origin: center;
+}
+.cursor-box i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 0 solid rgba(255, 255, 255, 0.85);
+  transition: width var(--t-fast), height var(--t-fast), border-color var(--t-fast);
+}
+.cursor-box .tl { left: 0; top: 0; border-top-width: 1.5px; border-left-width: 1.5px; }
+.cursor-box .tr { right: 0; top: 0; border-top-width: 1.5px; border-right-width: 1.5px; }
+.cursor-box .bl { left: 0; bottom: 0; border-bottom-width: 1.5px; border-left-width: 1.5px; }
+.cursor-box .br { right: 0; bottom: 0; border-bottom-width: 1.5px; border-right-width: 1.5px; }
+.cursor-box.is-locked i {
+  width: 12px;
+  height: 12px;
+  border-color: var(--amber);
+}
+.cursor-label {
+  position: absolute;
+  left: -1px;
+  bottom: calc(100% + 4px);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--amber);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity var(--t-fast), transform var(--t-fast);
+}
+.cursor-box.is-locked .cursor-label {
+  opacity: 1;
+  transform: none;
+}
+.cursor-box.label-below .cursor-label {
+  bottom: auto;
+  top: calc(100% + 4px);
+}
+.cursor-core {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 10px 2px rgba(245, 181, 68, 0.7);
+}
+.cursor-spark {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #7dd3fc;
+  box-shadow: 0 0 6px rgba(125, 211, 252, 0.8);
+}
+.cursor-box.is-hidden,
+.cursor-core.is-hidden,
+.cursor-spark.is-hidden {
+  opacity: 0 !important;
+}
+
 /* ── Buttons & chips ────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -228,28 +312,25 @@ kbd {
   color: var(--amber);
   margin: 0 0.15em;
 }
-.nav-pills {
+.nav-links {
   display: flex;
-  gap: 2px;
-  padding: var(--s-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
+  gap: var(--s-1);
 }
-.nav-pills a {
-  min-width: 40px;
+.nav-links a {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-pill);
-  font-size: var(--fs-xs);
-  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
   text-decoration: none;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition: color var(--t-fast), background var(--t-fast);
 }
-.nav-pills a:hover {
-  background: var(--text);
-  color: #000;
+.nav-links a:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
 }
 .nav-actions {
   display: flex;
+  align-items: center;
   gap: var(--s-2);
 }
 .switch-track {
@@ -278,15 +359,39 @@ kbd {
   transform: translateX(12px);
   background: #000;
 }
-.kbd-chip kbd {
-  padding: 1px 5px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  font-size: 10px;
+/* Primary call to action: the only amber-filled control in the nav. */
+.chip-cta {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #000;
+  font-weight: 600;
+  box-shadow: 0 0 20px rgba(245, 181, 68, 0.35);
+}
+.chip-cta:hover {
+  background: #ffc861;
+  border-color: #ffc861;
+  box-shadow: 0 0 28px rgba(245, 181, 68, 0.55);
+}
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.icon-btn:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
 }
 
 @media (max-width: 1024px) {
-  .nav-pills {
+  .nav-links {
     display: none;
   }
 }
@@ -301,8 +406,7 @@ kbd {
   .nav-actions .chip {
     padding: 0 var(--s-2);
   }
-  .kbd-chip,
-  .nav-actions .chip:first-child:not(.switch),
+  .icon-btn,
   .hide-sm {
     display: none;
   }
@@ -319,17 +423,6 @@ kbd {
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-.hero-fallback {
-  position: absolute;
-  top: 28%;
-  left: 0;
-  width: 50%;
-  font-size: var(--fs-2xl);
-  font-weight: 300;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-align: center;
 }
 .hud {
   position: absolute;
@@ -365,24 +458,59 @@ kbd {
   }
 }
 
-/* Left half: role + pitch under the particle name */
+/* Left column: name, role, pitch and links share one left edge (aligned with the HUD). */
 .hero-left {
   position: absolute;
   left: 0;
-  top: 55%;
+  top: 22%;
   z-index: 2;
   width: 50%;
   padding: 0 var(--gutter);
-  display: grid;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--s-4);
-  text-align: center;
+  text-align: left;
+}
+/* Same metrics as the particle sampler (Geist 600, 0.04em tracking, 0.98 leading)
+   so the particles land exactly on these letters before dissolving. */
+.hero-name {
+  display: inline-flex;
+  flex-direction: column;
+  margin: 0 0 var(--s-3);
+  font-weight: 600;
+  font-size: clamp(48px, 6.4vw, 124px);
+  line-height: 0.98;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 900ms var(--ease);
+}
+.hero-name span {
+  display: block;
+  white-space: nowrap;
+}
+.hero-name.is-resolved {
+  opacity: 1;
+  background: linear-gradient(100deg, #f4f4f5 42%, #fff4d6 50%, #f4f4f5 58%) 0 0 / 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.12));
+  animation: name-shine 7s linear 1s infinite;
+}
+@keyframes name-shine {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -130% 0;
+  }
 }
 .hero-role {
   font-family: var(--mono);
   font-size: var(--fs-lg);
   letter-spacing: 0.5em;
-  margin-right: -0.5em;
   color: var(--amber);
 }
 .hero-quote {
@@ -402,22 +530,40 @@ kbd {
 .char {
   display: inline-block;
 }
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-6);
+  margin-top: var(--s-3);
+}
 .scroll-cue {
-  display: grid;
-  justify-items: center;
-  gap: var(--s-1);
-  margin-top: var(--s-5);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
   font-size: var(--fs-xs);
-  color: var(--text-2);
+  color: var(--text);
   text-decoration: none;
 }
 .scroll-cue .glyph {
-  font-size: var(--fs-xl);
+  font-size: var(--fs-lg);
   color: var(--amber);
   letter-spacing: 0;
   text-shadow: 0 0 18px rgba(245, 181, 68, 0.6);
 }
 .scroll-cue:hover {
+  color: var(--amber);
+}
+.tour-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--t-fast);
+}
+.tour-link:hover {
   color: var(--text);
 }
 
@@ -432,6 +578,7 @@ kbd {
   padding: 0 var(--gutter);
   display: flex;
   justify-content: center;
+  align-items: flex-start;
 }
 
 /* Elements start hidden only when the anime.js intro will run. */
@@ -447,10 +594,11 @@ kbd {
   position: absolute;
   z-index: 1;
   left: 75%;
-  top: 11%;
-  height: 40%;
+  bottom: 48%; /* feet on the chat box's top edge (chat starts at 52%) */
+  height: 38%;
   aspect-ratio: 320 / 400;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(6%);
+  transform-origin: 50% 100%;
   pointer-events: none;
   opacity: 0;
 }
@@ -468,18 +616,18 @@ kbd {
 @keyframes project-in {
   0% {
     opacity: 0;
-    transform: translateX(-50%) scaleY(0.02);
+    transform: translateX(-50%) translateY(6%) scaleY(0.02);
   }
   35% {
     opacity: 0.6;
-    transform: translateX(-50%) scaleY(0.02);
+    transform: translateX(-50%) translateY(6%) scaleY(0.02);
   }
   55% {
     opacity: 0.3;
   }
   100% {
     opacity: 1;
-    transform: translateX(-50%) scaleY(1);
+    transform: translateX(-50%) translateY(6%) scaleY(1);
   }
 }
 @keyframes flicker {
@@ -533,7 +681,8 @@ kbd {
   margin-right: var(--s-1);
 }
 .chat-log {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  min-height: 72px;
   min-height: 0;
   overflow-y: auto;
   padding: var(--s-4);
@@ -620,17 +769,19 @@ kbd {
 }
 .chat-chips button {
   padding: 6px var(--s-3);
-  border: 1px solid var(--line-strong);
+  border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: var(--r-pill);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   font-size: var(--fs-xs);
-  color: var(--text-2);
+  color: #d4d4d8;
   cursor: pointer;
-  transition: border-color var(--t-fast), color var(--t-fast);
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
 }
 .chat-chips button:hover:not(:disabled) {
   border-color: var(--amber);
   color: var(--text);
+  background: rgba(245, 181, 68, 0.1);
+  box-shadow: 0 0 14px rgba(245, 181, 68, 0.3);
 }
 .chat-chips button:disabled {
   opacity: 0.4;
@@ -684,18 +835,24 @@ kbd {
   .hero {
     min-height: max(100svh, 760px);
   }
-  .hud,
-  .hero-left {
+  .hud {
     display: none;
   }
-  .hero-fallback {
+  .hero-left {
+    top: 84px;
     width: 100%;
-    top: 18%;
+    align-items: center;
+    text-align: center;
+  }
+  .hero-left > :not(.hero-name) {
+    display: none;
+  }
+  .hero-name {
+    font-size: 12vw;
   }
   .mascot {
     left: 50%;
-    top: 21%;
-    height: 29%;
+    height: 26%;
   }
   .hero-right {
     top: 52%;

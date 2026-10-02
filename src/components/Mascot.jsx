@@ -185,6 +185,11 @@ export default function Mascot({ visible }) {
             <stop offset="0" stopColor="#fffaf0" />
             <stop offset="1" stopColor="#f3e6cc" />
           </radialGradient>
+          <radialGradient id="tick-floor">
+            <stop offset="0" stopColor="#38bdf8" stopOpacity="0.55" />
+            <stop offset="0.6" stopColor="#1d4ed8" stopOpacity="0.18" />
+            <stop offset="1" stopColor="#1d4ed8" stopOpacity="0" />
+          </radialGradient>
           <pattern id="tick-scan" width="4" height="4" patternUnits="userSpaceOnUse">
             <rect width="4" height="1.4" fill="#ffffff" opacity="0.18" />
           </pattern>
@@ -193,12 +198,13 @@ export default function Mascot({ visible }) {
           </clipPath>
         </defs>
 
+        {/* Light pool where Tick stands on the chat box */}
+        <ellipse cx="160" cy="366" rx="86" ry="11" fill="url(#tick-floor)" />
         {/* Legs + shoes (outside the bobbing body so the feet stay planted) */}
         <line ref={r.legs[0]} x1="138" y1="268" x2="132" y2="348" stroke={INK} strokeWidth="7" strokeLinecap="round" />
         <line ref={r.legs[1]} x1="182" y1="268" x2="188" y2="348" stroke={INK} strokeWidth="7" strokeLinecap="round" />
         <path d="M108,360 Q108,342 130,343 Q148,344 148,360 Z" fill="#f59e0b" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
         <path d="M172,360 Q172,344 190,343 Q212,342 212,360 Z" fill="#f59e0b" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-        <line x1="96" y1="372" x2="224" y2="372" stroke={INK} strokeWidth="3" strokeLinecap="round" opacity="0.35" />
 
         <g ref={r.body}>
           {/* Bells + hammer */}

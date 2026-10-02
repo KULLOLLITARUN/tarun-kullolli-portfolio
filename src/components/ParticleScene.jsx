@@ -136,6 +136,7 @@ const nameVertex = /* glsl */ `
 uniform float uTime;
 uniform float uProgress;
 uniform float uSplit;
+uniform float uFade;
 uniform vec2 uMouse;
 uniform float uSize;
 uniform float uPixelRatio;
@@ -174,7 +175,7 @@ void main() {
   gl_Position = projectionMatrix * mv;
   gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6) * (1.0 + scan * 0.6) / -mv.z;
   vColor = step(0.97, aRand) > 0.5 ? vec3(0.96, 0.71, 0.27) : vec3(0.96);
-  vAlpha = (0.6 + 0.4 * aRand) + scan * 0.6;
+  vAlpha = ((0.6 + 0.4 * aRand) + scan * 0.6) * uFade;
   vForce = f + scan * 0.5;
 }
 `
@@ -196,7 +197,7 @@ void main() {
   float big = step(0.985, aRand) * 3.5;
   gl_PointSize = uSize * uPixelRatio * (0.5 + aRand + big) / -mv.z;
   vColor = aColor;
-  vAlpha = (0.25 + 0.75 * (0.5 + 0.5 * sin(uTime * (0.6 + aRand * 1.8) + aRand * 90.0))) * (0.35 + 0.65 * aRand);
+  vAlpha = (0.4 + 0.6 * (0.5 + 0.5 * sin(uTime * (0.6 + aRand * 1.8) + aRand * 90.0))) * (0.5 + 0.5 * aRand);
   vForce = 0.0;
 }
 `
@@ -219,8 +220,9 @@ function useUniforms(extra) {
 const pointsMaterial = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }
 
 // ── Name ─────────────────────────────────────────────────────────────
-function NameField({ split, reduce, ndc, wide, onFormed }) {
-  const { viewport } = useThree()
+function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed }) {
+  const { viewport, gl } = useThree()
+  const fade = useRef(1)
   const group = useRef()
   const mat = useRef()
   const mouse = useRef(new THREE.Vector2(99, 99))
@@ -254,6 +256,7 @@ function NameField({ split, reduce, ndc, wide, onFormed }) {
   const uniforms = useUniforms(() => ({
     uProgress: { value: progress.current },
     uSplit: { value: 0 },
+    uFade: { value: 1 },
     uMouse: { value: new THREE.Vector2(99, 99) },
   }))
 
@@ -275,9 +278,27 @@ function NameField({ split, reduce, ndc, wide, onFormed }) {
     u.uSplit.value = wide ? e : 1
 
     const L = layout(viewport, wide)
-    const s = L.nameA.s + (L.nameB.s - L.nameA.s) * e
-    const x = L.nameA.x + (L.nameB.x - L.nameA.x) * e
-    const y = L.nameA.y + (L.nameB.y - L.nameA.y) * e
+    // After the split the particles land exactly on the crisp DOM name (the anchor).
+    let B = L.nameB
+    const el = anchor?.current
+    if (el) {
+      const c = gl.domElement.getBoundingClientRect()
+      const r = el.getBoundingClientRect()
+      if (r.width > 0 && c.width > 0) {
+        B = {
+          x: ((r.left - c.left + r.width / 2) / c.width - 0.5) * viewport.width,
+          y: -((r.top - c.top + r.height / 2) / c.height - 0.5) * viewport.height,
+          s: ((r.width / c.width) * viewport.width) / TEXT_W,
+        }
+      }
+    }
+    const s = L.nameA.s + (B.s - L.nameA.s) * e
+    const x = L.nameA.x + (B.x - L.nameA.x) * e
+    const y = L.nameA.y + (B.y - L.nameA.y) * e
+    // Once the crisp name is showing, the particles dissolve away.
+    fade.current = resolved ? (reduce ? 0 : Math.max(0, fade.current - dt / 0.9)) : 1
+    u.uFade.value = fade.current
+    group.current.visible = fade.current > 0.001
     group.current.scale.setScalar(s)
     group.current.position.set(x, y, 0)
 
@@ -304,13 +325,20 @@ function StarField({ ndc, wide }) {
   const group = useRef()
   const mat = useRef()
   const geometry = useMemo(() => {
-    const count = wide ? 3200 : 1400
+    const count = wide ? 26000 : 9000
     const pos = new Float32Array(count * 3)
     const rand = new Float32Array(count)
     const color = new Float32Array(count * 3)
     const cols = STAR_COLORS.map((h) => new THREE.Color(h))
+    const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random())
     for (let i = 0; i < count; i++) {
-      pos.set([(Math.random() - 0.5) * 34, (Math.random() - 0.5) * 18, -10 + Math.random() * 11], i * 3)
+      if (i % 5 < 3) {
+        // 60%: a dense, slightly tilted galaxy band across the middle.
+        const x = (Math.random() - 0.5) * 36
+        pos.set([x, gauss() * 0.9 + x * 0.06 - 0.3, -9 + Math.random() * 9], i * 3)
+      } else {
+        pos.set([(Math.random() - 0.5) * 36, (Math.random() - 0.5) * 20, -10 + Math.random() * 11], i * 3)
+      }
       rand[i] = Math.random()
       const c = Math.random() < 0.45 ? cols[0] : cols[1 + ((Math.random() * (cols.length - 1)) | 0)]
       color.set([c.r, c.g, c.b], i * 3)
@@ -322,7 +350,7 @@ function StarField({ ndc, wide }) {
     return g
   }, [wide])
   useEffect(() => () => geometry.dispose(), [geometry])
-  const uniforms = useUniforms(() => ({}))
+  const uniforms = useUniforms(() => ({ uSize: { value: 26 } }))
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
@@ -342,7 +370,7 @@ function StarField({ ndc, wide }) {
   )
 }
 
-export default function ParticleScene({ active, split, reduce, wide, onFormed }) {
+export default function ParticleScene({ active, split, resolved, nameAnchor, reduce, wide, onFormed }) {
   const ndc = usePointer()
   return (
     <Canvas
@@ -352,7 +380,7 @@ export default function ParticleScene({ active, split, reduce, wide, onFormed })
       frameloop={active ? 'always' : 'never'}
     >
       <StarField ndc={ndc} wide={wide} />
-      <NameField key={`name-${wide}`} split={split} reduce={reduce} ndc={ndc} wide={wide} onFormed={onFormed} />
+      <NameField key={`name-${wide}`} split={split} resolved={resolved} anchor={nameAnchor} reduce={reduce} ndc={ndc} wide={wide} onFormed={onFormed} />
     </Canvas>
   )
 }

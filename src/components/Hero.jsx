@@ -61,8 +61,9 @@ function SplitText({ text }) {
   )
 }
 
-export default function Hero() {
+export default function Hero({ onTour }) {
   const ref = useRef(null)
+  const nameRef = useRef(null)
   const [visible, setVisible] = useState(true)
   const [webgl] = useState(hasWebGL)
   const reduce = useReducedMotion()
@@ -70,6 +71,14 @@ export default function Hero() {
   const fontsReady = useFontsReady()
   // Phase 1: the name forms. Phase 2 ("split"): name moves aside, face + chat appear.
   const [split, setSplit] = useState(() => reduce || !webgl)
+  // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
+  const [resolved, setResolved] = useState(() => reduce || !webgl)
+
+  useEffect(() => {
+    if (!split || resolved) return
+    const t = setTimeout(() => setResolved(true), 1900)
+    return () => clearTimeout(t)
+  }, [split, resolved])
 
   useEffect(() => {
     const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting))
@@ -111,11 +120,17 @@ export default function Hero() {
       <div className="hero-canvas" aria-hidden="true">
         {webgl && fontsReady ? (
           <Suspense fallback={null}>
-            <ParticleScene active={visible} split={split} reduce={reduce} wide={wide} onFormed={() => setTimeout(() => setSplit(true), 500)} />
+            <ParticleScene
+              active={visible}
+              split={split}
+              resolved={resolved}
+              nameAnchor={nameRef}
+              reduce={reduce}
+              wide={wide}
+              onFormed={() => setTimeout(() => setSplit(true), 500)}
+            />
           </Suspense>
-        ) : (
-          !webgl && <p className="hero-fallback">{profile.name}</p>
-        )}
+        ) : null}
       </div>
 
       <div className="hud hud-left mono">
@@ -132,18 +147,32 @@ export default function Hero() {
       </h1>
 
       <div className="hero-left">
+        {/* Crisp name; the particle name lands exactly on this element, then dissolves. */}
+        <p ref={nameRef} className={`hero-name${resolved ? ' is-resolved' : ''}`} aria-hidden="true">
+          {profile.name
+            .toUpperCase()
+            .split(' ')
+            .map((w) => (
+              <span key={w}>{w}</span>
+            ))}
+        </p>
         <p className="hero-role">
           <SplitText text={profile.role.toUpperCase()} />
         </p>
         <p className="hero-quote mono">
           <SplitText text={`“${profile.tagline}”`} />
         </p>
-        <a href="#experiments" className="scroll-cue mono reveal">
-          <span className="glyph" aria-hidden="true">
-            ∇
-          </span>
-          Experiments <span aria-hidden="true">↓</span>
-        </a>
+        <div className="hero-links reveal">
+          <a href="#experiments" className="scroll-cue mono">
+            <span className="glyph" aria-hidden="true">
+              ∇
+            </span>
+            See my work <span aria-hidden="true">↓</span>
+          </a>
+          <button type="button" className="tour-link mono" onClick={onTour}>
+            <span aria-hidden="true">▶</span> Take the 60-second tour
+          </button>
+        </div>
       </div>
 
       <Mascot visible={split} />

@@ -107,8 +107,15 @@ export const experiments = [
     ],
     metric: { value: '85–97%', label: 'Less HTML sent to the LLM' },
     architecture: ['Fetch', 'Distill', 'Infer', 'Validate', 'Output'],
-    // TODO: replace with a real screenshot (without the Naukri preset or stealth label).
-    shots: [{ placeholder: true }],
+    shots: [
+      {
+        src: '/projects/agentic-web-scraper.webp',
+        width: 1600,
+        height: 724,
+        alt: 'Web Scraper app: a page URL, the fields to extract described in plain English, retry and scroll options, and the fetch, clean, extract and validate pipeline',
+        caption: 'Describe the fields in plain English; the page is fetched, cleaned, extracted and validated into JSON.',
+      },
+    ],
     stack: ['Python', 'Playwright', 'Groq', 'Pydantic', 'FastAPI', 'React'],
     keywords: ['scraper', 'web scraper', 'scraping', 'agentic'],
     links: {

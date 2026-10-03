@@ -81,47 +81,6 @@ export const experiments = [
     },
   },
   {
-    code: 'AGENT',
-    title: 'Agentic Web Scraper',
-    subtitle: 'Plain-English web extraction with a self-healing LLM pipeline',
-    year: '2026',
-    role: 'Solo build · AI-assisted',
-    description:
-      'Autonomous, self-healing web extraction system: describe the data you want in plain English and get validated, structured JSON from static sites and dynamic React apps, with no CSS selectors.',
-    problem:
-      'Traditional scrapers rely on rigid CSS selectors and XPath, so they break as soon as a site changes its design, obfuscates its class names or moves to a client-side React or Next.js app.',
-    approach: [
-      'The data to extract is described in plain English instead of CSS selectors',
-      'A headless Playwright browser renders client-side JavaScript and scrolls to load lazy content',
-      'An HTML distiller strips noisy structural tags so the LLM receives 85–97% less input',
-      'A Groq-hosted Qwen model identifies entities by meaning rather than by class names',
-      'A Pydantic validator checks schema and types; on failure it feeds the exact error back to the model to self-correct, up to a set number of retries',
-    ],
-    result: '85–97% smaller pages before the LLM, in under 8ms',
-    results: [
-      'Quotes to Scrape: 10 quotes extracted, 0 retries, 85% compression',
-      'Y Combinator job directory: 30 jobs extracted in a single pass',
-      'Apple: 6 phone models extracted with ₹ prices',
-      'Groq inference in 1–2 seconds after distillation',
-    ],
-    metric: { value: '85–97%', label: 'Less HTML sent to the LLM' },
-    architecture: ['Fetch', 'Distill', 'Infer', 'Validate', 'Output'],
-    shots: [
-      {
-        src: '/projects/agentic-web-scraper.webp',
-        width: 1600,
-        height: 724,
-        alt: 'Web Scraper app: a page URL, the fields to extract described in plain English, retry and scroll options, and the fetch, clean, extract and validate pipeline',
-        caption: 'Describe the fields in plain English; the page is fetched, cleaned, extracted and validated into JSON.',
-      },
-    ],
-    stack: ['Python', 'Playwright', 'Groq', 'Pydantic', 'FastAPI', 'React'],
-    keywords: ['scraper', 'web scraper', 'scraping', 'agentic'],
-    links: {
-      code: 'https://github.com/KULLOLLITARUN/Agentic-Web-Scraper',
-    },
-  },
-  {
     code: 'ANALYZER',
     title: 'PBIP Sentinel',
     subtitle: 'Static analysis & CI quality gate for Power BI projects',
@@ -161,6 +120,47 @@ export const experiments = [
     links: {
       code: 'https://github.com/KULLOLLITARUN/Power-BI-Report-Quality-Performance-Scanner',
       live: 'https://pbip-sentinel.netlify.app/',
+    },
+  },
+  {
+    code: 'AGENT',
+    title: 'Agentic Web Scraper',
+    subtitle: 'Plain-English web extraction with a self-healing LLM pipeline',
+    year: '2026',
+    role: 'Solo build · AI-assisted',
+    description:
+      'Autonomous, self-healing web extraction system: describe the data you want in plain English and get validated, structured JSON from static sites and dynamic React apps, with no CSS selectors.',
+    problem:
+      'Traditional scrapers rely on rigid CSS selectors and XPath, so they break as soon as a site changes its design, obfuscates its class names or moves to a client-side React or Next.js app.',
+    approach: [
+      'The data to extract is described in plain English instead of CSS selectors',
+      'A headless Playwright browser renders client-side JavaScript and scrolls to load lazy content',
+      'An HTML distiller strips noisy structural tags so the LLM receives 85–97% less input',
+      'A Groq-hosted Qwen model identifies entities by meaning rather than by class names',
+      'A Pydantic validator checks schema and types; on failure it feeds the exact error back to the model to self-correct, up to a set number of retries',
+    ],
+    result: '85–97% smaller pages before the LLM, in under 8ms',
+    results: [
+      'Quotes to Scrape: 10 quotes extracted, 0 retries, 85% compression',
+      'Y Combinator job directory: 30 jobs extracted in a single pass',
+      'Apple: 6 phone models extracted with ₹ prices',
+      'Groq inference in 1–2 seconds after distillation',
+    ],
+    metric: { value: '85–97%', label: 'Less HTML sent to the LLM' },
+    architecture: ['Fetch', 'Distill', 'Infer', 'Validate', 'Output'],
+    shots: [
+      {
+        src: '/projects/agentic-web-scraper.webp',
+        width: 1600,
+        height: 724,
+        alt: 'Web Scraper app: a page URL, the fields to extract described in plain English, retry and scroll options, and the fetch, clean, extract and validate pipeline',
+        caption: 'Describe the fields in plain English; the page is fetched, cleaned, extracted and validated into JSON.',
+      },
+    ],
+    stack: ['Python', 'Playwright', 'Groq', 'Pydantic', 'FastAPI', 'React'],
+    keywords: ['scraper', 'web scraper', 'scraping', 'agentic'],
+    links: {
+      code: 'https://github.com/KULLOLLITARUN/Agentic-Web-Scraper',
     },
   },
 ]

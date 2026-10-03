@@ -73,17 +73,13 @@ export default function Hero({ onTour }) {
   // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
   const [resolved, setResolved] = useState(() => reduce || !webgl)
 
+  // Normally the particle scene resolves the name after its white sweep (onSwept);
+  // this is only a safety net in case frames stall.
   useEffect(() => {
     if (!split || resolved) return
-    const t = setTimeout(() => setResolved(true), 1900)
+    const t = setTimeout(() => setResolved(true), 6000)
     return () => clearTimeout(t)
   }, [split, resolved])
-
-  useEffect(() => {
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting))
-    io.observe(ref.current)
-    return () => io.disconnect()
-  }, [])
 
   // Safety net: never leave visitors waiting if WebGL is slow to start.
   useEffect(() => {
@@ -126,7 +122,9 @@ export default function Hero({ onTour }) {
               nameAnchor={nameRef}
               reduce={reduce}
               wide={wide}
-              onFormed={() => setTimeout(() => setSplit(true), 500)}
+              // Move aside as soon as the golden sweep (2.4s) has crossed the name.
+              onFormed={() => setTimeout(() => setSplit(true), 2400)}
+              onSwept={() => setResolved(true)}
             />
           </Suspense>
         ) : null}
@@ -146,7 +144,8 @@ export default function Hero({ onTour }) {
       </h1>
 
       <div className="hero-left">
-        {/* Crisp name; the particle name lands exactly on this element, then dissolves. */}
+        {/* Crisp name; the particle name lands exactly on this element, then dissolves.
+            On hover, a spotlight around the cursor opens it back up into particles. */}
         <p ref={nameRef} className={`hero-name${resolved ? ' is-resolved' : ''}`} aria-hidden="true">
           {profile.name
             .toUpperCase()

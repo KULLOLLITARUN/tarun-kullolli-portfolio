@@ -2,7 +2,11 @@
 import { acts, certifications, education, experiments, profile, skills } from '../data.js'
 import { SITE_GUIDE } from './siteGuide.js'
 
-export function buildSystemPrompt() {
+// logging: whether visitors' questions are logged (server/questionLog.js); Kairo only says so when true.
+export function buildSystemPrompt({ logging = false } = {}) {
+  const guide = logging
+    ? [...SITE_GUIDE, 'Questions asked in this chat are saved anonymously (just the question and the time) so Tarun can improve the answers.']
+    : SITE_GUIDE
   const resume = [
     `NAME: ${profile.name}`,
     `ROLE: ${profile.role}`,
@@ -70,5 +74,5 @@ RESUME
 ${resume}
 
 SITE GUIDE (the sections and features of this website)
-${SITE_GUIDE.map((line) => `- ${line}`).join('\n')}`
+${guide.map((line) => `- ${line}`).join('\n')}`
 }

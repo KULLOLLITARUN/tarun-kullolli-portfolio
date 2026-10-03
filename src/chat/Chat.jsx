@@ -70,10 +70,19 @@ export default function Chat({ visible }) {
   const [busy, setBusy] = useState(false)
   const [announce, setAnnounce] = useState('')
   const [mode, setMode] = useState(null) // 'live' | 'offline' after the first answer
+  const [logging, setLogging] = useState(false) // questions are logged (server/questionLog.js)
   const log = useRef(null)
   const timers = useRef([])
   const askRef = useRef(null)
   const reduce = useReducedMotion()
+
+  // The anonymous-log notice is shown only when the server really logs questions.
+  useEffect(() => {
+    fetch('/api/chat')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((info) => setLogging(info?.logging === true))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const el = log.current
@@ -234,16 +243,18 @@ export default function Chat({ visible }) {
           placeholder="Ask about Tarun’s experience…"
           maxLength={200}
           autoComplete="off"
-          aria-describedby="chat-note"
+          aria-describedby={logging ? 'chat-note' : undefined}
         />
         <button type="submit" className="chat-send" disabled={busy || !input.trim()} aria-label="Send question">
           ↑
         </button>
       </form>
-      {/* Questions are logged anonymously (server/questionLog.js); say so plainly. */}
-      <p id="chat-note" className="chat-note">
-        Questions are saved anonymously to improve Kairo’s answers.
-      </p>
+      {/* When questions are logged (server/questionLog.js), say so plainly. */}
+      {logging && (
+        <p id="chat-note" className="chat-note">
+          Questions are saved anonymously to improve Kairo’s answers.
+        </p>
+      )}
     </section>
   )
 }

@@ -1,11 +1,15 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { handleChat, sendChat } from './server/chatCore.js'
+import { chatInfo, handleChat, sendChat } from './server/chatCore.js'
 
 // Serves /api/chat during `npm run dev` / `npm run preview`, mirroring the
 // Vercel function in api/.
 function localApi(env) {
   const chat = (req, res) => {
+    if (req.method === 'GET') {
+      res.setHeader('Content-Type', 'application/json')
+      return res.end(JSON.stringify(chatInfo(env)))
+    }
     if (req.method !== 'POST') {
       res.statusCode = 405
       return res.end()

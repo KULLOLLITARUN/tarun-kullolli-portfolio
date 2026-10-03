@@ -15,5 +15,4 @@ export const SITE_GUIDE = [
   'Command menu: press Ctrl+K (Cmd+K on a Mac) or the ⌘ button to jump to a section, copy his email, download the resume, start the tour or change colours.',
   `Colours: click Kairo to ring its alarm and pick a time of day (${themeNames}).`,
   'Kairo’s clock hands show your local time. It dozes off when left alone and gets grumpy at off-topic questions.',
-  'Questions asked in this chat are saved anonymously (just the question and the time) so Tarun can improve the answers.',
 ]

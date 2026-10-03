@@ -2,10 +2,13 @@
 // The answer streams back as plain text while Groq generates it.
 // Validates input, rate-limits per IP and asks Groq. The API key stays server-side.
 import { buildSystemPrompt } from '../src/chat/prompt.js'
-import { logQuestion } from './questionLog.js'
+import { isLogging, logQuestion } from './questionLog.js'
+
+// GET /api/chat: what the chat needs to know before the first question.
+export const chatInfo = (env) => ({ logging: isLogging(env) })
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const SYSTEM = buildSystemPrompt()
+const SYSTEM = { on: buildSystemPrompt({ logging: true }), off: buildSystemPrompt() }
 const WINDOW_MS = 10 * 60 * 1000
 const MAX_PER_WINDOW = 25
 const hitsByIp = new Map()
@@ -73,7 +76,7 @@ export async function handleChat({ body, ip, env }) {
         include_reasoning: false,
         max_tokens: 700,
         stream: true,
-        messages: [{ role: 'system', content: SYSTEM }, ...history],
+        messages: [{ role: 'system', content: isLogging(env) ? SYSTEM.on : SYSTEM.off }, ...history],
       }),
       signal: AbortSignal.timeout(15000),
     })

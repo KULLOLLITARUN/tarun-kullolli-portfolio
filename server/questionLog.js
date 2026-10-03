@@ -6,11 +6,13 @@
 export const LOG_KEY = 'kairo:questions'
 const MAX_KEPT = 2000
 
+export const isLogging = (env) => Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN)
+
 // Never throws: a logging problem must not break the chat.
 export async function logQuestion(question, turn, env) {
+  if (!isLogging(env)) return
   const url = env.UPSTASH_REDIS_REST_URL
   const token = env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return
   const entry = JSON.stringify({ q: question, turn, at: new Date().toISOString() })
   try {
     await fetch(`${url}/pipeline`, {

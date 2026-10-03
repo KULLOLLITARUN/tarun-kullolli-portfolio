@@ -160,6 +160,11 @@ void main() {
 
 const MAX_CARDS = 8
 const MAX_PANELS = 8 // skill panels traced in section 4
+// A station's particles leave for the next one once its bottom edge is this far down the
+// screen (so it dissolves as it scrolls away, not while it is being read), with at least
+// MIN_FLIGHT screens of scrolling for the flight itself.
+const LEAVE_AT = 0.3
+const MIN_FLIGHT = 0.25
 const SWEEP_S = 2.4 // duration of each light sweep across the name
 // Eased sweep position in name space: glides in, lingers across the letters, glides out.
 const sweepX = (k) => -8 + 16 * (0.5 - 0.5 * Math.cos(Math.PI * k))
@@ -426,11 +431,15 @@ void main() {
   float atCard = smoothstep(0.96, 1.0, cp) * step(0.5, uCount);
   // Landed particles stay lit on the outline until their card fades in (same timing as the
   // --reveal values set in JS), then cross-fade into it, so the outline never blinks out.
+  // When the next leg starts, the particles that move on light up again while the element
+  // fades out (JS: 1 - smoothstep(0, 0.05, next leg)), so a station dissolves into its
+  // particles, and on the way back up it re-forms from them.
   float f2 = min(0.85, 0.65 + 0.3 * floor(h * uDotCount) / max(uDotCount, 1.0));
-  float keep2 = 1.0 - smoothstep(f2 + 0.05, f2 + 0.15, uTl);
-  float transit2 = smoothstep(0.0, 0.04, e2) * mix(1.0, keep2, smoothstep(0.9, 1.0, e2));
+  float keep2 = max(1.0 - smoothstep(f2 + 0.05, f2 + 0.15, uTl), cont3 * smoothstep(0.0, 0.05, uSkT));
+  float pre2 = cont * smoothstep(0.0, 0.05, uTl);
+  float transit2 = max(smoothstep(0.0, 0.04, e2), pre2) * mix(1.0, keep2, smoothstep(0.9, 1.0, e2));
   float f3 = min(0.85, 0.5 + 0.4 * bi / max(uSkCount, 1.0));
-  float keep3 = 1.0 - smoothstep(f3 + 0.05, f3 + 0.15, uSkT);
+  float keep3 = max(1.0 - smoothstep(f3 + 0.05, f3 + 0.15, uSkT), cont4 * smoothstep(0.0, 0.05, uCt));
   float transit3 = smoothstep(0.0, 0.04, e3) * mix(1.0, keep3, smoothstep(0.9, 1.0, e3));
   float f4 = kind > 0.5 ? 0.82 : 0.62;
   float keep4 = 1.0 - smoothstep(f4 + 0.05, f4 + 0.15, uCt);
@@ -561,6 +570,9 @@ const smoothstepJS = (a, b, v) => {
   const t = Math.min(1, Math.max(0, (v - a) / (b - a)))
   return t * t * (3 - 2 * t)
 }
+// How far an element is still shown while its particles leave for the next station
+// (1 → 0 at the start of the next leg; keep in sync with pre2/keep2/keep3 in the shader).
+const stay = (next) => 1 - smoothstepJS(0, 0.05, next)
 
 function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwept }) {
   const { viewport, gl } = useThree()
@@ -765,6 +777,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const scrollPx = window.scrollY
     const first = count ? (cards[0].querySelector('.holo') || cards[0]).getBoundingClientRect() : null
     let cardsAt = 0 // scroll position (px) at which the last card has formed
+    let cardsOff = 0 // scroll position (px) at which the cards start leaving (bottom edge at LEAVE_AT)
+    // The station a leg leaves from must be complete; the flight lasts at least MIN_FLIGHT screens.
+    const legFrom = (doneAt, leaveAt, arriveAt) => Math.max(doneAt, Math.min(leaveAt, arriveAt - c.height * MIN_FLIGHT))
+    const legT = (from, at) => Math.min(1, Math.max(0, at > from + 1 ? (scrollPx - from) / (at - from) : scrollPx >= at ? 1 : 0))
     for (let i = 0; i < count; i++) {
       const card = cards[i]
       const r = (card.querySelector('.holo') || card).getBoundingClientRect()
@@ -773,6 +789,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       // Travel: 0 at the top of the page, 1 when the card's centre reaches 55% of the screen.
       const remaining = r.top + r.height / 2 - c.height * 0.55
       cardsAt = Math.max(cardsAt, scrollPx + remaining)
+      cardsOff = Math.max(cardsOff, scrollPx + r.bottom - c.height * LEAVE_AT)
       const goal = journey ? Math.min(1, scrollPx / Math.max(1, scrollPx + Math.max(0, remaining))) : 0
       // Momentum: the particles ease toward the scroll position instead of tracking it rigidly.
       travel.current[i] += (goal - travel.current[i]) * (1 - Math.exp(-dt * 5))
@@ -784,8 +801,9 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         (r.width / c.width) * viewport.width,
         (r.height / c.height) * viewport.height,
       )
-      // The glass card fades in once its particles have landed.
-      const k = journey ? smoothstepJS(0.93, 1, travel.current[i]) : 1
+      // The glass card fades in once its particles have landed, and out as they leave for the
+      // timeline (tl from the previous frame).
+      const k = journey ? smoothstepJS(0.93, 1, travel.current[i]) * stay(tl.current) : 1
       const o = k.toFixed(3)
       if (card.style.opacity !== o) {
         card.style.opacity = o
@@ -800,6 +818,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const timeline = document.querySelector('#acts .acts')
     let tlGoal = 0
     let tlAt = 0 // scroll position (px) at which the timeline is fully drawn
+    let tlOff = 0 // scroll position (px) at which the timeline starts leaving
     if (timeline && count) {
       const ar = timeline.getBoundingClientRect()
       const items = [...timeline.children].slice(0, 4).map((a) => a.getBoundingClientRect())
@@ -816,6 +835,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       // The act glass cards, traced by half of the particles that reach the timeline.
       ;[...timeline.children].slice(0, 4).forEach((act, i) => {
         const pr = (act.querySelector('.act-panel') || act).getBoundingClientRect()
+        tlOff = Math.max(tlOff, scrollPx + pr.bottom - c.height * LEAVE_AT)
         u.uActs.value[i].set(
           toWX(pr.left + pr.width / 2),
           toWY(pr.top + pr.height / 2),
@@ -824,22 +844,23 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         )
       })
       u.uDotR.value = (7 / c.height) * viewport.height
-      // 0 once the last card has formed, 1 when the timeline is ~60% down the screen.
+      // 0 while the cards are still being read (until they scroll up to LEAVE_AT), 1 when the
+      // timeline is ~60% down the screen.
       tlAt = scrollPx + ar.top + (vertical ? Math.min(ar.height, c.height * 0.5) / 2 : 0) - c.height * 0.6
-      if (journey) {
-        tlGoal = tlAt > cardsAt + 1 ? (scrollPx - cardsAt) / (tlAt - cardsAt) : scrollPx >= tlAt ? 1 : 0
-        tlGoal = Math.min(1, Math.max(0, tlGoal))
-      }
+      if (journey) tlGoal = legT(legFrom(cardsAt, cardsOff, tlAt), tlAt)
     }
     // Slower momentum than the first river: by now the visitor is reading.
     tl.current += (tlGoal - tl.current) * (1 - Math.exp(-dt * 3.5))
     if (Math.abs(tlGoal - tl.current) < 0.0005) tl.current = tlGoal
     u.uTl.value = tl.current
     // The real line and dots appear as the particles arrive (CSS reads --tl), and each act's
-    // text fades in when the particles reach its dot (--reveal), in drawing order.
+    // text fades in when the particles reach its dot (--reveal), in drawing order. All of it fades
+    // out again as the particles leave for the skill panels (sk from the previous frame); Tick
+    // sinks back into the line with it.
     if (timeline) {
       const on = journey && count
-      const mark = on ? smoothstepJS(0.85, 1, tl.current).toFixed(3) : ''
+      const out = stay(sk.current)
+      const mark = on ? (smoothstepJS(0.85, 1, tl.current) * out).toFixed(3) : ''
       if (mark !== tlMark.current) {
         if (mark) timeline.style.setProperty('--tl', mark)
         else timeline.style.removeProperty('--tl')
@@ -857,7 +878,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
           // shader); the card only fades in after that, so it appears once its outline is done.
           // (Keep in sync with f2 in the shader.)
           const from = Math.min(0.85, 0.65 + 0.3 * h)
-          v = smoothstepJS(from, Math.min(1, from + 0.15), tl.current).toFixed(3)
+          v = (smoothstepJS(from, Math.min(1, from + 0.15), tl.current) * out).toFixed(3)
         }
         if (act.style.getPropertyValue('--reveal') !== v) {
           if (v) act.style.setProperty('--reveal', v)
@@ -870,8 +891,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const panels = [...document.querySelectorAll('#system .glass-panel')].slice(0, MAX_PANELS)
     let skGoal = 0
     let skAt = 0 // scroll position (px) at which the skill panels are traced
+    let skOff = 0 // scroll position (px) at which the panels start leaving
     if (panels.length && timeline && count) {
       const rects = panels.map((p) => p.getBoundingClientRect())
+      skOff = Math.max(...rects.map((pr) => scrollPx + pr.bottom - c.height * LEAVE_AT))
       const per = rects.map((pr) => 2 * (pr.width + pr.height))
       const total = per.reduce((a, b) => a + b, 0) || 1
       let cum = 0
@@ -885,25 +908,24 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         cum += per[i] / total
         u.uSkCum.value[i] = cum
       })
-      // 0 once the timeline is drawn, 1 when the first (headline) panel is ~60% down the screen.
+      // 0 while the timeline is still being read, 1 when the first (headline) panel is ~60% down
+      // the screen.
       skAt = scrollPx + rects[0].top + Math.min(rects[0].height, c.height * 0.3) - c.height * 0.6
-      if (journey) {
-        skGoal = skAt > tlAt + 1 ? (scrollPx - tlAt) / (skAt - tlAt) : scrollPx >= skAt ? 1 : 0
-        skGoal = Math.min(1, Math.max(0, skGoal))
-      }
+      if (journey) skGoal = legT(legFrom(tlAt, tlOff, skAt), skAt)
     }
     u.uSkCount.value = journey && count ? panels.length : 0
     sk.current += (skGoal - sk.current) * (1 - Math.exp(-dt * 3.5))
     if (Math.abs(skGoal - sk.current) < 0.0005) sk.current = skGoal
     u.uSkT.value = sk.current
-    // Each panel fades in once its outline is traced (CSS reads --reveal; unset = visible).
+    // Each panel fades in once its outline is traced (CSS reads --reveal; unset = visible), and
+    // out as the particles leave for Contact (ct from the previous frame).
     panels.forEach((p, i) => {
       let v = ''
       if (journey && count) {
         // The last particle for panel i lands at sk = 0.4·i/n + 0.4 + 0.1 (see leg 3 in the
         // shader); the panel only fades in after that. (Keep in sync with f3 in the shader.)
         const from = Math.min(0.85, 0.5 + (0.4 * i) / panels.length)
-        v = smoothstepJS(from, Math.min(1, from + 0.15), sk.current).toFixed(3)
+        v = (smoothstepJS(from, Math.min(1, from + 0.15), sk.current) * stay(ct.current)).toFixed(3)
       }
       if (p.style.getPropertyValue('--reveal') !== v) {
         if (v) p.style.setProperty('--reveal', v)
@@ -927,14 +949,11 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
           (br.height / c.height) * viewport.height,
         )
       })
-      // 0 once the skill panels are traced, 1 when the word is ~55% down the screen — capped at
-      // the bottom of the page, since Contact is last and may never scroll that high.
+      // 0 while the skill panels are still being read, 1 when the word is ~55% down the screen —
+      // capped at the bottom of the page, since Contact is last and may never scroll that high.
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight
       const ctAt = Math.min(scrollPx + wr.top + wr.height / 2 - c.height * 0.55, maxScroll - 2)
-      if (journey) {
-        ctGoal = ctAt > skAt + 1 ? (scrollPx - skAt) / (ctAt - skAt) : scrollPx >= ctAt ? 1 : 0
-        ctGoal = Math.min(1, Math.max(0, ctGoal))
-      }
+      if (journey) ctGoal = legT(legFrom(skAt, skOff, ctAt), ctAt)
     }
     u.uWord.value.z = journey && count && wordEl ? u.uWord.value.z : 0
     u.uBtnCount.value = journey && count ? btns.length : 0

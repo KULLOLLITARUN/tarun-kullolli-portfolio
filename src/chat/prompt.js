@@ -18,7 +18,22 @@ export function buildSystemPrompt() {
     ...acts.filter((a) => a.name === 'Next').map((a) => `- ${a.title}: ${a.points.join(' ')}`),
     '',
     'PROJECTS:',
-    ...experiments.map((e) => `- ${e.title} (${e.stack.join(', ')}): ${e.description} Result: ${e.result}.`),
+    // One line per project (the rules forbid moving facts between lines), with every detail field.
+    ...experiments.map((e) =>
+      [
+        `- ${e.title}${e.year ? ` (${e.year})` : ''}${e.role ? `, ${e.role}` : ''}. Stack: ${e.stack.join(', ')}.`,
+        e.description,
+        e.problem && `Problem: ${e.problem}`,
+        e.approach?.length && `Approach: ${e.approach.join('; ')}.`,
+        `Results: ${(e.results?.length ? e.results : [e.result]).join('; ')}.`,
+        Object.entries(e.links || {})
+          .filter(([, url]) => url && url !== '#')
+          .map(([kind, url]) => `${kind === 'live' ? 'Live demo' : 'Code'}: ${url}`)
+          .join(', '),
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ),
     '',
     'SKILLS:',
     ...skills.filter((g) => g.items.length).map((g) => `- ${g.group}: ${g.items.join(', ')}`),

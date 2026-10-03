@@ -1,5 +1,3 @@
-import { useMemo } from 'react'
-
 // Shared "holographic" visuals used by the project cards and the project panel.
 
 export function rng(seed) {
@@ -7,9 +5,10 @@ export function rng(seed) {
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646
 }
 
-// The tech stack drawn as a small system diagram: nodes linked by "data flow" lines.
+// A project's pipeline (or its stack) drawn as a small system diagram: nodes linked by
+// "data flow" lines, in order.
 export function StackFlow({ stack, seed }) {
-  const nodes = stack.slice(0, 5)
+  const nodes = stack.slice(0, 6)
   const W = 240
   const width = (label) => Math.max(40, label.length * 5.4 + 14)
   const pts = nodes.map((label, i) => {
@@ -48,27 +47,6 @@ export function StackFlow({ stack, seed }) {
           </g>
         )
       })}
-    </svg>
-  )
-}
-
-export function Sparkline({ trend = 'up', seed }) {
-  const d = useMemo(() => {
-    const r = rng(seed + 7)
-    const n = 18
-    const pts = Array.from({ length: n }, (_, i) => {
-      const t = i / (n - 1)
-      const base = trend === 'down' ? 0.85 - t * 0.6 : trend === 'flat' ? 0.45 : 0.2 + t * 0.6
-      const v = Math.min(0.95, Math.max(0.05, base + (r() - 0.5) * 0.18))
-      return [t * 100, 34 - v * 30]
-    })
-    const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-    return { line, area: `${line} L100,34 L0,34 Z` }
-  }, [trend, seed])
-  return (
-    <svg className="holo-spark" viewBox="0 0 100 34" preserveAspectRatio="none" aria-hidden="true">
-      <path className="holo-spark-area" d={d.area} />
-      <path className="holo-spark-line" d={d.line} />
     </svg>
   )
 }

@@ -1185,21 +1185,6 @@ html.has-cursor textarea {
   font-size: 10px;
   color: rgba(var(--ice), 0.8);
 }
-.holo-spark {
-  width: 42%;
-  height: 40px;
-  flex: none;
-}
-.holo-spark-area {
-  fill: rgba(var(--sky), 0.16);
-}
-.holo-spark-line {
-  fill: none;
-  stroke: #7dd3fc;
-  stroke-width: 1.4;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 3px rgba(var(--sky), 0.8));
-}
 .holo-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1251,128 +1236,135 @@ html.has-cursor textarea {
   }
 }
 
-/* ── Project panel (case study for one project) ─────────── */
-.scroll-locked {
-  overflow: hidden;
+/* ── Detailed project card (replaces the grid while a project is open) ── */
+#experiments {
+  position: relative;
 }
-.pp-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: var(--s-5);
-  background: rgba(2, 6, 18, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  animation: pp-fade 260ms var(--ease);
+/* The grid stays laid out (the particle scene reads its card positions) but invisible. */
+.holo-grid-list.is-hidden {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  visibility: hidden;
+  pointer-events: none;
 }
-.pp {
+.holo.pd {
   --ice: 186, 230, 253;
   --sky: 125, 211, 252;
+  display: block;
+  min-height: 0;
+  margin-bottom: var(--s-8);
+  padding: var(--s-7);
+  scroll-margin-top: 96px;
+  animation: pd-in 500ms var(--ease);
+}
+/* A large panel shouldn't flare up on hover like the small cards. */
+.holo.pd:hover {
+  --edge: 0.6;
+}
+@keyframes pd-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+.pd-head {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  width: min(760px, 100%);
-  max-height: min(86vh, 900px);
-  border: 1px solid rgba(var(--ice), 0.3);
-  border-radius: 10px;
-  /* Mostly opaque: a nested backdrop-filter only sees the backdrop layer, so the
-     glass look comes from the tinted fill and glow instead. */
-  background:
-    linear-gradient(172deg, rgba(var(--ice), 0.08), transparent 30%),
-    rgba(8, 13, 28, 0.9);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 0 48px rgba(59, 130, 246, 0.22),
-    0 30px 80px rgba(0, 0, 0, 0.6);
-  animation: pp-in 420ms var(--ease);
+  padding-bottom: var(--s-5);
+  margin-bottom: var(--s-6);
+  border-bottom: 1px solid rgba(var(--ice), 0.24);
+  box-shadow: 0 1px 0 rgba(var(--sky), 0.12);
 }
-.pp-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s-4);
-  padding: var(--s-6) var(--s-6) var(--s-5);
-  border-bottom: 1px solid rgba(var(--ice), 0.14);
-}
-.pp-head h2 {
+.pd-head h3 {
   font-size: var(--fs-2xl);
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: #f0f9ff;
-  text-shadow: 0 0 22px rgba(var(--sky), 0.4);
+  color: #f8fdff;
+  text-shadow:
+    0 0 22px rgba(var(--sky), 0.5),
+    0 1px 8px rgba(0, 0, 0, 0.6);
 }
-.pp-close {
-  flex: none;
+.pd-head h3:focus {
+  outline: none;
+}
+.pd-head .holo-sub {
+  margin-top: var(--s-1);
+}
+.pd-actions {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.pd-back {
+  padding: var(--s-2) var(--s-1);
+  border: 0;
+  background: none;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--ice), 0.8);
+  cursor: pointer;
+  transition: color var(--t-fast);
+}
+.pd-back:hover {
+  color: #fff;
+}
+.pd-close {
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(var(--ice), 0.3);
+  border: 1px solid rgba(var(--ice), 0.35);
   border-radius: var(--r-pill);
   background: rgba(var(--ice), 0.06);
   color: #e0f2fe;
   cursor: pointer;
   transition: border-color var(--t-fast), background var(--t-fast);
 }
-.pp-close:hover {
-  border-color: rgba(var(--ice), 0.7);
+.pd-close:hover {
+  border-color: rgba(var(--ice), 0.75);
   background: rgba(var(--ice), 0.14);
 }
-.pp-body {
+/* Story on the left, evidence on the right. */
+.pd-grid {
   display: grid;
-  gap: var(--s-6);
-  padding: var(--s-6);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(var(--ice), 0.3) transparent;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--s-7);
 }
-.pp-body:focus-visible {
-  outline: 2px solid rgba(var(--sky), 0.6);
-  outline-offset: -4px;
-}
-.pp-metric .holo-spark {
-  width: 38%;
-  height: 52px;
-}
-.pp-sec {
+.pd-story,
+.pd-evidence {
   display: grid;
-  grid-template-columns: 132px 1fr;
+  align-content: start;
   gap: var(--s-5);
 }
-.pp-label {
-  padding-top: 4px;
+.pd-label {
+  margin-bottom: var(--s-2);
   font-size: var(--fs-xs);
   font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(var(--ice), 0.7);
 }
-.pp-content {
-  display: grid;
-  gap: var(--s-4);
+.pd-sec p,
+.pd-list {
   line-height: 1.65;
-  color: rgba(224, 242, 254, 0.88);
+  color: rgba(224, 242, 254, 0.9);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
-.pp-content .holo-flow {
-  max-width: 420px;
-}
-.pp-tags {
-  margin-top: 0;
-}
-.pp-list {
+.pd-list {
   display: grid;
   gap: var(--s-2);
   padding: 0;
   list-style: none;
 }
-.pp-list li {
+.pd-list li {
   position: relative;
   padding-left: var(--s-5);
 }
-.pp-list li::before {
+.pd-list li::before {
   content: '';
   position: absolute;
   left: 2px;
@@ -1380,102 +1372,77 @@ html.has-cursor textarea {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #7dd3fc;
-  box-shadow: 0 0 8px rgba(var(--sky), 0.8);
+  background: #a5f3fc;
+  box-shadow: 0 0 8px rgba(var(--sky), 0.9);
 }
-.pp-foot {
+.pd-stack p {
+  font-size: var(--fs-xs);
+  color: rgba(var(--ice), 0.8);
+}
+.pd-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-3);
-  padding: var(--s-4) var(--s-6);
-  border-top: 1px solid rgba(var(--ice), 0.14);
+  margin-top: var(--s-6);
+  padding-top: var(--s-5);
+  border-top: 1px solid rgba(var(--ice), 0.18);
 }
-.pp-foot .btn {
-  border-color: rgba(var(--ice), 0.35);
+.pd-foot .btn {
+  border-color: rgba(var(--ice), 0.4);
   color: #e0f2fe;
 }
-.pp-foot .pp-live {
+.pd-foot .pd-live {
   background: var(--amber);
   border-color: var(--amber);
   color: #000;
 }
-.pp-foot .pp-live:hover {
+.pd-foot .pd-live:hover {
   background: #ffc861;
 }
-.pp-hint {
+.pd-hint {
   margin-left: auto;
   font-size: var(--fs-xs);
   color: rgba(var(--ice), 0.55);
 }
-.pp-backdrop.is-closing {
-  animation: pp-fade-out 220ms var(--ease) forwards;
-}
-.pp-backdrop.is-closing .pp {
-  animation: pp-out 220ms var(--ease) forwards;
-}
-@keyframes pp-fade {
-  from {
-    opacity: 0;
-  }
-}
-@keyframes pp-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-@keyframes pp-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.97);
-  }
-}
-@keyframes pp-out {
-  to {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-}
-@keyframes pp-up {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-}
-/* Phones: a full-screen sheet that slides up. */
+/* Phones: one column, the metric first and the architecture/stack last. */
 @media (max-width: 640px) {
-  .pp-backdrop {
-    padding: 0;
-  }
-  .pp {
-    width: 100%;
-    height: 100dvh;
-    max-height: none;
-    border-width: 0;
-    border-radius: 0;
-    animation-name: pp-up;
-  }
-  .pp-head,
-  .pp-body {
+  .holo.pd {
     padding: var(--s-5);
   }
-  .pp-foot {
-    padding: var(--s-3) var(--s-5) calc(var(--s-3) + env(safe-area-inset-bottom));
+  .pd-actions {
+    top: -10px;
   }
-  .pp-sec {
-    grid-template-columns: 1fr;
-    gap: var(--s-2);
-  }
-  .pp-hint {
+  .pd-back {
     display: none;
   }
-  /* Without real links the footer would be an empty bar. */
-  .pp-foot:not(:has(a)) {
+  .pd-head h3 {
+    padding-right: 48px;
+  }
+  .pd-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-5);
+  }
+  .pd-evidence {
+    display: contents;
+  }
+  .pd-metric {
+    order: -1;
+  }
+  .pd-arch,
+  .pd-stack {
+    order: 1;
+  }
+  .pd-hint {
+    display: none;
+  }
+  .pd-foot:not(:has(a)) {
     display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pp-backdrop,
-  .pp {
+  .holo.pd {
     animation: none;
   }
 }

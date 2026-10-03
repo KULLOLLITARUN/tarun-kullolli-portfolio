@@ -26,6 +26,7 @@ const ALIASES = {
   html5: 'HTML',
   css3: 'CSS',
   tkinter: 'Tkinter',
+  postgres: 'PostgreSQL',
 }
 for (const [k, v] of Object.entries(ALIASES)) KNOWN.set(k, v)
 // Common tech that is NOT on the resume — answered honestly.
@@ -34,7 +35,7 @@ const NOT_LISTED = [
   'scikit', 'sklearn', 'pandas', 'numpy', 'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'java', 'c++',
   'c#', 'golang', 'rust', 'typescript', 'next.js', 'nextjs', 'fastapi', 'flask', 'postgres', 'postgresql',
   'redis', 'graphql', 'spark', 'tableau', 'power bi', 'rag', 'vector database', 'opencv',
-]
+].filter((t) => !KNOWN.has(t)) // anything a project's stack lists is on the resume after all
 
 function normalize(text) {
   const t = text.toLowerCase().replace(/[^a-z0-9+#.\s-]/g, ' ').replace(/\.(?=\s|$)/g, ' ')
@@ -58,8 +59,11 @@ function techAnswer(found, missing) {
   const lines = found.map((t) => {
     const projects = usedIn(t).map((e) => e.title)
     const inSkills = allSkills.includes(t)
-    let line = `• ${t}: ${inSkills ? 'listed in his core skills' : 'used in his projects'}`
-    if (projects.length) line += `, used in ${list(projects)}`
+    const parts = []
+    if (inSkills) parts.push('listed in his core skills')
+    if (projects.length) parts.push(`used in ${list(projects)}`)
+    else if (!inSkills) parts.push('used in his projects')
+    let line = `• ${t}: ${parts.join(', ')}`
     if (t === 'Python') line += `, and his day job as a Python Developer at Quintesys`
     return `${line}.`
   })
@@ -74,13 +78,11 @@ function techAnswer(found, missing) {
   }
 }
 
-const PROJECT_KEYS = [
-  ['e-shop', 'eshop', 'shop', 'ecommerce', 'e-commerce', 'commerce'],
-  ['blog', 'blogs', 'publishing'],
-  ['enquiry', 'inquiry', 'tkinter', 'intake'],
-  ['todo', 'to-do', 'task'],
-  ['apple', 'clone'],
-]
+// Words that point at a project: its full title, the longer words in it, plus its keywords.
+const PROJECT_KEYS = experiments.map((e) => {
+  const title = e.title.toLowerCase()
+  return [title, ...title.split(/\s+/).filter((w) => w.length > 3), ...(e.keywords || [])]
+})
 
 const INTENTS = [
   {
@@ -123,7 +125,7 @@ const INTENTS = [
     words: ['project', 'projects', 'built', 'build', 'portfolio', 'made', 'created', 'developed', 'work samples', 'github'],
     answer: () => ({
       text: [
-        `${first} has built ${experiments.length} projects:`,
+        `${first} has built ${experiments.length} project${experiments.length === 1 ? '' : 's'}:`,
         ...experiments.map((e) => `• ${e.title}: ${e.subtitle} (${e.result}).`),
         'Ask about any one for details.',
       ].join('\n'),
@@ -211,7 +213,15 @@ export function answer(question) {
   if (pIndex >= 0 && !hits(q, ['projects'])) {
     const e = experiments[pIndex]
     return {
-      text: `${e.title}: ${e.subtitle}.\n${e.description}\nStack: ${e.stack.join(', ')}.\nResult: ${e.result}.`,
+      text: [
+        `${e.title}: ${e.subtitle}.`,
+        e.description,
+        `Stack: ${e.stack.join(', ')}.`,
+        `Result: ${e.result}.`,
+        e.links?.live && e.links.live !== '#' && `Live demo: ${e.links.live}`,
+      ]
+        .filter(Boolean)
+        .join('\n'),
       followUps: experiments.filter((x) => x !== e).slice(0, 2).map((x) => `Tell me about ${x.title}`).concat('What are his skills?'),
     }
   }

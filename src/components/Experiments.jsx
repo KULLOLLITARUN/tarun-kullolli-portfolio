@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { experiments } from '../data.js'
 import { useReducedMotion } from '../hooks.js'
 import SectionHead from './SectionHead.jsx'
-import ProjectPanel from './ProjectPanel.jsx'
+import ProjectDetail from './ProjectDetail.jsx'
 import { projectSlug } from './Holo.jsx'
 
 const slugs = experiments.map(projectSlug)
@@ -15,9 +15,23 @@ function projectFromHash() {
 
 export default function Experiments() {
   const reduce = useReducedMotion()
-  // Open project panel, synced with the URL so a project can be linked directly.
+  // Open project (its detailed card replaces the grid), synced with the URL so a project
+  // can be linked directly.
   const [open, setOpen] = useState(projectFromHash)
   const pushed = useRef(false)
+  const lastOpen = useRef(null)
+  const grid = useRef(null)
+
+  // When the detailed card closes, return focus to the card it was opened from.
+  useEffect(() => {
+    if (open !== null) {
+      lastOpen.current = open
+      return
+    }
+    if (lastOpen.current === null) return
+    grid.current?.querySelectorAll('.holo-open')[lastOpen.current]?.focus({ preventScroll: true })
+    lastOpen.current = null
+  }, [open])
 
   useEffect(() => {
     const sync = () => {
@@ -37,7 +51,7 @@ export default function Experiments() {
     pushed.current = true
     setOpen(i)
   }
-  // Closing undoes our history entry, so the browser Back button also closes the panel.
+  // Closing undoes our history entry, so the browser Back button also closes the project.
   const closeProject = () => {
     if (pushed.current) window.history.back()
     else window.history.replaceState(null, '', window.location.pathname + window.location.search)
@@ -69,10 +83,17 @@ export default function Experiments() {
         Each build is a small system: a problem, an approach, a measurable result.
       </SectionHead>
 
-      <ol className="holo-grid-list">
+      {/* While a project is open the grid stays in the page (hidden, inert, absolutely placed
+          over the detailed card), so the particle scene still has the card positions. */}
+      <ol
+        ref={grid}
+        className={`holo-grid-list${open !== null ? ' is-hidden' : ''}`}
+        inert={open !== null}
+        aria-hidden={open !== null || undefined}
+      >
         {experiments.map((e, i) => {
           const n = String(i + 1).padStart(2, '0')
-          // Compact teaser: the details (diagram, metric, links) live in the project panel.
+          // Compact teaser: the details (diagram, metric, links) live in the detailed card.
           return (
             <li key={n} id={`exp-${n}`} className="holo-card" style={{ '--i': i }}>
               <article className="holo" onPointerMove={tilt} onPointerLeave={untilt} data-cursor-box>
@@ -87,7 +108,6 @@ export default function Experiments() {
                     type="button"
                     className="holo-open"
                     onClick={() => openProject(i)}
-                    aria-haspopup="dialog"
                     data-cursor="open"
                   >
                     {e.title}
@@ -114,7 +134,7 @@ export default function Experiments() {
         })}
       </ol>
 
-      {open !== null && <ProjectPanel key={open} project={experiments[open]} index={open} onClose={closeProject} />}
+      {open !== null && <ProjectDetail key={open} project={experiments[open]} index={open} onClose={closeProject} />}
     </section>
   )
 }

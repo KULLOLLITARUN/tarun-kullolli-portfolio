@@ -1,5 +1,5 @@
 // Offline résumé assistant: matches the question to an intent and answers from data.js.
-// No API, no network — every answer is built from the resume data.
+// Used when the live model (/api/chat) is unavailable; it also supplies follow-up chips and links.
 import { acts, certifications, currentJob, education, experiments, profile, skills } from '../data.js'
 
 const first = profile.name.split(' ')[0]

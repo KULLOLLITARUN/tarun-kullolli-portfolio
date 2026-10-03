@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { handleChat } from './server/chatCore.js'
+import { handleChat, sendChat } from './server/chatCore.js'
 
 // Serves POST /api/chat during `npm run dev` / `npm run preview`, mirroring the Vercel function.
 function chatApi(env) {
@@ -22,10 +22,7 @@ function chatApi(env) {
       } catch {
         /* handled as bad_request */
       }
-      const out = await handleChat({ body, ip: req.socket.remoteAddress, env })
-      res.statusCode = out.status
-      res.setHeader('Content-Type', 'application/json')
-      res.end(JSON.stringify(out.body))
+      await sendChat(res, await handleChat({ body, ip: req.socket.remoteAddress, env }))
     })
   }
   return {

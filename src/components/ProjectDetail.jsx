@@ -11,7 +11,13 @@ function Section({ label, children, className = '' }) {
   )
 }
 
-const Bullets = ({ items }) => (
+// Scroll up to the hero and put the question to the resume assistant (see Chat.jsx).
+function askTick(question) {
+  scrollToId('top')
+  window.dispatchEvent(new CustomEvent('ask-tick', { detail: question }))
+}
+
+const Bullets =({ items }) => (
   <ul className="pd-list">
     {items.map((t) => (
       <li key={t}>{t}</li>
@@ -113,6 +119,9 @@ export default function ProjectDetail({ project: e, index, onClose }) {
             {kind === 'code' ? 'View code' : 'Live demo'} <span aria-hidden="true">↗</span>
           </a>
         ))}
+        <button type="button" className="btn pd-ask" onClick={() => askTick(`Tell me about ${e.title}`)}>
+          Ask Tick about this <span aria-hidden="true">↑</span>
+        </button>
         <span className="pd-hint mono">Esc to close</span>
       </footer>
     </article>

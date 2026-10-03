@@ -4,6 +4,7 @@ import { useReducedMotion } from '../hooks.js'
 import SectionHead from './SectionHead.jsx'
 import ProjectDetail from './ProjectDetail.jsx'
 import { projectSlug } from './Holo.jsx'
+import GitHubActivity from './GitHubActivity.jsx'
 
 const slugs = experiments.map(projectSlug)
 // #project/<slug> → index of that project, or null.
@@ -135,6 +136,8 @@ export default function Experiments() {
       </ol>
 
       {open !== null && <ProjectDetail key={open} project={experiments[open]} index={open} onClose={closeProject} />}
+
+      <GitHubActivity />
     </section>
   )
 }

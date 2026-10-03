@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { profile } from './data.js'
 import { scrollToId, useReducedMotion, useSmoothScroll, useStoredFlag } from './hooks.js'
 import Nav from './components/Nav.jsx'
@@ -20,6 +21,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [touring, setTouring] = useState(false)
   const [toast, setToast] = useState('')
+  const [printing, setPrinting] = useState(false)
   const toastTimer = useRef()
   useSmoothScroll(!useReducedMotion())
 
@@ -32,6 +34,19 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Printing (Ctrl+P or the recruiter view's button) always prints the recruiter view as a
+  // résumé. In lab view it is added just for the print, so the animated page stays as it was.
+  useEffect(() => {
+    const before = () => flushSync(() => setPrinting(true))
+    const after = () => setPrinting(false)
+    window.addEventListener('beforeprint', before)
+    window.addEventListener('afterprint', after)
+    return () => {
+      window.removeEventListener('beforeprint', before)
+      window.removeEventListener('afterprint', after)
+    }
   }, [])
 
   const notify = useCallback((msg) => {
@@ -80,6 +95,7 @@ export default function App() {
       { id: 'system', label: 'Go to System Index', hint: 'Skills', run: () => goTo('system') },
       { id: 'contact', label: 'Go to Contact', hint: 'Reach out', run: () => goTo('contact') },
       { id: 'resume', label: 'Download resume', hint: 'PDF', run: () => window.open(profile.resume, '_blank') },
+      { id: 'print', label: 'Print resume page', hint: 'Save as PDF', run: () => window.print() },
       { id: 'email', label: 'Copy email address', hint: profile.email, run: copyEmail },
       { id: 'tour', label: 'Start auto tour', hint: '60 seconds', run: startTour },
       {
@@ -126,6 +142,11 @@ export default function App() {
           </>
         )}
       </main>
+      {printing && !recruiter && (
+        <div className="print-sheet">
+          <RecruiterView onCopyEmail={copyEmail} />
+        </div>
+      )}
       <footer className="footer">
         <span>© 2026 {profile.name}</span>
         <span className="mono">BUILT WITH REACT · THREE.JS · GLSL</span>

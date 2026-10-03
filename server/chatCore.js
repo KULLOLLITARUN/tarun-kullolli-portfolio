@@ -2,6 +2,7 @@
 // The answer streams back as plain text while Groq generates it.
 // Validates input, rate-limits per IP and asks Groq. The API key stays server-side.
 import { buildSystemPrompt } from '../src/chat/prompt.js'
+import { logQuestion } from './questionLog.js'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const SYSTEM = buildSystemPrompt()
@@ -57,6 +58,9 @@ export async function handleChat({ body, ip, env }) {
   const history = cleanHistory(body?.messages)
   if (!history) return { status: 400, body: { error: 'bad_request' } }
 
+  // Logged while Groq is asked, then awaited before returning (a serverless function may be
+  // frozen once it has answered).
+  const logged = logQuestion(history.at(-1).content, history.filter((m) => m.role === 'user').length, env)
   try {
     const res = await fetch(GROQ_URL, {
       method: 'POST',
@@ -77,6 +81,8 @@ export async function handleChat({ body, ip, env }) {
     return { status: 200, stream: textChunks(res) }
   } catch {
     return { status: 502, body: { error: 'network' } }
+  } finally {
+    await logged
   }
 }
 

@@ -234,11 +234,16 @@ export default function Chat({ visible }) {
           placeholder="Ask about Tarun’s experience…"
           maxLength={200}
           autoComplete="off"
+          aria-describedby="chat-note"
         />
         <button type="submit" className="chat-send" disabled={busy || !input.trim()} aria-label="Send question">
           ↑
         </button>
       </form>
+      {/* Questions are logged anonymously (server/questionLog.js); say so plainly. */}
+      <p id="chat-note" className="chat-note">
+        Questions are saved anonymously to improve Kairo’s answers.
+      </p>
     </section>
   )
 }

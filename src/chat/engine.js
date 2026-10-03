@@ -1,6 +1,7 @@
 // Offline résumé assistant: matches the question to an intent and answers from data.js.
 // Used when the live model (/api/chat) is unavailable; it also supplies follow-up chips and links.
 import { acts, certifications, currentJob, education, experiments, profile, skills } from '../data.js'
+import { SITE_GUIDE } from './siteGuide.js'
 
 const first = profile.name.split(' ')[0]
 const jobs = acts.filter((a) => a.name !== 'Next' && a.name !== 'Foundations')
@@ -207,10 +208,19 @@ const INTENTS = [
     words: ['resume', 'cv', 'pdf', 'download'],
     answer: () => ({ text: `Here's ${first}'s resume as a PDF.`, actions: contactActions.slice(1) }),
   },
+  // Last, so a tie with a question about Tarun goes to Tarun.
+  {
+    id: 'site',
+    words: ['site', 'website', 'page', 'section', 'navigate', 'feature', 'do here', 'use this', 'how to use', 'help', 'guide', 'recruiter mode', 'command', 'shortcut', 'ctrl', 'colour', 'color', 'theme', 'dark mode', 'tour', 'kairo', 'mascot', 'clock', 'alarm'],
+    answer: () => ({
+      text: ['Here’s what you can do on this site:', ...SITE_GUIDE.map((line) => `• ${line}`)].join('\n'),
+      followUps: ['What projects has he built?', 'What does he do now?', 'How can I contact him?'],
+    }),
+  },
 ]
 
 export const GREETING = `Hi, I'm Kairo, ${first}'s resume assistant. Ask me about his experience, projects or skills.`
-export const STARTER_CHIPS = ['What does he do now?', 'What projects has he built?', 'What are his skills?']
+export const STARTER_CHIPS = ['What does he do now?', 'What projects has he built?', 'What are his skills?', 'What can I do here?']
 
 export function answer(question) {
   const q = normalize(question)

@@ -13,9 +13,14 @@ export default function RecruiterView({ onCopyEmail }) {
             {currentJob ? `${currentJob.title} · ${currentJob.org}` : profile.role}
           </p>
         </div>
-        <a className="btn btn-primary" href={profile.resume} download="Tarun-Kullolli-Resume.pdf">
-          Download resume
-        </a>
+        <div className="rv-actions">
+          <button type="button" className="btn" onClick={() => window.print()}>
+            Print / Save as PDF
+          </button>
+          <a className="btn btn-primary" href={profile.resume} download="Tarun-Kullolli-Resume.pdf">
+            Download resume
+          </a>
+        </div>
       </header>
       <ContactLinks onCopyEmail={onCopyEmail} />
 

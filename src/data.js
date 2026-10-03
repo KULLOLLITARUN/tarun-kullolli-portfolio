@@ -204,3 +204,13 @@ export const certifications = [
   { name: 'Web Development Bootcamp', issuer: 'Udemy', link: '#' },
   { name: 'SQL Skills', issuer: 'HackerRank', link: '#' },
 ]
+
+// GITHUB ACTIVITY: the latest commits from each project's code repo, plus the extra repos
+// listed here, show as a live feed under the projects. Only these repos are shown.
+const extraActivityRepos = [{ url: 'https://github.com/KULLOLLITARUN/tarun-kullolli-portfolio', label: 'This portfolio' }]
+export const activityRepos = [
+  ...experiments
+    .filter((e) => e.links?.code?.startsWith('https://github.com/'))
+    .map((e) => ({ url: e.links.code, label: e.title })),
+  ...extraActivityRepos,
+]

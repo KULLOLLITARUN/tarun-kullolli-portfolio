@@ -1,6 +1,6 @@
 // Shared "holographic" visuals used by the project cards and the project panel.
 
-export function rng(seed) {
+function rng(seed) {
   let s = (seed + 1) * 9973
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646
 }

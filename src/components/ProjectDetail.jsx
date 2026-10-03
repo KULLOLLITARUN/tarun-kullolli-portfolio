@@ -73,24 +73,15 @@ export default function ProjectDetail({ project: e, index, onClose }) {
         {e.subtitle && <p className="holo-sub">{e.subtitle}</p>}
       </header>
 
-      {e.shots?.map((s) =>
-        s.placeholder ? (
-          <figure key="placeholder" className="pd-shot">
-            <div className="pd-shot-ph mono">
-              <span aria-hidden="true">▢</span>
-              Screenshot coming soon
-            </div>
-          </figure>
-        ) : (
-          <figure key={s.src} className="pd-shot">
-            {/* Opens full size in a new tab (on phones the inline image is small). */}
-            <a href={s.src} target="_blank" rel="noreferrer">
-              <img src={s.src} width={s.width} height={s.height} alt={s.alt} loading="lazy" decoding="async" />
-            </a>
-            {s.caption && <figcaption>{s.caption}</figcaption>}
-          </figure>
-        ),
-      )}
+      {e.shots?.map((s) => (
+        <figure key={s.src} className="pd-shot">
+          {/* Opens full size in a new tab (on phones the inline image is small). */}
+          <a href={s.src} target="_blank" rel="noreferrer">
+            <img src={s.src} width={s.width} height={s.height} alt={s.alt} loading="lazy" decoding="async" />
+          </a>
+          {s.caption && <figcaption>{s.caption}</figcaption>}
+        </figure>
+      ))}
 
       <div className="pd-grid">
         <div className="pd-story">

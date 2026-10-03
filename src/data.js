@@ -36,8 +36,7 @@ export const profile = {
 //   metric: { value: '94/94', label: 'What the number means' },  (only real numbers)
 //   architecture: ['Stage 1', 'Stage 2', ...],  (up to 6 short labels; defaults to stack)
 //   shots: [{ src: '/projects/x.webp', width: 1600, height: 726, alt: 'What it shows', caption: 'Optional' }],
-//          (real screenshots in /public/projects, shown at the top of the detailed card;
-//           { placeholder: true } shows a "Screenshot coming soon" frame instead)
+//          (real screenshots in /public/projects, shown at the top of the detailed card)
 // Each project gets a shareable link: #project/<title-in-lowercase-with-dashes>.
 export const experiments = [
   {

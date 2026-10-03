@@ -1129,14 +1129,6 @@ html.has-cursor textarea {
   color: rgba(var(--ice), 0.65);
   transition: opacity 150ms var(--ease) 150ms;
 }
-.holo-head {
-  display: grid;
-  gap: var(--s-1);
-}
-.holo-kicker {
-  font-size: var(--fs-xs);
-  color: rgba(var(--ice), 0.75);
-}
 .holo-sub {
   font-size: var(--fs-sm);
   color: rgba(var(--ice), 0.9);
@@ -1220,23 +1212,6 @@ html.has-cursor textarea {
 .holo-mlabel {
   font-size: 10px;
   color: rgba(var(--ice), 0.8);
-}
-.holo-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-  margin-top: auto;
-}
-.holo-tags li {
-  padding: 3px var(--s-3);
-  border: 1px solid rgba(var(--ice), 0.32);
-  border-radius: var(--r-pill);
-  background: rgba(var(--ice), 0.1);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 0 10px rgba(var(--sky), 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  font-size: var(--fs-xs);
-  color: rgb(var(--glass-pale-rgb));
 }
 /* The whole card opens the project panel: the title button is stretched over the card. */
 .holo-open {
@@ -1375,25 +1350,6 @@ html.has-cursor textarea {
   border: 1px solid rgba(var(--ice), 0.3);
   border-radius: var(--r-sm);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-}
-/* Same frame and shape as a real screenshot, until one is added in data.js. */
-.pd-shot-ph {
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--s-2);
-  aspect-ratio: 1600 / 726;
-  border: 1px dashed rgba(var(--ice), 0.35);
-  border-radius: var(--r-sm);
-  background: rgba(var(--ice), 0.04);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(var(--ice), 0.7);
-}
-.pd-shot-ph span {
-  font-size: var(--fs-xl);
-  letter-spacing: 0;
 }
 .pd-shot figcaption {
   margin-top: var(--s-2);

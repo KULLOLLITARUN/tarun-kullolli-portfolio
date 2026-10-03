@@ -1,5 +1,7 @@
 # Tarun Kullolli — Portfolio
 
+[![CI](https://github.com/KULLOLLITARUN/tarun-kullolli-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/KULLOLLITARUN/tarun-kullolli-portfolio/actions/workflows/ci.yml)
+
 Personal portfolio of **Tarun Kullolli, AI Engineer**: projects, career and skills, with **Kairo**, an AI resume assistant that answers questions about them.
 
 **Live:** https://tarun-kullolli-portfolio.vercel.app
@@ -45,6 +47,8 @@ The dev server also serves `/api/chat`, mirroring the Vercel function, so the as
 | `npm run dev` | Start the dev server |
 | `npm run build` | Production build into `dist/` |
 | `npm run preview` | Serve the production build locally |
+| `npm test` | Run the test suite (Vitest) |
+| `npm run test:watch` | Re-run tests on every change |
 | `npm run questions` | Print the latest questions visitors asked Kairo (needs the Upstash variables) |
 
 ## Environment variables
@@ -57,6 +61,18 @@ The dev server also serves `/api/chat`, mirroring the Vercel function, so the as
 | `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis REST token |
 
 Locally they go in `.env` (git-ignored). On Vercel, set them under Project Settings → Environment Variables.
+
+## Testing
+
+`npm test` runs the [Vitest](https://vitest.dev) suite in `tests/`:
+
+- **Offline engine:** correct answers about projects and skills, honest "not on his resume" for unlisted skills, no guessing about salary or notice period, and off-topic questions flagged.
+- **System prompt:** built from `data.js`, keeps its guardrails, and mentions the question log only when logging is on.
+- **Chat server:** input checks, the per-IP rate limit, history trimming, streaming (including split and malformed events), Groq errors, and the question log (no IP stored; the chat still answers if logging fails). `fetch` is faked, so no API keys are needed and nothing is sent to Groq or Upstash.
+- **Printed resume:** section order, oldest-first entries, and no placeholder links.
+- **Content checks:** every project is complete, share links are unique, and screenshots and the resume PDF exist.
+
+GitHub Actions runs the tests and a production build on every push to `main` (see the badge above).
 
 ## Editing the content
 
@@ -73,6 +89,8 @@ api/chat.js            Vercel function: POST streams Kairo's answer, GET reports
 server/chatCore.js     Input checks, rate limit, Groq call (shared by Vercel and the dev server)
 server/questionLog.js  Optional anonymous question log (Upstash Redis)
 scripts/questions.mjs  Reads the question log (npm run questions)
+tests/                 Vitest tests: offline engine, prompt, chat server, printed resume, data checks
+.github/workflows/     CI: tests and build on every push
 src/data.js            All site content
 src/chat/              Chat UI, system prompt, offline engine, site guide
 src/components/        Hero, particle scene, mascot, sections, recruiter view, printable resume
@@ -82,4 +100,4 @@ public/                Resume PDF, project screenshots, icons, link-preview imag
 
 ## Deployment
 
-Pushing to `main` deploys to Vercel automatically.
+Pushing to `main` deploys to Vercel automatically. CI (`.github/workflows/ci.yml`) runs the tests and build on the same push.

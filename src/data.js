@@ -173,12 +173,24 @@ export const acts = [
 export const currentJob = acts.find((a) => /present/i.test(a.period))
 
 // Groups with no items are hidden automatically.
+// The first group is the headline skill set (shown larger). Only list what the projects back up.
 export const skills = [
-  { group: 'Languages', items: ['Python', 'JavaScript', 'HTML', 'CSS'] },
-  // TODO: add your AI / ML tools, e.g. PyTorch, scikit-learn, LangChain, OpenAI / Claude APIs, Hugging Face.
-  { group: 'AI / ML', items: [] },
-  { group: 'Frameworks', items: ['React', 'Django', 'Node.js', 'Express'] },
-  { group: 'Data', items: ['MySQL', 'MongoDB'] },
+  {
+    group: 'AI / ML',
+    items: [
+      'RAG',
+      'Hybrid retrieval (BM25 + dense)',
+      'Cross-encoder reranking',
+      'LLM agents & self-healing pipelines',
+      'Groq',
+      'sentence-transformers',
+      'Pydantic (structured output)',
+      'MCP servers',
+    ],
+  },
+  { group: 'Languages', items: ['Python', 'TypeScript', 'JavaScript', 'HTML', 'CSS'] },
+  { group: 'Frameworks', items: ['FastAPI', 'React', 'Django', 'Node.js', 'Express', 'Playwright'] },
+  { group: 'Data', items: ['PostgreSQL', 'MySQL', 'MongoDB'] },
 ]
 
 export const education = [

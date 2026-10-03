@@ -9,7 +9,13 @@ const INK = '#0b1324'
 const C = { x: 50, y: 58 } // dial centre (viewBox units)
 const VB = { w: 100, h: 130 }
 const FOOT = 124 // y of the shoe soles in the viewBox
-const STRIDE = 9 // px walked per leg-swing radian
+const STRIDE = 7 // px walked per leg-swing radian
+const WALK = 110 // walking speed cap (px per second)
+const IGNITE = 0.25 // s between the line's ignite flash and Tick popping out
+const POP = 0.6 // s to rise out of the line
+const SINK = 0.35 // s to sink back in
+// Ease-out with a little overshoot (the "pop").
+const backOut = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2
 const smooth = (cur, target, dt, speed) => cur + (target - cur) * (1 - Math.exp(-dt * speed))
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
 
@@ -31,6 +37,7 @@ function Leg({ legRef, hipX, footX }) {
 export default function TimelineTick() {
   const reduce = useReducedMotion()
   const host = useRef(null)
+  const burst = useRef(null)
   const r = {
     body: useRef(null),
     legs: [useRef(null), useRef(null)],
@@ -53,6 +60,22 @@ export default function TimelineTick() {
     let swing = 0
     let facing = 1
     let idle = 0
+    // Pop sequence: hidden → popping (rises out of the line) → shown → sinking → hidden.
+    let state = 'hidden'
+    let popT = 0
+    let burstPending = false
+    // Hovering an act sends Tick walking to that act's node (mouse only).
+    let hover = null
+    const onOver = (e) => {
+      if (e.pointerType !== 'mouse') return
+      const act = e.target.closest?.('.act')
+      hover = act && act.parentElement === list ? [...list.children].indexOf(act) : null
+    }
+    const onOut = (e) => {
+      if (!list.contains(e.relatedTarget)) hover = null
+    }
+    list.addEventListener('pointerover', onOver)
+    list.addEventListener('pointerout', onOut)
 
     const frame = (now) => {
       const dt = Math.min((now - last) / 1000 || 0, 0.05)
@@ -76,7 +99,61 @@ export default function TimelineTick() {
         const t = p >= 1 ? 1 : sp - k
         target = nodes[k] + (nodes[k + 1] - nodes[k]) * (t * t * (3 - 2 * t))
       }
-      pos = pos === null || reduce ? target : smooth(pos, target, dt, 6)
+      if (hover !== null && !reduce && nodes[hover] !== undefined) target = nodes[hover]
+
+      // Pop sequence, driven by how far the particles have drawn the line (--tl on the list;
+      // unset = no particle effect, so Tick is simply there). Hysteresis (0.98 / 0.5) stops it
+      // replaying when the scroll wobbles around the line.
+      const tlStr = list.style.getPropertyValue('--tl')
+      if (tlStr === '' || reduce) state = 'shown'
+      else {
+        const tlv = Number.parseFloat(tlStr)
+        if ((state === 'hidden' || state === 'sinking') && tlv >= 0.98) {
+          if (state === 'hidden') {
+            popT = -IGNITE
+            burstPending = true
+            // Restart the line's one-off ignite flash.
+            list.classList.remove('is-lit')
+            void list.offsetWidth
+            list.classList.add('is-lit')
+          }
+          state = 'popping'
+        } else if ((state === 'shown' || state === 'popping') && tlv < 0.5) {
+          state = 'sinking'
+          list.classList.remove('is-lit')
+        }
+      }
+      if (state === 'popping') {
+        popT += dt
+        if (burstPending && popT >= 0) {
+          burstPending = false
+          const b = burst.current
+          if (b) {
+            b.style.translate = vertical ? `0.5px ${pos ?? target}px` : `${pos ?? target}px 0px`
+            b.classList.remove('go')
+            void b.offsetWidth
+            b.classList.add('go')
+          }
+        }
+        if (popT >= POP) {
+          popT = POP
+          state = 'shown'
+        }
+      } else if (state === 'sinking') {
+        popT = Math.min(popT, POP) - dt * (POP / SINK)
+        if (popT <= 0) {
+          popT = 0
+          state = 'hidden'
+        }
+      }
+
+      // While hidden, Tick waits where it will pop up; once out, it walks.
+      if (pos === null || reduce || state === 'hidden') pos = target
+      else {
+        // Walk at a steady pace (capped speed), easing in as Tick nears its spot.
+        const v = Math.max(-WALK, Math.min(WALK, (target - pos) * 3))
+        pos += v * dt
+      }
       const dx = pos - lastPos
       lastPos = pos
       const moving = Math.abs(dx) > 0.04
@@ -90,12 +167,17 @@ export default function TimelineTick() {
       const w = el.offsetWidth
       const h = (w * VB.h) / VB.w
       const sole = (FOOT / VB.h) * h
+      // Rising out of the line: shifted down by the part still "inside" it, and clipped at the line.
+      let rise = 1
+      if (state === 'hidden') rise = 0
+      else if (state === 'popping') rise = backOut(clamp01(popT / POP))
+      else if (state === 'sinking') rise = clamp01(popT / POP) ** 2
+      const drop = (1 - rise) * h
       const x = vertical ? -w / 2 + 0.5 : pos - w / 2
-      const y = vertical ? pos - sole : -sole + 0.5
+      const y = (vertical ? pos - sole : -sole + 0.5) + drop
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scaleX(${facing})`
-      // Appear only once the particles have drawn the line (--tl; unset = visible).
-      const tl = list.style.getPropertyValue('--tl')
-      el.style.opacity = tl === '' ? '1' : tl
+      el.style.clipPath = rise >= 1 ? 'none' : `inset(0 0 ${Math.max(0, Math.min(h, drop + h - sole)).toFixed(1)}px 0)`
+      el.style.opacity = state === 'hidden' || (state === 'popping' && popT < 0) ? '0' : '1'
 
       r.legs[0].current?.setAttribute('transform', `rotate(${swing} 43 90)`)
       r.legs[1].current?.setAttribute('transform', `rotate(${-swing} 57 90)`)
@@ -111,8 +193,8 @@ export default function TimelineTick() {
       r.minute.current?.setAttribute('transform', `rotate(${min * 6} ${C.x} ${C.y})`)
       r.hour.current?.setAttribute('transform', `rotate(${hr * 30} ${C.x} ${C.y})`)
 
-      // Wave now and then while standing at the last act.
-      idle = !moving && p >= 1 && !reduce ? idle + dt : 0
+      // Wave now and then while standing at the last act, or at the act being hovered.
+      idle = !moving && (p >= 1 || hover !== null) && !reduce ? idle + dt : 0
       const k = idle % 5
       const wave = idle > 0.6 && k < 1.6 ? Math.sin((k / 1.6) * Math.PI) : 0
       r.arm.current?.setAttribute('transform', `rotate(${-wave * (30 + Math.sin(now / 90) * 18)} 80 60)`)
@@ -138,6 +220,9 @@ export default function TimelineTick() {
     return () => {
       io.disconnect()
       cancelAnimationFrame(raf)
+      list.removeEventListener('pointerover', onOver)
+      list.removeEventListener('pointerout', onOut)
+      list.classList.remove('is-lit')
     }
   }, [reduce])
 
@@ -158,6 +243,8 @@ export default function TimelineTick() {
   })
 
   return (
+    <>
+    <span ref={burst} className="tl-burst" aria-hidden="true" />
     <div ref={host} className="tl-tick" aria-hidden="true">
       <svg viewBox={`0 0 ${VB.w} ${VB.h}`}>
         <defs>
@@ -208,5 +295,6 @@ export default function TimelineTick() {
         </g>
       </svg>
     </div>
+    </>
   )
 }

@@ -1469,10 +1469,24 @@ html.has-cursor textarea {
   top: -1px;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(125, 211, 252, 0.9), rgba(125, 211, 252, 0.45));
-  box-shadow: 0 0 8px rgba(125, 211, 252, 0.7);
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(165, 243, 252, 1), rgba(125, 211, 252, 0.6));
+  box-shadow:
+    0 0 6px rgba(125, 211, 252, 0.9),
+    0 0 18px rgba(125, 211, 252, 0.45);
   opacity: var(--tl, 1);
+}
+/* One-off flash when the particles finish drawing the line (class set by TimelineTick). */
+.acts.is-lit::before {
+  animation: line-ignite 900ms ease-out;
+}
+@keyframes line-ignite {
+  0% {
+    background: #fff;
+    box-shadow:
+      0 0 10px rgba(255, 255, 255, 1),
+      0 0 34px rgba(125, 211, 252, 0.9);
+  }
 }
 .act {
   position: relative;
@@ -1533,8 +1547,9 @@ html.has-cursor textarea {
   text-transform: uppercase;
   color: var(--amber);
 }
-/* Glass milestone panel: a lighter version of the project cards. */
-.act-panel {
+/* Glass panel: a lighter version of the project cards (Journey milestones, Skills modules). */
+.act-panel,
+.glass-panel {
   position: relative;
   display: grid;
   gap: var(--s-2);
@@ -1556,7 +1571,8 @@ html.has-cursor textarea {
     border-color var(--t-med),
     box-shadow var(--t-med);
 }
-.act:hover .act-panel {
+.act:hover .act-panel,
+.glass-panel:hover {
   transform: translateY(-3px);
   border-color: rgba(186, 230, 253, 0.55);
   box-shadow:
@@ -1622,6 +1638,44 @@ html.has-cursor textarea {
   width: 100%;
   height: auto;
 }
+/* Sparkle ring where Tick pops out of the line (positioned and triggered by TimelineTick). */
+.tl-burst {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(165, 243, 252, 0.9);
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px rgba(125, 211, 252, 0.8),
+    inset 0 0 10px rgba(125, 211, 252, 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.tl-burst::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.8);
+}
+.tl-burst.go {
+  animation: tl-burst 700ms ease-out;
+}
+@keyframes tl-burst {
+  from {
+    opacity: 1;
+    scale: 0.2;
+    rotate: 0deg;
+  }
+  to {
+    opacity: 0;
+    scale: 1.9;
+    rotate: 90deg;
+  }
+}
 @media (max-width: 900px) {
   .acts {
     grid-template-columns: 1fr;
@@ -1663,33 +1717,66 @@ html.has-cursor textarea {
   }
 }
 
-/* System index */
+/* System index: glass skill modules; the first (AI / ML) spans the full width. */
 .system-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  overflow: hidden;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-5);
 }
 .system-cell {
-  display: grid;
   gap: var(--s-4);
-  align-content: start;
-  padding: var(--s-5);
-  background: var(--surface);
+}
+.system-cell.is-lead {
+  grid-column: 1 / -1;
+  border-color: rgba(186, 230, 253, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 26px rgba(125, 211, 252, 0.1),
+    0 0 26px rgba(125, 211, 252, 0.14);
+}
+.skill-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.skill-chips li {
+  padding: 4px var(--s-3);
+  border: 1px solid rgba(186, 230, 253, 0.28);
+  border-radius: var(--r-pill);
+  background: rgba(186, 230, 253, 0.06);
+  font-size: var(--fs-sm);
+  color: #e0f2fe;
+}
+/* Headline skills: larger chips with a cyan glow. */
+.is-lead .skill-chips li {
+  padding: 6px var(--s-4);
+  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(125, 211, 252, 0.1);
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.18);
+  font-size: var(--fs-md);
+  color: #f0f9ff;
 }
 .system-split {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-  gap: var(--s-7);
-  margin-top: var(--s-7);
+  gap: var(--s-5);
+  margin-top: var(--s-5);
 }
-.system-split h3 {
-  margin-bottom: var(--s-4);
+.system-panel h3 {
   font-weight: 400;
   color: var(--text-2);
+}
+.system-panel .plain-list li:last-child {
+  border-bottom: 0;
+}
+@media (max-width: 900px) {
+  .system-grid {
+    grid-template-columns: 1fr;
+  }
+  .is-lead .skill-chips li {
+    padding: 4px var(--s-3);
+    font-size: var(--fs-sm);
+  }
 }
 .plain-list {
   display: grid;

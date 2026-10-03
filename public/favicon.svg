@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- "T·K": white letters with the amber middle dot, like the nav logo (TARUN·KULLOLLI). -->
+  <rect width="32" height="32" rx="7" fill="#000"/>
+  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="6.25" fill="none" stroke="#7dd3fc" stroke-opacity="0.45" stroke-width="1.5"/>
+  <g fill="none" stroke="#f4f4f5" stroke-width="3" stroke-linecap="square">
+    <path d="M5 9.5h9M9.5 9.5v13"/>
+    <path d="M20 9.5v13M27 9.5l-7 7M22.3 14.4l4.7 8.1"/>
+  </g>
+  <circle cx="16.9" cy="16" r="1.7" fill="#f5b544"/>
+</svg>

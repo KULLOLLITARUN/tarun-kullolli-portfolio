@@ -777,6 +777,13 @@ html.has-cursor textarea {
     transform: translateY(-3px);
   }
 }
+/* Only the message log gives up height when the panel is full; the head, the chips row
+   (its sideways scroll would otherwise let it be squashed) and the input keep theirs. */
+.chat-head,
+.chat-chips,
+.chat-form {
+  flex-shrink: 0;
+}
 .chat-chips {
   display: flex;
   flex-wrap: nowrap;

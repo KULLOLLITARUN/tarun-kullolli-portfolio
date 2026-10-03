@@ -27,6 +27,15 @@ export const profile = {
 // PLACEHOLDER PROJECTS — replace with your real AI projects.
 // Each one renders as an "EXP" card. Links set to '#' are hidden.
 // metric = the big number on the card; trend = shape of its mini chart (up | down | flat).
+//
+// Clicking a card opens a case-study panel. These optional fields fill it
+// (any you leave out are simply hidden):
+//   year: '2025', role: 'Solo build',
+//   overview: 'What it is and who it is for (defaults to description).',
+//   problem: 'What was hard or worth solving.',
+//   approach: ['Key decision 1', 'Key decision 2', 'Key decision 3'],
+//   results: ['Measured outcome', 'What you learned'],  (defaults to result)
+// Each project gets a shareable link: #project/<title-in-lowercase-with-dashes>.
 export const experiments = [
   {
     code: 'COMMERCE',

@@ -49,6 +49,16 @@ export function useSmoothScroll(enabled) {
   }, [enabled])
 }
 
+// Freeze page scrolling (e.g. while a dialog is open). Scrollable areas inside the
+// dialog need data-lenis-prevent so Lenis leaves their wheel events alone.
+export function lockScroll(on) {
+  document.documentElement.classList.toggle('scroll-locked', on)
+  if (lenis) {
+    if (on) lenis.stop()
+    else lenis.start()
+  }
+}
+
 export function scrollToId(id) {
   const el = document.getElementById(id)
   if (!el) return

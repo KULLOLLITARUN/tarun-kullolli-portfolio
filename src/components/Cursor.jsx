@@ -9,6 +9,7 @@ const PAD = 6 // padding around a detected element (px)
 
 // What the "model" calls the element under the cursor.
 function classify(el) {
+  if (el.dataset.cursor) return el.dataset.cursor
   if (el.matches('a')) return 'link'
   if (el.getAttribute('role') === 'switch') return 'toggle'
   if (el.getAttribute('role') === 'option') return 'command'
@@ -91,7 +92,8 @@ export default function Cursor() {
       let gw = IDLE
       let gh = IDLE
       if (target && target.isConnected) {
-        const r = target.getBoundingClientRect()
+        // An element can ask to be boxed by a larger ancestor (e.g. a card's open button → the card).
+        const r = ((target.dataset.cursor && target.closest('[data-cursor-box]')) || target).getBoundingClientRect()
         gx = r.left + r.width / 2
         gy = r.top + r.height / 2
         gw = r.width + PAD * 2

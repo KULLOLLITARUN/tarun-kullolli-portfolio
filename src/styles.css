@@ -619,6 +619,11 @@ html.has-cursor textarea {
   overflow: visible;
   filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.45)) drop-shadow(0 0 40px rgba(29, 78, 216, 0.35));
 }
+/* Tick itself is clickable (rings the alarm) once it has arrived. */
+.mascot.is-visible .mascot-hit {
+  pointer-events: all;
+  cursor: pointer;
+}
 .mascot.is-visible {
   opacity: 1;
   animation: project-in 900ms var(--ease) both, flicker 7s 2s infinite;

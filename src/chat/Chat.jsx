@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { answer, GREETING, STARTER_CHIPS } from './engine.js'
-import { faceState } from './faceState.js'
+import { faceState, noteAnswer } from './faceState.js'
+
+// The live model starts off-topic replies with this tag (see prompt.js); it is never shown.
+const OFF_TOPIC = /^\s*\[off-topic\]\s*/i
+// Used if the model sends the tag with nothing after it.
+const OFF_TOPIC_REPLY = 'That’s outside what I can help with. Ask me about Tarun’s experience, projects or skills.'
 import { useReducedMotion } from '../hooks.js'
 
 let nextId = 1
@@ -77,6 +82,22 @@ export default function Chat({ visible }) {
 
   const later = (fn, ms) => timers.current.push(setTimeout(fn, ms))
 
+  // Ringing Tick's alarm: once it stops, offer a question in the input (focused, except on
+  // touch screens, where focusing would pop the keyboard up).
+  const inputRef = useRef(null)
+  const offer = useRef(() => {})
+  offer.current = () => {
+    if (busy || input.trim() || !visible) return
+    const pool = chips.length ? chips : STARTER_CHIPS
+    setInput(pool[Math.floor(Math.random() * pool.length)])
+    if (!window.matchMedia('(pointer: coarse)').matches) inputRef.current?.focus({ preventScroll: true })
+  }
+  useEffect(() => {
+    const onRing = () => later(() => offer.current(), 900)
+    window.addEventListener('tick-ring', onRing)
+    return () => window.removeEventListener('tick-ring', onRing)
+  }, [])
+
   async function ask(raw) {
     const q = raw.trim().slice(0, 200)
     if (!q || busy) return
@@ -95,12 +116,16 @@ export default function Chat({ visible }) {
     const started = Date.now()
     const live = await askLive(history)
     const offline = answer(q)
-    const reply = live ? { ...offline, text: live } : offline
+    // Off-topic: the live model's tag when it answered, otherwise the offline engine's miss.
+    const offTopic = live ? OFF_TOPIC.test(live) : !!offline.miss
+    const liveText = live?.replace(OFF_TOPIC, '').trim() || (live && OFF_TOPIC_REPLY)
+    const reply = live ? { ...offline, text: liveText } : offline
     setMode(live ? 'live' : 'offline')
     const id = nextId++
     later(() => {
       faceState.thinking = false
       faceState.talking = true
+      noteAnswer(offTopic)
       // Type the answer out while the face "speaks"; screen readers get the full text once.
       setMessages((ms) => [...ms, { id, from: 'bot', text: reply.text, actions: reply.actions, shown: reduce ? undefined : '' }])
       const finish = () => {
@@ -174,6 +199,7 @@ export default function Chat({ visible }) {
         </label>
         <input
           id="chat-input"
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about Tarun’s experience…"

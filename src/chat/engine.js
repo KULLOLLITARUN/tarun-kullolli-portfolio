@@ -255,5 +255,6 @@ export function answer(question) {
     text: `I only know what's on ${first}'s resume, so I'm not sure about that one. Try asking about his experience, projects, skills or education.`,
     followUps: STARTER_CHIPS,
     actions: contactActions.slice(0, 1),
+    miss: true, // nothing matched: the mascot's mood reacts to repeated misses
   }
 }

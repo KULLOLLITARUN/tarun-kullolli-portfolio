@@ -1450,7 +1450,7 @@ html.has-cursor textarea {
 /* Acts */
 .acts {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--acts, 4), 1fr); /* one column per act (set from data) */
   border-top: 1px solid var(--line-strong);
 }
 .act {
@@ -1640,9 +1640,6 @@ html.has-cursor textarea {
 .rv-role {
   color: var(--text-2);
   font-size: var(--fs-lg);
-}
-.status-inline {
-  color: #4ade80;
 }
 .recruiter .contact-links {
   justify-content: flex-start;

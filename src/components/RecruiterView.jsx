@@ -1,4 +1,4 @@
-import { acts, certifications, education, experiments, profile, skills } from '../data.js'
+import { acts, certifications, currentJob, education, experiments, profile, skills } from '../data.js'
 import { ContactLinks } from './Contact.jsx'
 
 // Plain one-page summary: everything a recruiter needs, no effects.
@@ -10,7 +10,7 @@ export default function RecruiterView({ onCopyEmail }) {
         <div>
           <h1 id="rv-name">{profile.name}</h1>
           <p className="rv-role">
-            {profile.role} · <span className="status-inline">{profile.status}</span>
+            {currentJob ? `${currentJob.title} · ${currentJob.org}` : profile.role}
           </p>
         </div>
         <a className="btn btn-primary" href={profile.resume} download="Tarun-Kullolli-Resume.pdf">

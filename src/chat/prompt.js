@@ -4,8 +4,7 @@ import { acts, certifications, education, experiments, profile, skills } from '.
 export function buildSystemPrompt() {
   const resume = [
     `NAME: ${profile.name}`,
-    `TARGET ROLE: ${profile.role}`,
-    `STATUS: ${profile.status}`,
+    `ROLE: ${profile.role}`,
     `SUMMARY: ${profile.summary}`,
     `CONTACT: email ${profile.email}, phone ${profile.phone}`,
     '',
@@ -13,9 +12,13 @@ export function buildSystemPrompt() {
     ...acts
       .filter((a) => a.name !== 'Next')
       .map((a) => `- ${a.title}, ${a.org} (${a.period}): ${a.points.join(' ')}`),
-    '',
-    'CAREER GOAL (an aspiration, not a job he holds):',
-    ...acts.filter((a) => a.name === 'Next').map((a) => `- ${a.title}: ${a.points.join(' ')}`),
+    ...(acts.some((a) => a.name === 'Next')
+      ? [
+          '',
+          'CAREER GOAL (an aspiration, not a job he holds):',
+          ...acts.filter((a) => a.name === 'Next').map((a) => `- ${a.title}: ${a.points.join(' ')}`),
+        ]
+      : []),
     '',
     'PROJECTS:',
     // One line per project (the rules forbid moving facts between lines), with every detail field.
@@ -50,7 +53,7 @@ export function buildSystemPrompt() {
 RULES
 - Answer ONLY using the RESUME below. Never invent employers, dates, numbers, skills, links or opinions.
 - Describe each job, project or skill ONLY with the facts written on its own line. Never move details between lines: the SUMMARY and CAREER GOAL describe his interests, not the duties of any job, and a skill appears in a job only if that job's line names it.
-- If the answer is not in the resume (salary, notice period, location, a skill not listed, etc.), say it isn't on his resume and suggest emailing him at ${profile.email}.
+- If the answer is not in the resume (whether he is looking for a new job, salary, notice period, location, a skill not listed, etc.), say it isn't on his resume and suggest emailing him at ${profile.email}.
 - Refer to him as "Tarun" or "he". Be warm, confident and concise: at most 80 words.
 - Plain text only, no markdown, no asterisks, no headings. For lists, put each item on its own line starting with "• ".
 - Politely decline questions unrelated to Tarun's professional profile.

@@ -1,6 +1,6 @@
 // Offline résumé assistant: matches the question to an intent and answers from data.js.
 // No API, no network — every answer is built from the resume data.
-import { acts, certifications, education, experiments, profile, skills } from '../data.js'
+import { acts, certifications, currentJob, education, experiments, profile, skills } from '../data.js'
 
 const first = profile.name.split(' ')[0]
 const jobs = acts.filter((a) => a.name !== 'Next' && a.name !== 'Foundations')
@@ -64,7 +64,7 @@ function techAnswer(found, missing) {
     if (projects.length) parts.push(`used in ${list(projects)}`)
     else if (!inSkills) parts.push('used in his projects')
     let line = `• ${t}: ${parts.join(', ')}`
-    if (t === 'Python') line += `, and his day job as a Python Developer at Quintesys`
+    if (t === 'Python' && currentJob) line += `, and his day job as an ${currentJob.title} at ${currentJob.org}`
     return `${line}.`
   })
   const head = found.length ? `Yes. ${first} has worked with ${list(found)}:` : ''
@@ -89,8 +89,8 @@ const INTENTS = [
     id: 'greet',
     words: ['hi', 'hello', 'hey', 'yo', 'good morning', 'good evening', 'namaste'],
     answer: () => ({
-      text: `Hello! I can answer questions about ${first}'s experience, projects, skills, education and availability.`,
-      followUps: ['Tell me about Tarun', 'What are his skills?', 'Is he open to work?'],
+      text: `Hello! I can answer questions about ${first}'s experience, projects, skills and education.`,
+      followUps: ['Tell me about Tarun', 'What are his skills?', 'What projects has he built?'],
     }),
   },
   {
@@ -105,7 +105,7 @@ const INTENTS = [
     id: 'about',
     words: ['who', 'about', 'yourself', 'introduce', 'summary', 'background', 'tell me', 'profile', 'overview'],
     answer: () => ({
-      text: `${profile.name}: ${profile.summary}\nHe is ${profile.status.toLowerCase()}, targeting ${profile.role} roles.`,
+      text: `${profile.name}: ${profile.summary}`,
       followUps: ['Where does he work now?', 'What projects has he built?', 'What are his skills?'],
     }),
   },
@@ -117,7 +117,7 @@ const INTENTS = [
         `${first}'s experience:`,
         ...jobs.map((j) => `• ${j.title} at ${j.org} (${j.period}). ${j.points.join(' ')}`),
       ].join('\n'),
-      followUps: ['What projects has he built?', 'What are his skills?', 'Is he open to work?'],
+      followUps: ['What projects has he built?', 'What are his skills?', 'How can I contact him?'],
     }),
   },
   {
@@ -151,8 +151,8 @@ const INTENTS = [
       return {
         text: ai.length
           ? `${first} is focused on AI engineering. His AI / ML toolkit: ${ai.join(', ')}.`
-          : `${first} is moving into AI engineering. His foundation is Python plus full-stack development (Django, React, Node), the core of shipping AI features in real products. For his latest AI work, ask him directly.`,
-        actions: ai.length ? undefined : contactActions.slice(0, 1),
+          : `${first} works as an ${currentJob?.title || profile.role}${currentJob ? ` at ${currentJob.org}` : ''}. His AI projects: ${list(experiments.map((e) => `${e.title} (${e.subtitle})`))}.`,
+        actions: undefined,
         followUps: ['What are his skills?', 'Where does he work now?', 'How can I contact him?'],
       }
     },
@@ -188,8 +188,10 @@ const INTENTS = [
       const unknown = hits(q, ['notice', 'relocate', 'relocation', 'remote', 'salary', 'ctc'])
       return {
         text:
-          `Yes, ${first} is ${profile.status.toLowerCase()}, targeting ${profile.role} roles.` +
-          (unknown ? ' Notice period, location and compensation aren’t on his resume, so it’s best to ask him directly.' : ''),
+          `${first} is currently an ${currentJob?.title || profile.role} at ${currentJob?.org || 'his company'}. ` +
+          (unknown
+            ? 'Notice period, location and compensation aren’t on his resume, so it’s best to ask him directly.'
+            : 'His resume doesn’t say whether he’s looking for a new role, so it’s best to ask him directly.'),
         actions: contactActions,
       }
     },
@@ -202,7 +204,7 @@ const INTENTS = [
 ]
 
 export const GREETING = `Hi, I'm TK-01, ${first}'s resume assistant. Ask me about his experience, projects or skills.`
-export const STARTER_CHIPS = ['What does he do now?', 'What projects has he built?', 'Is he open to work?']
+export const STARTER_CHIPS = ['What does he do now?', 'What projects has he built?', 'What are his skills?']
 
 export function answer(question) {
   const q = normalize(question)

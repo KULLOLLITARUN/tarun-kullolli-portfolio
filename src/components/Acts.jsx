@@ -1,14 +1,16 @@
 import { acts } from '../data.js'
 import SectionHead from './SectionHead.jsx'
 
+const COUNT = ['zero', 'one', 'two', 'three', 'four', 'five', 'six']
+
 export default function Acts() {
   return (
     <section id="acts" className="section" aria-labelledby="acts-title">
-      <SectionHead index="02" kicker="The Acts" id="acts-title" title="Career in four acts">
-        From computer science fundamentals to production Python, and on to AI engineering.
+      <SectionHead index="02" kicker="The Acts" id="acts-title" title={`Career in ${COUNT[acts.length] || acts.length} acts`}>
+        From computer science fundamentals to full-stack development, and now AI engineering in production.
       </SectionHead>
 
-      <ol className="acts">
+      <ol className="acts" style={{ '--acts': acts.length }}>
         {acts.map((a) => (
           <li key={a.act} className={`act${a.name === 'Next' ? ' act-next' : ''}`}>
             <p className="mono label">

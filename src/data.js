@@ -8,12 +8,11 @@ export const profile = {
   // Lines the particle field forms in the hero (desktop / mobile).
   particleText: { wide: ['TARUN KULLOLLI'], narrow: ['TARUN', 'KULLOLLI'] },
   role: 'AI Engineer',
-  tagline: 'Python developer building intelligent, full-stack applications — from model to interface.',
-  status: 'Open to work',
+  tagline: 'Building intelligent, full-stack AI applications — from model to interface.',
   summary:
-    'Python Developer at Quintesys with a full-stack foundation in Django, React and Node. ' +
-    'Builds scalable, user-friendly applications, with a focus on AI engineering: ' +
-    'putting models to work inside real products.',
+    'AI Engineer at Quintesys with a full-stack foundation in Django, React and Node. ' +
+    'Builds LLM-powered systems (agentic RAG, self-healing extraction pipelines, developer tooling) ' +
+    'and ships them inside real products.',
   email: 'Kullollitarun@gmail.com',
   phone: '+91 8897083343',
   // TODO: replace '#' with your real profile URLs.
@@ -138,7 +137,7 @@ export const experiments = [
   },
 ]
 
-// Career told in four acts.
+// Career told in acts.
 export const acts = [
   {
     act: 'I',
@@ -163,20 +162,15 @@ export const acts = [
     act: 'III',
     name: 'Production',
     period: 'Jul 2025 – Present',
-    title: 'Python Developer',
+    title: 'AI Engineer',
     org: 'Quintesys Pvt. Ltd',
-    // TODO: add 2–3 bullet points with what you build here (numbers help).
-    points: ['Building Python software in a production team.'],
-  },
-  {
-    act: 'IV',
-    name: 'Next',
-    period: 'Now',
-    title: 'AI Engineering',
-    org: 'Open to work',
-    points: ['Bringing Python and full-stack experience to AI-powered products: LLM apps, data pipelines, intelligent interfaces.'],
+    // Client work is under NDA: keep this entry general.
+    points: ['Building AI software in a production team.', 'Client work is confidential, so it isn’t detailed here.'],
   },
 ]
+
+// The job whose period runs to "Present".
+export const currentJob = acts.find((a) => /present/i.test(a.period))
 
 // Groups with no items are hidden automatically.
 export const skills = [

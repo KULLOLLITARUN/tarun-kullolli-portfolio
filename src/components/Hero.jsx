@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { animate, stagger } from 'animejs'
-import { profile } from '../data.js'
+import { currentJob, profile } from '../data.js'
 import { useReducedMotion } from '../hooks.js'
 import Chat from '../chat/Chat.jsx'
 import Mascot from './Mascot.jsx'
@@ -135,7 +135,7 @@ export default function Hero({ onTour }) {
           <span className="amber">EXP 00</span> <span className="dim">//</span> ORIGIN
         </p>
         <p className="small status">
-          <span className="pulse" aria-hidden="true" /> {profile.status} · Python · LLM apps
+          {currentJob ? `${currentJob.title} · ${currentJob.org.replace(/ Pvt\. Ltd$/, '')}` : profile.role} · LLM apps
         </p>
       </div>
 

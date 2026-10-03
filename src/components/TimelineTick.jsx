@@ -25,7 +25,7 @@ function Leg({ legRef, hipX, footX }) {
       <line x1={hipX} y1="90" x2={footX} y2="116" stroke={INK} strokeWidth="3.5" strokeLinecap="round" />
       <path
         d={`M${footX - 10},${FOOT} Q${footX - 10},${FOOT - 9} ${footX},${FOOT - 9} Q${footX + 9},${FOOT - 9} ${footX + 9},${FOOT} Z`}
-        fill="#f59e0b"
+        style={{ fill: 'rgb(var(--shoe-rgb))' }}
         stroke={INK}
         strokeWidth="2.5"
         strokeLinejoin="round"
@@ -249,8 +249,8 @@ export default function TimelineTick() {
       <svg viewBox={`0 0 ${VB.w} ${VB.h}`}>
         <defs>
           <linearGradient id="mtick-body" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#38bdf8" />
-            <stop offset="1" stopColor="#1d4ed8" />
+            <stop offset="0" style={{ stopColor: 'rgb(var(--tick-a-rgb))' }} />
+            <stop offset="1" style={{ stopColor: 'rgb(var(--tick-b-rgb))' }} />
           </linearGradient>
           <radialGradient id="mtick-dial" cx="0.45" cy="0.4" r="0.7">
             <stop offset="0" stopColor="#fffaf0" />
@@ -264,17 +264,17 @@ export default function TimelineTick() {
           <path d="M14,26 A12,12 0 0 1 38,22 Z" fill="url(#mtick-body)" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
           <path d="M62,22 A12,12 0 0 1 86,26 Z" fill="url(#mtick-body)" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
           <line x1="50" y1="24" x2="50" y2="14" stroke={INK} strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx="50" cy="12" r="3.5" fill="#f59e0b" stroke={INK} strokeWidth="2" />
+          <circle cx="50" cy="12" r="3.5" style={{ fill: 'rgb(var(--shoe-rgb))' }} stroke={INK} strokeWidth="2" />
           {/* left arm on the hip */}
           <path d="M18,66 C6,70 6,82 14,88" fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round" />
-          <path d="M18,66 C6,70 6,82 14,88" fill="none" stroke="#38bdf8" strokeWidth="3.5" strokeLinecap="round" />
+          <path d="M18,66 C6,70 6,82 14,88" fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="3.5" strokeLinecap="round" />
           <circle cx="15" cy="89" r="5" fill="#fff" stroke={INK} strokeWidth="2.5" />
           {/* body + dial */}
           <circle cx={C.x} cy={C.y} r="34" fill="url(#mtick-body)" stroke={INK} strokeWidth="3" />
           <circle cx={C.x} cy={C.y} r="28" fill="url(#mtick-dial)" stroke={INK} strokeWidth="2" />
           {ticks}
-          <line ref={r.hour} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 13} stroke="#1d4ed8" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-          <line ref={r.minute} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 20} stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+          <line ref={r.hour} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 13} style={{ stroke: 'rgb(var(--tick-b-rgb))' }} strokeWidth="3" strokeLinecap="round" opacity="0.6" />
+          <line ref={r.minute} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 20} style={{ stroke: 'rgb(var(--tick-b-rgb))' }} strokeWidth="2" strokeLinecap="round" opacity="0.6" />
           {/* face */}
           <ellipse cx="34" cy="66" rx="4" ry="2.4" fill="#fb7185" opacity="0.5" />
           <ellipse cx="66" cy="66" rx="4" ry="2.4" fill="#fb7185" opacity="0.5" />
@@ -289,7 +289,7 @@ export default function TimelineTick() {
           {/* right arm: waves at the end */}
           <g ref={r.arm}>
             <path d="M82,60 C94,56 96,46 93,38" fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round" />
-            <path d="M82,60 C94,56 96,46 93,38" fill="none" stroke="#38bdf8" strokeWidth="3.5" strokeLinecap="round" />
+            <path d="M82,60 C94,56 96,46 93,38" fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="3.5" strokeLinecap="round" />
             <circle cx="93" cy="35" r="5" fill="#fff" stroke={INK} strokeWidth="2.5" />
           </g>
         </g>

@@ -8,9 +8,22 @@
   --text: #f4f4f5;
   --text-2: #a1a1aa;
   --text-3: #8b8b94; /* ≥ 5:1 on black */
-  --amber: #f5b544;
-  --blue: #60a5fa;
-  --focus: #f5b544;
+  /* Theme colours (Night). theme.js overrides these when Tick switches the time of day. */
+  --accent-rgb: 245, 181, 68;
+  --accent-hi-rgb: 255, 200, 97;
+  --accent-pale-rgb: 255, 244, 214;
+  --glass-rgb: 125, 211, 252;
+  --glass-soft-rgb: 186, 230, 253;
+  --glass-hi-rgb: 165, 243, 252;
+  --glass-pale-rgb: 224, 242, 254;
+  --glass-deep-rgb: 30, 58, 110;
+  --tick-a-rgb: 56, 189, 248;
+  --tick-b-rgb: 29, 78, 216;
+  --shoe-rgb: 245, 158, 11;
+  --amber: rgb(var(--accent-rgb));
+  --kicker-rgb: 96, 165, 250;
+  --blue: rgb(var(--kicker-rgb)); /* section labels */
+  --focus: var(--amber);
 
   --font: 'Geist', 'Geist Fallback', system-ui, -apple-system, sans-serif;
   --mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
@@ -209,14 +222,14 @@ html.has-cursor textarea {
   height: 6px;
   border-radius: 50%;
   background: var(--amber);
-  box-shadow: 0 0 10px 2px rgba(245, 181, 68, 0.7);
+  box-shadow: 0 0 10px 2px rgba(var(--accent-rgb), 0.7);
 }
 .cursor-spark {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #7dd3fc;
-  box-shadow: 0 0 6px rgba(125, 211, 252, 0.8);
+  background: rgb(var(--glass-rgb));
+  box-shadow: 0 0 6px rgba(var(--glass-rgb), 0.8);
 }
 .cursor-box.is-hidden,
 .cursor-core.is-hidden,
@@ -366,12 +379,12 @@ html.has-cursor textarea {
   border-color: var(--amber);
   color: #000;
   font-weight: 600;
-  box-shadow: 0 0 20px rgba(245, 181, 68, 0.35);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.35);
 }
 .chip-cta:hover {
-  background: #ffc861;
-  border-color: #ffc861;
-  box-shadow: 0 0 28px rgba(245, 181, 68, 0.55);
+  background: rgb(var(--accent-hi-rgb));
+  border-color: rgb(var(--accent-hi-rgb));
+  box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.55);
 }
 .icon-btn {
   display: grid;
@@ -502,7 +515,7 @@ html.has-cursor textarea {
 }
 .hero-name.is-resolved {
   opacity: 1;
-  background: linear-gradient(100deg, #f4f4f5 42%, #fff4d6 50%, #f4f4f5 58%) 0 0 / 260% 100%;
+  background: linear-gradient(100deg, #f4f4f5 42%, rgb(var(--accent-pale-rgb)) 50%, #f4f4f5 58%) 0 0 / 260% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -560,7 +573,7 @@ html.has-cursor textarea {
   font-size: var(--fs-lg);
   color: var(--amber);
   letter-spacing: 0;
-  text-shadow: 0 0 18px rgba(245, 181, 68, 0.6);
+  text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.6);
 }
 .scroll-cue:hover {
   color: var(--amber);
@@ -617,7 +630,7 @@ html.has-cursor textarea {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.45)) drop-shadow(0 0 40px rgba(29, 78, 216, 0.35));
+  filter: drop-shadow(0 0 14px rgba(var(--tick-a-rgb), 0.45)) drop-shadow(0 0 40px rgba(var(--tick-b-rgb), 0.35));
 }
 /* Tick itself is clickable (rings the alarm) once it has arrived. */
 .mascot.is-visible .mascot-hit {
@@ -813,8 +826,8 @@ html.has-cursor textarea {
 .chat-chips button:hover:not(:disabled) {
   border-color: var(--amber);
   color: var(--text);
-  background: rgba(245, 181, 68, 0.1);
-  box-shadow: 0 0 14px rgba(245, 181, 68, 0.3);
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.3);
 }
 .chat-chips button:disabled {
   opacity: 0.4;
@@ -1055,7 +1068,7 @@ html.has-cursor textarea {
   left: var(--s-5);
   bottom: var(--s-5);
   font-size: var(--fs-xs);
-  color: #a5f3fc;
+  color: rgb(var(--glass-hi-rgb));
   opacity: 0;
   transform: translateY(4px);
   /* Sequential swap (never both visible): out quickly, in after the stack line has gone. */
@@ -1094,14 +1107,14 @@ html.has-cursor textarea {
   margin-top: auto;
   padding-top: var(--s-4);
   font-size: var(--fs-sm);
-  color: #e0f7ff;
+  color: rgb(var(--glass-pale-rgb));
 }
 .holo-dot {
   flex: none;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a5f3fc;
+  background: rgb(var(--glass-hi-rgb));
   box-shadow: 0 0 8px rgba(var(--sky), 0.9);
 }
 .holo-stack {
@@ -1127,7 +1140,7 @@ html.has-cursor textarea {
   height: auto;
   border: 1px solid rgba(var(--ice), 0.32);
   border-radius: 6px;
-  background: rgba(30, 58, 110, 0.32);
+  background: rgba(var(--glass-deep-rgb), 0.32);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 0 24px rgba(var(--sky), 0.08);
@@ -1159,16 +1172,16 @@ html.has-cursor textarea {
   }
 }
 .holo-node rect {
-  fill: rgba(30, 64, 120, 0.5);
+  fill: rgba(var(--glass-deep-rgb), 0.5);
   stroke: rgba(var(--ice), 0.6);
   stroke-width: 0.8;
   filter: drop-shadow(0 0 2px rgba(var(--sky), 0.45));
 }
 .holo-node circle {
-  fill: #7dd3fc;
+  fill: rgb(var(--glass-rgb));
 }
 .holo-node text {
-  fill: #e0f2fe;
+  fill: rgb(var(--glass-pale-rgb));
   font-family: var(--mono);
   font-size: 7.5px;
   letter-spacing: 0.04em;
@@ -1182,7 +1195,7 @@ html.has-cursor textarea {
   padding: var(--s-3) var(--s-4);
   border: 1px solid rgba(var(--ice), 0.24);
   border-radius: 6px;
-  background: rgba(30, 58, 110, 0.22);
+  background: rgba(var(--glass-deep-rgb), 0.22);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .holo-metric p {
@@ -1216,7 +1229,7 @@ html.has-cursor textarea {
   -webkit-backdrop-filter: blur(6px);
   box-shadow: 0 0 10px rgba(var(--sky), 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   font-size: var(--fs-xs);
-  color: #e0f2fe;
+  color: rgb(var(--glass-pale-rgb));
 }
 /* The whole card opens the project panel: the title button is stretched over the card. */
 .holo-open {
@@ -1240,7 +1253,7 @@ html.has-cursor textarea {
   outline: none;
 }
 .holo-open:focus-visible::after {
-  outline: 2px solid #7dd3fc;
+  outline: 2px solid rgb(var(--glass-rgb));
   outline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1336,7 +1349,7 @@ html.has-cursor textarea {
   border: 1px solid rgba(var(--ice), 0.35);
   border-radius: var(--r-pill);
   background: rgba(var(--ice), 0.06);
-  color: #e0f2fe;
+  color: rgb(var(--glass-pale-rgb));
   cursor: pointer;
   transition: border-color var(--t-fast), background var(--t-fast);
 }
@@ -1367,7 +1380,7 @@ html.has-cursor textarea {
 .pd-sec p,
 .pd-list {
   line-height: 1.65;
-  color: rgba(224, 242, 254, 0.9);
+  color: rgba(var(--glass-pale-rgb), 0.9);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 .pd-list {
@@ -1388,7 +1401,7 @@ html.has-cursor textarea {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a5f3fc;
+  background: rgb(var(--glass-hi-rgb));
   box-shadow: 0 0 8px rgba(var(--sky), 0.9);
 }
 .pd-stack p {
@@ -1406,7 +1419,7 @@ html.has-cursor textarea {
 }
 .pd-foot .btn {
   border-color: rgba(var(--ice), 0.4);
-  color: #e0f2fe;
+  color: rgb(var(--glass-pale-rgb));
 }
 .pd-foot .pd-live {
   background: var(--amber);
@@ -1414,7 +1427,7 @@ html.has-cursor textarea {
   color: #000;
 }
 .pd-foot .pd-live:hover {
-  background: #ffc861;
+  background: rgb(var(--accent-hi-rgb));
 }
 .pd-hint {
   margin-left: auto;
@@ -1482,10 +1495,10 @@ html.has-cursor textarea {
   left: 0;
   right: 0;
   height: 1.5px;
-  background: linear-gradient(90deg, rgba(165, 243, 252, 1), rgba(125, 211, 252, 0.6));
+  background: linear-gradient(90deg, rgba(var(--glass-hi-rgb), 1), rgba(var(--glass-rgb), 0.6));
   box-shadow:
-    0 0 6px rgba(125, 211, 252, 0.9),
-    0 0 18px rgba(125, 211, 252, 0.45);
+    0 0 6px rgba(var(--glass-rgb), 0.9),
+    0 0 18px rgba(var(--glass-rgb), 0.45);
   opacity: var(--tl, 1);
 }
 /* One-off flash when the particles finish drawing the line (class set by TimelineTick). */
@@ -1497,7 +1510,7 @@ html.has-cursor textarea {
     background: #fff;
     box-shadow:
       0 0 10px rgba(255, 255, 255, 1),
-      0 0 34px rgba(125, 211, 252, 0.9);
+      0 0 34px rgba(var(--glass-rgb), 0.9);
   }
 }
 .act {
@@ -1517,8 +1530,8 @@ html.has-cursor textarea {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #e0f7ff;
-  box-shadow: 0 0 10px rgba(125, 211, 252, 0.9);
+  background: rgb(var(--glass-pale-rgb));
+  box-shadow: 0 0 10px rgba(var(--glass-rgb), 0.9);
   opacity: var(--tl, 1);
   transition: box-shadow var(--t-med);
 }
@@ -1530,7 +1543,7 @@ html.has-cursor textarea {
   left: 4px;
   width: 1px;
   height: calc(var(--s-6) - 8px);
-  background: linear-gradient(rgba(125, 211, 252, 0.7), rgba(125, 211, 252, 0));
+  background: linear-gradient(rgba(var(--glass-rgb), 0.7), rgba(var(--glass-rgb), 0));
   opacity: var(--reveal, 1);
 }
 /* The current role: an amber, gently pulsing node with a "NOW" label. */
@@ -1543,7 +1556,7 @@ html.has-cursor textarea {
   50% {
     box-shadow:
       0 0 22px var(--amber),
-      0 0 0 5px rgba(245, 181, 68, 0.18);
+      0 0 0 5px rgba(var(--accent-rgb), 0.18);
   }
 }
 .act-now {
@@ -1551,9 +1564,9 @@ html.has-cursor textarea {
   top: -27px;
   left: 32px;
   padding: 1px 7px;
-  border: 1px solid rgba(245, 181, 68, 0.5);
+  border: 1px solid rgba(var(--accent-rgb), 0.5);
   border-radius: var(--r-pill);
-  background: rgba(245, 181, 68, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1569,15 +1582,15 @@ html.has-cursor textarea {
   height: 100%;
   padding: var(--s-5);
   overflow: hidden;
-  border: 1px solid rgba(186, 230, 253, 0.26);
+  border: 1px solid rgba(var(--glass-soft-rgb), 0.26);
   border-radius: 6px;
-  background: linear-gradient(180deg, rgba(186, 230, 253, 0.07), rgba(186, 230, 253, 0.02) 50%);
+  background: linear-gradient(180deg, rgba(var(--glass-soft-rgb), 0.07), rgba(var(--glass-soft-rgb), 0.02) 50%);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 0 18px rgba(125, 211, 252, 0.07),
-    0 0 16px rgba(125, 211, 252, 0.08);
+    inset 0 0 18px rgba(var(--glass-rgb), 0.07),
+    0 0 16px rgba(var(--glass-rgb), 0.08);
   transition:
     transform var(--t-med) var(--ease),
     border-color var(--t-med),
@@ -1586,14 +1599,14 @@ html.has-cursor textarea {
 .act:hover .act-panel,
 .glass-panel:hover {
   transform: translateY(-3px);
-  border-color: rgba(186, 230, 253, 0.55);
+  border-color: rgba(var(--glass-soft-rgb), 0.55);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 0 22px rgba(125, 211, 252, 0.12),
-    0 0 26px rgba(125, 211, 252, 0.2);
+    inset 0 0 22px rgba(var(--glass-rgb), 0.12),
+    0 0 26px rgba(var(--glass-rgb), 0.2);
 }
 .act:hover::before {
-  box-shadow: 0 0 18px rgba(125, 211, 252, 1);
+  box-shadow: 0 0 18px rgba(var(--glass-rgb), 1);
 }
 .act.is-now:hover::before {
   box-shadow: 0 0 22px var(--amber);
@@ -1608,7 +1621,7 @@ html.has-cursor textarea {
   line-height: 1;
   letter-spacing: -0.04em;
   color: transparent;
-  -webkit-text-stroke: 1px rgba(186, 230, 253, 0.16);
+  -webkit-text-stroke: 1px rgba(var(--glass-soft-rgb), 0.16);
   pointer-events: none;
   user-select: none;
 }
@@ -1643,7 +1656,7 @@ html.has-cursor textarea {
   width: 46px;
   opacity: 0; /* shown once TimelineTick has placed it */
   pointer-events: none;
-  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.35));
+  filter: drop-shadow(0 0 8px rgba(var(--tick-a-rgb), 0.35));
 }
 .tl-tick svg {
   display: block;
@@ -1658,11 +1671,11 @@ html.has-cursor textarea {
   z-index: 1;
   width: 40px;
   height: 40px;
-  border: 2px solid rgba(165, 243, 252, 0.9);
+  border: 2px solid rgba(var(--glass-hi-rgb), 0.9);
   border-radius: 50%;
   box-shadow:
-    0 0 12px rgba(125, 211, 252, 0.8),
-    inset 0 0 10px rgba(125, 211, 252, 0.5);
+    0 0 12px rgba(var(--glass-rgb), 0.8),
+    inset 0 0 10px rgba(var(--glass-rgb), 0.5);
   opacity: 0;
   pointer-events: none;
 }
@@ -1699,7 +1712,7 @@ html.has-cursor textarea {
     right: auto;
     width: 1px;
     height: auto;
-    background: linear-gradient(rgba(125, 211, 252, 0.9), rgba(125, 211, 252, 0.45));
+    background: linear-gradient(rgba(var(--glass-rgb), 0.9), rgba(var(--glass-rgb), 0.45));
   }
   .act {
     padding: 0 0 var(--s-6) var(--s-6);
@@ -1713,7 +1726,7 @@ html.has-cursor textarea {
     left: 5px;
     width: calc(var(--s-6) - 7px);
     height: 1px;
-    background: linear-gradient(90deg, rgba(125, 211, 252, 0.7), rgba(125, 211, 252, 0));
+    background: linear-gradient(90deg, rgba(var(--glass-rgb), 0.7), rgba(var(--glass-rgb), 0));
   }
   .act-now {
     top: -22px;
@@ -1745,11 +1758,11 @@ html.has-cursor textarea {
 }
 .system-cell.is-lead {
   grid-column: 1 / -1;
-  border-color: rgba(186, 230, 253, 0.42);
+  border-color: rgba(var(--glass-soft-rgb), 0.42);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 0 26px rgba(125, 211, 252, 0.1),
-    0 0 26px rgba(125, 211, 252, 0.14);
+    inset 0 0 26px rgba(var(--glass-rgb), 0.1),
+    0 0 26px rgba(var(--glass-rgb), 0.14);
 }
 .skill-chips {
   display: flex;
@@ -1758,18 +1771,18 @@ html.has-cursor textarea {
 }
 .skill-chips li {
   padding: 4px var(--s-3);
-  border: 1px solid rgba(186, 230, 253, 0.28);
+  border: 1px solid rgba(var(--glass-soft-rgb), 0.28);
   border-radius: var(--r-pill);
-  background: rgba(186, 230, 253, 0.06);
+  background: rgba(var(--glass-soft-rgb), 0.06);
   font-size: var(--fs-sm);
-  color: #e0f2fe;
+  color: rgb(var(--glass-pale-rgb));
 }
 /* Headline skills: larger chips with a cyan glow. */
 .is-lead .skill-chips li {
   padding: 6px var(--s-4);
-  border-color: rgba(125, 211, 252, 0.5);
-  background: rgba(125, 211, 252, 0.1);
-  box-shadow: 0 0 12px rgba(125, 211, 252, 0.18);
+  border-color: rgba(var(--glass-rgb), 0.5);
+  background: rgba(var(--glass-rgb), 0.1);
+  box-shadow: 0 0 12px rgba(var(--glass-rgb), 0.18);
   font-size: var(--fs-md);
   color: #f0f9ff;
 }
@@ -2135,5 +2148,86 @@ html.has-cursor textarea {
   body {
     background: #fff;
     color: #000;
+  }
+}
+
+/* ── Theme sweep ────────────────────────────────────────── */
+/* Clicking Tick switches the time of day: the new colours grow out of Tick as a circle
+   (theme.js animates the clip-path) instead of the default cross-fade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ── Time-of-day picker (opens above Tick when it is clicked) ── */
+.theme-picker {
+  position: fixed;
+  z-index: 60;
+  transform: translateX(-50%); /* left/top are set by Mascot.jsx */
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid rgba(var(--glass-rgb), 0.35);
+  border-radius: var(--r-md);
+  background: rgba(6, 6, 8, 0.86);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(var(--glass-rgb), 0.15);
+  animation: picker-in 260ms var(--ease) both;
+}
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.96);
+  }
+}
+.theme-picker-label {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.theme-picker-row {
+  display: flex;
+  gap: var(--s-3);
+}
+.theme-swatch {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.theme-swatch-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--a) 0 50%, var(--b) 50% 100%);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+  transition: box-shadow var(--t-fast), transform var(--t-fast);
+}
+.theme-swatch:hover .theme-swatch-dot {
+  transform: scale(1.08);
+}
+.theme-swatch[aria-pressed='true'] {
+  color: var(--text);
+}
+.theme-swatch[aria-pressed='true'] .theme-swatch-dot {
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--text);
+}
+.theme-swatch:focus-visible {
+  outline: none;
+}
+.theme-swatch:focus-visible .theme-swatch-dot {
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--focus);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-picker {
+    animation: none;
   }
 }

@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { profile } from '../data.js'
 import { faceState } from '../chat/faceState.js'
 import { stationDone } from '../hooks.js'
+import { themeState } from '../theme.js'
 
 const TEXT_W = 10 // name block width in "name space" units
 const STAR_COLORS = ['#f4f4f5', '#a78bfa', '#60a5fa', '#f5b544', '#f472b6', '#38bdf8', '#fb7185']
@@ -188,6 +189,10 @@ uniform float uTravel[${MAX_CARDS}];
 uniform float uLate[${MAX_CARDS}]; // 1 for cards below the first row
 uniform vec3 uGroupPos;
 uniform float uGroupScale;
+// Theme colours (theme.js): accent (amber in Night), glass (cyan) and the outline glow.
+uniform vec3 uAccent;
+uniform vec3 uGlass;
+uniform vec3 uIce;
 uniform vec2 uView;
 uniform float uScanX;
 uniform float uScanGold; // 1 = golden sweep, 0 = white sweep
@@ -417,16 +422,15 @@ void main() {
   gl_Position = projectionMatrix * mv;
   float edge = step(min(min(aUV.x, 1.0 - aUV.x), min(aUV.y, 1.0 - aUV.y)), 0.001);
   gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6 + edge * cc * 0.35) * (1.0 + scan * 0.6) * (1.0 + 0.3 * flight) / -mv.z;
-  // White as the name; a few amber sparks appear only once the river is flowing.
-  // The name is white; once the particles leave it they turn the cards' cyan (#7dd3fc),
-  // except a few amber sparks.
+  // The name is white; once the particles leave it they turn the cards' glass colour
+  // (cyan in Night), except a few accent (amber) sparks.
   float journeyT = uCount > 0.5 ? smoothstep(0.0, 0.2, dd) : 0.0;
-  vec3 col = mix(vec3(0.96), vec3(0.49, 0.83, 0.99), journeyT);
-  col = mix(col, vec3(0.96, 0.71, 0.27), step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
-  // Particles forming the finale word turn its amber as they settle into it.
-  col = mix(col, vec3(0.96, 0.71, 0.27), (1.0 - kind) * smoothstep(0.5, 1.0, e4));
-  // Card outlines glow icy blue as they lock into place.
-  vColor = mix(col, vec3(0.62, 0.86, 1.0), edge * cc * 0.85);
+  vec3 col = mix(vec3(0.96), uGlass, journeyT);
+  col = mix(col, uAccent, step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
+  // Particles forming the finale word turn its accent colour as they settle into it.
+  col = mix(col, uAccent, (1.0 - kind) * smoothstep(0.5, 1.0, e4));
+  // Card outlines glow icy (a pale glass tint) as they lock into place.
+  vColor = mix(col, uIce, edge * cc * 0.85);
   // Particles hand over to the glass card once it has fully formed, reappear while they travel
   // on to the timeline, and hand over again to the timeline's line and dots.
   float atCard = smoothstep(0.96, 1.0, cp) * step(0.5, uCount);
@@ -564,6 +568,10 @@ function useUniforms(extra) {
   )
 }
 
+// A theme colour as 0–1 RGB (the name shader blends in linear-ish space; close enough here).
+const themeRGB = (k) => themeState.colors[k].map((v) => v / 255)
+const tmpColor = new THREE.Color()
+
 const pointsMaterial = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }
 
 // ── Name ─────────────────────────────────────────────────────────────
@@ -695,6 +703,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     uBtn: { value: [new THREE.Vector4(), new THREE.Vector4()] },
     uBtnCount: { value: 0 },
     uSpot: { value: new THREE.Vector4(0, 0, 1, 0) },
+    uGlass: { value: new THREE.Color().setRGB(...themeRGB('glass')) },
+    uIce: { value: new THREE.Color().setRGB(...themeRGB('glassSoft')) },
+    // Start on the current theme's accent (useUniforms defaults it to Night's amber).
+    uAccent: { value: new THREE.Color().setRGB(...themeRGB('accent')) },
   }))
 
   useFrame((state, delta) => {
@@ -702,6 +714,11 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     t0.current += dt
     const u = mat.current.uniforms
     u.uTime.value = state.clock.elapsedTime
+    // Ease toward the current theme's colours (a time-of-day switch blends over ~0.6s).
+    const ck = 1 - Math.exp(-dt * 5)
+    u.uAccent.value.lerp(tmpColor.setRGB(...themeRGB('accent')), ck)
+    u.uGlass.value.lerp(tmpColor.setRGB(...themeRGB('glass')), ck)
+    u.uIce.value.lerp(tmpColor.setRGB(...themeRGB('glassSoft')), ck)
 
     if (!reduce && t0.current > 0.5) progress.current = Math.min(1, progress.current + dt / 3.0)
     u.uProgress.value = progress.current

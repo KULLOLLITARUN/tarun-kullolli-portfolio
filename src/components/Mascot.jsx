@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
+import { setTheme, themeState, THEMES } from '../theme.js'
 
 // "Tick" — an original rubber-hose alarm-clock character drawn in SVG.
 // Eyes follow the cursor, it blinks, waves, talks with the chat, and its
-// clock hands show the visitor's real local time. Click it and the alarm rings
-// (then the chat offers a question), it dozes off after 30s without input,
+// clock hands show the visitor's real local time. Click it and the alarm rings and a picker
+// offers the time-of-day themes (theme.js), it dozes off after 30s without input,
 // glances down after the particles when the page scrolls, and nods after answering.
 // While an answer loads it thinks (hand on chin, thought dots, hands spinning); off-topic
 // questions in a row make it confused, then annoyed, then grumpy, and a good question
@@ -55,15 +57,79 @@ function Arm({ pose, refs }) {
   return (
     <>
       <path ref={refs.ink} d={d} fill="none" stroke={INK} strokeWidth="15" strokeLinecap="round" />
-      <path ref={refs.core} d={d} fill="none" stroke="#38bdf8" strokeWidth="8" strokeLinecap="round" />
+      <path ref={refs.core} d={d} fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="8" strokeLinecap="round" />
       <Glove pose={pose} ref={refs.glove} />
     </>
+  )
+}
+
+// Time-of-day picker, opened by clicking Tick: above its head; if that would run under the nav,
+// beside the head on the left; failing that (narrow phones), just below the top of the head. Esc, a click elsewhere or scrolling
+// closes it.
+const NAV_H = 80
+function ThemePicker({ at, onClose }) {
+  const box = useRef(null)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const w = el.offsetWidth
+    const h = el.offsetHeight
+    const clampX = (x) => Math.min(Math.max(x, 12 + w / 2), innerWidth - 12 - w / 2)
+    let left = clampX(at.x)
+    let top = at.y - h
+    if (top < NAV_H) {
+      if (at.left - w - 16 >= 12) {
+        left = at.left - 16 - w / 2
+        top = Math.max(NAV_H, at.head - h / 2)
+      } else top = at.y + 8
+    }
+    el.style.left = `${left}px`
+    el.style.top = `${top}px`
+  }, [at])
+  useEffect(() => {
+    box.current?.querySelector('[aria-pressed="true"]')?.focus({ preventScroll: true })
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    const onDown = (e) => !box.current?.contains(e.target) && !e.target.closest?.('.mascot-hit') && onClose()
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onDown)
+    window.addEventListener('scroll', onClose, { passive: true })
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('scroll', onClose)
+    }
+  }, [onClose])
+  return (
+    <div ref={box} className="theme-picker" role="group" aria-label="Time of day colours" style={{ left: at.x, top: at.y }}>
+      <span className="theme-picker-label mono">Time of day</span>
+      <div className="theme-picker-row">
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className="theme-swatch"
+            aria-pressed={themeState.id === t.id}
+            style={{ '--a': `rgb(${t.tickA})`, '--b': `rgb(${t.accent})` }}
+            onClick={(e) => {
+              const b = e.currentTarget.getBoundingClientRect()
+              setTheme(t.id, { x: b.left + b.width / 2, y: b.top + b.height / 2 })
+              onClose()
+            }}
+          >
+            <span className="theme-swatch-dot" aria-hidden="true" />
+            <span className="theme-swatch-name">{t.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
 export default function Mascot({ visible }) {
   const reduce = useReducedMotion()
   const root = useRef(null)
+  const [picker, setPicker] = useState(null) // where the theme picker is open ({ x, y }), or null
+  const closePicker = useRef(() => setPicker(null)).current
   const armRefs = () => ({ ink: useRef(null), core: useRef(null), glove: useRef(null) })
   const r = {
     body: useRef(null),
@@ -397,21 +463,22 @@ export default function Mascot({ visible }) {
   })
 
   return (
+    <>
     <div className={`mascot${visible ? ' is-visible' : ''}`} aria-hidden="true">
       <svg ref={root} viewBox="0 0 320 400" className="mascot-svg">
         <defs>
           <linearGradient id="tick-body" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#38bdf8" />
-            <stop offset="1" stopColor="#1d4ed8" />
+            <stop offset="0" style={{ stopColor: 'rgb(var(--tick-a-rgb))' }} />
+            <stop offset="1" style={{ stopColor: 'rgb(var(--tick-b-rgb))' }} />
           </linearGradient>
           <radialGradient id="tick-dial" cx="0.45" cy="0.4" r="0.7">
             <stop offset="0" stopColor="#fffaf0" />
             <stop offset="1" stopColor="#f3e6cc" />
           </radialGradient>
           <radialGradient id="tick-floor">
-            <stop offset="0" stopColor="#38bdf8" stopOpacity="0.55" />
-            <stop offset="0.6" stopColor="#1d4ed8" stopOpacity="0.18" />
-            <stop offset="1" stopColor="#1d4ed8" stopOpacity="0" />
+            <stop offset="0" style={{ stopColor: 'rgb(var(--tick-a-rgb))' }} stopOpacity="0.55" />
+            <stop offset="0.6" style={{ stopColor: 'rgb(var(--tick-b-rgb))' }} stopOpacity="0.18" />
+            <stop offset="1" style={{ stopColor: 'rgb(var(--tick-b-rgb))' }} stopOpacity="0" />
           </radialGradient>
           <radialGradient id="tick-angry">
             <stop offset="0" stopColor="#ef4444" stopOpacity="0.3" />
@@ -430,8 +497,8 @@ export default function Mascot({ visible }) {
         {/* Legs + shoes (outside the bobbing body so the feet stay planted) */}
         <line ref={r.legs[0]} x1="138" y1="268" x2="132" y2="348" stroke={INK} strokeWidth="7" strokeLinecap="round" />
         <line ref={r.legs[1]} x1="182" y1="268" x2="188" y2="348" stroke={INK} strokeWidth="7" strokeLinecap="round" />
-        <path d="M108,360 Q108,342 130,343 Q148,344 148,360 Z" fill="#f59e0b" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-        <path d="M172,360 Q172,344 190,343 Q212,342 212,360 Z" fill="#f59e0b" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+        <path d="M108,360 Q108,342 130,343 Q148,344 148,360 Z" style={{ fill: 'rgb(var(--shoe-rgb))' }} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+        <path d="M172,360 Q172,344 190,343 Q212,342 212,360 Z" style={{ fill: 'rgb(var(--shoe-rgb))' }} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
 
         <g ref={r.body}>
           {/* Steam puffs from the bells (grumpy) */}
@@ -451,10 +518,10 @@ export default function Mascot({ visible }) {
           </g>
           <g ref={r.hammer}>
             <line x1="160" y1="70" x2="160" y2="46" stroke={INK} strokeWidth="5" strokeLinecap="round" />
-            <circle cx="160" cy="42" r="7" fill="#f59e0b" stroke={INK} strokeWidth="4" />
+            <circle cx="160" cy="42" r="7" style={{ fill: 'rgb(var(--shoe-rgb))' }} stroke={INK} strokeWidth="4" />
           </g>
           {/* Ring marks beside the bells (shown while the alarm rings) */}
-          <g ref={r.rings} opacity="0" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round">
+          <g ref={r.rings} opacity="0" style={{ stroke: 'rgb(var(--shoe-rgb))' }} strokeWidth="4" strokeLinecap="round">
             <path d="M52,70 L38,62 M50,86 L34,86 M58,54 L48,42" />
             <path d="M268,70 L282,62 M270,86 L286,86 M262,54 L272,42" />
           </g>
@@ -471,8 +538,8 @@ export default function Mascot({ visible }) {
           <circle ref={r.tint} cx={C.x} cy={C.y} r="86" fill="url(#tick-angry)" opacity="0" />
           {ticks}
           {/* Clock hands show the real time; the centre pin doubles as the nose */}
-          <line ref={r.hour} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 40} stroke="#1d4ed8" strokeWidth="6" strokeLinecap="round" opacity="0.55" />
-          <line ref={r.minute} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 62} stroke="#1d4ed8" strokeWidth="4" strokeLinecap="round" opacity="0.55" />
+          <line ref={r.hour} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 40} style={{ stroke: 'rgb(var(--tick-b-rgb))' }} strokeWidth="6" strokeLinecap="round" opacity="0.55" />
+          <line ref={r.minute} x1={C.x} y1={C.y} x2={C.x} y2={C.y - 62} style={{ stroke: 'rgb(var(--tick-b-rgb))' }} strokeWidth="4" strokeLinecap="round" opacity="0.55" />
 
           {/* Cheeks */}
           <ellipse ref={r.cheeks[0]} cx="104" cy="196" rx="11" ry="6" fill="#fb7185" opacity="0.45" />
@@ -516,18 +583,18 @@ export default function Mascot({ visible }) {
           </g>
 
           {/* Thought dots (thinking) and a "?" (confused) */}
-          <g ref={r.dots} opacity="0" fill="#e0f2fe">
+          <g ref={r.dots} opacity="0" style={{ fill: 'rgb(var(--glass-pale-rgb))' }}>
             <circle cx="206" cy="40" r="5" />
             <circle cx="224" cy="25" r="6.5" />
             <circle cx="246" cy="13" r="8" />
           </g>
           <g ref={r.q} opacity="0">
-            <text textAnchor="middle" y="14" fill="#f5b544" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="44">
+            <text textAnchor="middle" y="14" style={{ fill: 'var(--amber)' }} fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="44">
               ?
             </text>
           </g>
 
-          {/* Click target: ring the alarm (the chat then offers a question) */}
+          {/* Click target: ring the alarm and open the time-of-day picker */}
           <circle
             className="mascot-hit"
             role="button"
@@ -536,17 +603,23 @@ export default function Mascot({ visible }) {
             cy={C.y - 20}
             r="125"
             fill="transparent"
-            onClick={() => window.dispatchEvent(new Event('tick-ring'))}
+            onClick={(e) => {
+              window.dispatchEvent(new Event('tick-ring'))
+              const b = e.currentTarget.getBoundingClientRect()
+              setPicker((p) => (p ? null : { x: b.left + b.width / 2, y: b.top + 4, left: b.left, head: b.top + b.height * 0.35 }))
+            }}
           />
         </g>
 
         {/* "z"s that float up while Tick dozes */}
-        <g ref={r.zzz} opacity="0" fill="#e0f2fe" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="22">
+        <g ref={r.zzz} opacity="0" style={{ fill: 'rgb(var(--glass-pale-rgb))' }} fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="22">
           <text>z</text>
           <text>z</text>
           <text>z</text>
         </g>
       </svg>
     </div>
+    {picker && visible && createPortal(<ThemePicker at={picker} onClose={closePicker} />, document.body)}
+    </>
   )
 }

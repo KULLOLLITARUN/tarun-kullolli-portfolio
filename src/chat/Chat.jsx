@@ -82,22 +82,6 @@ export default function Chat({ visible }) {
 
   const later = (fn, ms) => timers.current.push(setTimeout(fn, ms))
 
-  // Ringing Tick's alarm: once it stops, offer a question in the input (focused, except on
-  // touch screens, where focusing would pop the keyboard up).
-  const inputRef = useRef(null)
-  const offer = useRef(() => {})
-  offer.current = () => {
-    if (busy || input.trim() || !visible) return
-    const pool = chips.length ? chips : STARTER_CHIPS
-    setInput(pool[Math.floor(Math.random() * pool.length)])
-    if (!window.matchMedia('(pointer: coarse)').matches) inputRef.current?.focus({ preventScroll: true })
-  }
-  useEffect(() => {
-    const onRing = () => later(() => offer.current(), 900)
-    window.addEventListener('tick-ring', onRing)
-    return () => window.removeEventListener('tick-ring', onRing)
-  }, [])
-
   async function ask(raw) {
     const q = raw.trim().slice(0, 200)
     if (!q || busy) return
@@ -199,7 +183,6 @@ export default function Chat({ visible }) {
         </label>
         <input
           id="chat-input"
-          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about Tarun’s experience…"

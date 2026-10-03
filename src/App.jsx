@@ -11,6 +11,7 @@ import RecruiterView from './components/RecruiterView.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import Tour from './components/Tour.jsx'
 import Cursor from './components/Cursor.jsx'
+import { applyTheme, setTheme, storedTheme, THEMES } from './theme.js'
 
 const forceRecruiter = new URLSearchParams(window.location.search).has('recruiter') ? true : undefined
 
@@ -38,6 +39,16 @@ export default function App() {
     clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(''), 2400)
   }, [])
+
+  // Time-of-day themes (Tick's alarm): recruiter mode stays on the plain Night colours.
+  useEffect(() => {
+    applyTheme(recruiter ? 'night' : storedTheme())
+  }, [recruiter])
+  useEffect(() => {
+    const onTheme = (e) => notify(`Time of day: ${e.detail.name}`)
+    window.addEventListener('theme-change', onTheme)
+    return () => window.removeEventListener('theme-change', onTheme)
+  }, [notify])
 
   const copyEmail = useCallback(async () => {
     try {
@@ -77,6 +88,16 @@ export default function App() {
         hint: 'View',
         run: () => setRecruiter((r) => !r),
       },
+      // Time-of-day colours (also picked by clicking Tick); leaves recruiter mode, which stays plain.
+      ...THEMES.map((t) => ({
+        id: `theme-${t.id}`,
+        label: `Colours: ${t.name}`,
+        hint: 'Time of day',
+        run: () => {
+          setTheme(t.id)
+          setRecruiter(false)
+        },
+      })),
     ],
     [goTo, copyEmail, startTour, recruiter, setRecruiter],
   )

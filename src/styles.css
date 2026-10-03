@@ -1033,28 +1033,29 @@ html.has-cursor textarea {
 /* Card content: near-white title, everything else pale cyan; soft dark shadow keeps it
    readable over bright stars seen through the glass. */
 .holo-top {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--s-3);
   margin-bottom: var(--s-3);
   font-size: var(--fs-xs);
   color: rgba(var(--ice), 0.8);
 }
+/* On hover the stack line gives way to "Open case study", in the same spot. */
 .holo-cta {
-  /* Out of the flow, so the hidden label doesn't squeeze the kicker. */
   position: absolute;
-  top: var(--s-5);
-  right: var(--s-5);
-  padding-left: var(--s-3);
+  left: var(--s-5);
+  bottom: var(--s-5);
+  font-size: var(--fs-xs);
   color: #a5f3fc;
   opacity: 0;
-  transform: translateX(-6px);
+  transform: translateY(4px);
   transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
 }
 .holo:hover .holo-cta,
 .holo:focus-within .holo-cta {
   opacity: 1;
   transform: none;
+}
+.holo:hover .holo-stack,
+.holo:focus-within .holo-stack {
+  opacity: 0;
 }
 .holo h3 {
   font-size: var(--fs-xl);
@@ -1090,6 +1091,7 @@ html.has-cursor textarea {
 .holo-stack {
   font-size: var(--fs-xs);
   color: rgba(var(--ice), 0.65);
+  transition: opacity var(--t-med) var(--ease);
 }
 .holo-head {
   display: grid;

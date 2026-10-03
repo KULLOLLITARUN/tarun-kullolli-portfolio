@@ -79,12 +79,7 @@ export default function Experiments() {
                 <span className="holo-glare" aria-hidden="true" />
 
                 <p className="holo-top mono">
-                  <span>
-                    <span className="amber">EXP {n}</span> <span aria-hidden="true">//</span> {e.code}
-                  </span>
-                  <span className="holo-cta" aria-hidden="true">
-                    Open case study <span className="holo-arrow">↗</span>
-                  </span>
+                  <span className="amber">EXP {n}</span> <span aria-hidden="true">//</span> {e.code}
                 </p>
                 <h3>
                   {/* Stretched over the whole card, so clicking anywhere opens the project. */}
@@ -108,8 +103,11 @@ export default function Experiments() {
                 )}
                 <p className="holo-stack mono">
                   <span className="sr-only">Built with </span>
-                  {e.stack.slice(0, 4).join(' · ')}
+                  {e.stack.slice(0, 3).join(' · ')}
                 </p>
+                <span className="holo-cta mono" aria-hidden="true">
+                  Open case study ↗
+                </span>
               </article>
             </li>
           )

@@ -154,6 +154,7 @@ uniform float uDissolve;
 uniform float uCount;
 uniform vec4 uRects[${MAX_CARDS}];
 uniform float uTravel[${MAX_CARDS}];
+uniform float uLate[${MAX_CARDS}]; // 1 for cards below the first row
 uniform vec3 uGroupPos;
 uniform float uGroupScale;
 uniform vec2 uView;
@@ -190,10 +191,12 @@ void main() {
   float ci = min(floor(aCardSel * uCount), uCount - 1.0);
   vec4 r = uRects[0];
   float T = 0.0;
+  float late = 0.0;
   for (int i = 0; i < ${MAX_CARDS}; i++) {
     if (float(i) == ci) {
       r = uRects[i];
       T = uTravel[i];
+      late = uLate[i];
     }
   }
   // Each particle lags a little behind its card's progress, so the stream stretches like a comet tail.
@@ -215,6 +218,12 @@ void main() {
   ) * 0.28 * fl;
   if (uCount > 0.5) pos = toLocal(pathW);
   float dd = e;
+  // Mid-flight the river is dimmer and finer; particles brighten as they lock onto a card,
+  // so particles waiting for later cards read as a faint stream, not a cloud of dust.
+  float flight = uCount > 0.5 ? smoothstep(0.0, 0.15, e) * (1.0 - smoothstep(0.8, 1.0, e)) : 0.0;
+  // Cards below the first row: their particles stay invisible in transit and only
+  // appear near the card, so the card condenses out of sparkles as it scrolls in.
+  float lateVis = uCount > 0.5 ? mix(1.0, smoothstep(0.7, 0.92, e), late) : 1.0;
   float cc = e;
   float cp = T;
 
@@ -237,7 +246,7 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
   float edge = step(min(min(aUV.x, 1.0 - aUV.x), min(aUV.y, 1.0 - aUV.y)), 0.001);
-  gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6 + edge * cc * 0.35) * (1.0 + scan * 0.6) / -mv.z;
+  gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6 + edge * cc * 0.35) * (1.0 + scan * 0.6) * (1.0 - 0.3 * flight) / -mv.z;
   // White as the name; a few amber sparks appear only once the river is flowing.
   vec3 col = mix(vec3(0.96), vec3(0.96, 0.71, 0.27), step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
   // Card outlines glow icy blue as they lock into place.
@@ -246,7 +255,7 @@ void main() {
   float handover = 1.0 - smoothstep(0.96, 1.0, cp) * step(0.5, uCount);
   // Gentle per-particle shimmer, so the dotted name feels alive.
   float shimmer = 0.82 + 0.18 * sin(uTime * (1.5 + aRand * 2.0) + aRand * 80.0);
-  vAlpha = ((0.6 + 0.4 * aRand) * shimmer + scan * 0.6 + edge * cc * 0.3) * max(uFade, spot) * handover;
+  vAlpha = ((0.6 + 0.4 * aRand) * shimmer + scan * 0.6 + edge * cc * 0.3) * max(uFade, spot) * handover * (1.0 - 0.6 * flight) * lateVis;
   vForce = scan * 0.5 * uScanGold;
 }
 `
@@ -454,6 +463,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     uCount: { value: 0 },
     uRects: { value: Array.from({ length: MAX_CARDS }, () => new THREE.Vector4()) },
     uTravel: { value: new Array(MAX_CARDS).fill(0) },
+    uLate: { value: new Array(MAX_CARDS).fill(0) },
     uGroupPos: { value: new THREE.Vector3() },
     uGroupScale: { value: 1 },
     uView: { value: new THREE.Vector2(1, 1) },
@@ -541,9 +551,12 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const cards = document.querySelectorAll('#experiments .holo-card')
     const count = Math.min(cards.length, MAX_CARDS)
     const scrollPx = window.scrollY
+    const first = count ? (cards[0].querySelector('.holo') || cards[0]).getBoundingClientRect() : null
     for (let i = 0; i < count; i++) {
       const card = cards[i]
       const r = (card.querySelector('.holo') || card).getBoundingClientRect()
+      // Cards below the first row (the float animation moves cards a few px, hence the tolerance).
+      u.uLate.value[i] = first && r.top > first.top + first.height / 2 ? 1 : 0
       // Travel: 0 at the top of the page, 1 when the card's centre reaches 55% of the screen.
       const remaining = r.top + r.height / 2 - c.height * 0.55
       const goal = journey ? Math.min(1, scrollPx / Math.max(1, scrollPx + Math.max(0, remaining))) : 0

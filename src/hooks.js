@@ -49,9 +49,23 @@ export function useSmoothScroll(enabled) {
   }, [enabled])
 }
 
+// Scroll positions (px) at which each section's particle station has fully formed, keyed by
+// section id. Written every frame by the particle scene; empty without it.
+export const stationDone = {}
+
 export function scrollToId(id) {
   const el = document.getElementById(id)
   if (!el) return
   if (lenis) lenis.scrollTo(el, { offset: id === 'top' ? 0 : NAV_OFFSET, duration: 1.4 })
   else el.scrollIntoView({ block: 'start' })
+}
+
+// Like scrollToId, but goes on far enough for the section's particles to finish forming it
+// (used by the tour, which then holds still on each section).
+export function scrollToStation(id) {
+  const el = document.getElementById(id)
+  const done = stationDone[id]
+  if (!el || done === undefined || !lenis) return scrollToId(id)
+  const top = el.getBoundingClientRect().top + window.scrollY + NAV_OFFSET
+  lenis.scrollTo(Math.max(top, Math.ceil(done) + 2), { duration: 1.4 })
 }

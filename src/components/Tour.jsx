@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { profile } from '../data.js'
-import { scrollToId } from '../hooks.js'
+import { scrollToStation } from '../hooks.js'
 
 const STEPS = [
   { id: 'top', label: 'Origin', note: `${profile.name} — ${profile.role}` },
@@ -17,7 +17,7 @@ export default function Tour({ onEnd }) {
   const last = step === STEPS.length - 1
 
   useEffect(() => {
-    scrollToId(STEPS[step].id)
+    scrollToStation(STEPS[step].id)
   }, [step])
 
   useEffect(() => {

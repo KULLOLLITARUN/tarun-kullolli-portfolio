@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { profile } from '../data.js'
 import { faceState } from '../chat/faceState.js'
+import { stationDone } from '../hooks.js'
 
 const TEXT_W = 10 // name block width in "name space" units
 const STAR_COLORS = ['#f4f4f5', '#a78bfa', '#60a5fa', '#f5b544', '#f472b6', '#38bdf8', '#fb7185']
@@ -789,6 +790,8 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       // Travel: 0 at the top of the page, 1 when the card's centre reaches 55% of the screen.
       const remaining = r.top + r.height / 2 - c.height * 0.55
       cardsAt = Math.max(cardsAt, scrollPx + remaining)
+      // The tour stops where the first card has formed (on phones the others form as they scroll in).
+      if (i === 0) stationDone.experiments = scrollPx + remaining
       cardsOff = Math.max(cardsOff, scrollPx + r.bottom - c.height * LEAVE_AT)
       const goal = journey ? Math.min(1, scrollPx / Math.max(1, scrollPx + Math.max(0, remaining))) : 0
       // Momentum: the particles ease toward the scroll position instead of tracking it rigidly.
@@ -848,6 +851,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       // timeline is ~60% down the screen.
       tlAt = scrollPx + ar.top + (vertical ? Math.min(ar.height, c.height * 0.5) / 2 : 0) - c.height * 0.6
       if (journey) tlGoal = legT(legFrom(cardsAt, cardsOff, tlAt), tlAt)
+      stationDone.acts = tlAt
     }
     // Slower momentum than the first river: by now the visitor is reading.
     tl.current += (tlGoal - tl.current) * (1 - Math.exp(-dt * 3.5))
@@ -912,6 +916,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       // the screen.
       skAt = scrollPx + rects[0].top + Math.min(rects[0].height, c.height * 0.3) - c.height * 0.6
       if (journey) skGoal = legT(legFrom(tlAt, tlOff, skAt), skAt)
+      stationDone.system = skAt
     }
     u.uSkCount.value = journey && count ? panels.length : 0
     sk.current += (skGoal - sk.current) * (1 - Math.exp(-dt * 3.5))
@@ -954,6 +959,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight
       const ctAt = Math.min(scrollPx + wr.top + wr.height / 2 - c.height * 0.55, maxScroll - 2)
       if (journey) ctGoal = legT(legFrom(skAt, skOff, ctAt), ctAt)
+      stationDone.contact = ctAt
     }
     u.uWord.value.z = journey && count && wordEl ? u.uWord.value.z : 0
     u.uBtnCount.value = journey && count ? btns.length : 0

@@ -38,7 +38,8 @@ function Message({ m }) {
         {m.actions && m.shown === undefined && (
           <p className="msg-actions">
             {m.actions.map((a) => (
-              <a key={a.label} href={a.href} {...(a.download ? { download: 'Tarun-Kullolli-Resume.pdf' } : {})}>
+              <a key={a.label} href={a.href} {...(a.download ? { download: 'Tarun-Kullolli-Resume.pdf' } : {})}
+                {...(a.external ? { target: '_blank', rel: 'noreferrer' } : {})}>
                 {a.label} <span aria-hidden="true">→</span>
               </a>
             ))}

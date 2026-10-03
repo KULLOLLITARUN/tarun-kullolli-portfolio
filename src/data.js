@@ -15,10 +15,9 @@ export const profile = {
     'and ships them inside real products.',
   email: 'Kullollitarun@gmail.com',
   phone: '+91 8897083343',
-  // TODO: replace '#' with your real profile URLs.
   links: {
-    linkedin: '#',
-    github: '#',
+    linkedin: 'https://www.linkedin.com/in/tarun-kullolli-b31615282/',
+    github: 'https://github.com/KULLOLLITARUN',
   },
   resume: '/resume.pdf', // file lives in /public
 }

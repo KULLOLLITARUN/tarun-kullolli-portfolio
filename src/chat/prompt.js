@@ -6,7 +6,11 @@ export function buildSystemPrompt() {
     `NAME: ${profile.name}`,
     `ROLE: ${profile.role}`,
     `SUMMARY: ${profile.summary}`,
-    `CONTACT: email ${profile.email}, phone ${profile.phone}`,
+    `CONTACT: email ${profile.email}, phone ${profile.phone}` +
+      Object.entries(profile.links)
+        .filter(([, url]) => url && url !== '#')
+        .map(([name, url]) => `, ${name} ${url}`)
+        .join(''),
     '',
     'EXPERIENCE & EDUCATION TIMELINE (the entry marked "Present" is his current job):',
     ...acts

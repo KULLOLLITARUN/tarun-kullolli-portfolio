@@ -9,6 +9,12 @@ const allSkills = skills.flatMap((g) => g.items)
 const contactActions = [
   { label: 'Email Tarun', href: `mailto:${profile.email}` },
   { label: 'Download resume', href: profile.resume, download: true },
+  ...[
+    ['LinkedIn', profile.links.linkedin],
+    ['GitHub', profile.links.github],
+  ]
+    .filter(([, url]) => url && url !== '#')
+    .map(([label, href]) => ({ label, href, external: true })),
 ]
 
 // Tech names (lowercase alias → display name). Built from the resume plus common terms.

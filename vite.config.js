@@ -1,10 +1,9 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { handleChat, sendChat } from './server/chatCore.js'
-import { handleGithub } from './server/github.js'
 
-// Serves /api/chat and /api/github during `npm run dev` / `npm run preview`, mirroring the
-// Vercel functions in api/.
+// Serves /api/chat during `npm run dev` / `npm run preview`, mirroring the
+// Vercel function in api/.
 function localApi(env) {
   const chat = (req, res) => {
     if (req.method !== 'POST') {
@@ -26,15 +25,8 @@ function localApi(env) {
       await sendChat(res, await handleChat({ body, ip: req.socket.remoteAddress, env }))
     })
   }
-  const github = async (req, res) => {
-    const { status, body } = await handleGithub({ env })
-    res.statusCode = status
-    res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify(body))
-  }
   const middleware = (req, res, next) => {
     if (req.url === '/api/chat') return chat(req, res)
-    if (req.url === '/api/github') return github(req, res)
     next()
   }
   return {

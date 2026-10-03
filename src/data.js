@@ -35,6 +35,9 @@ export const profile = {
 //   results: ['Measured outcome', 'What you learned'],  (defaults to result)
 //   metric: { value: '94/94', label: 'What the number means' },  (only real numbers)
 //   architecture: ['Stage 1', 'Stage 2', ...],  (up to 6 short labels; defaults to stack)
+//   shots: [{ src: '/projects/x.webp', width: 1600, height: 726, alt: 'What it shows', caption: 'Optional' }],
+//          (real screenshots in /public/projects, shown at the top of the detailed card;
+//           { placeholder: true } shows a "Screenshot coming soon" frame instead)
 // Each project gets a shareable link: #project/<title-in-lowercase-with-dashes>.
 export const experiments = [
   {
@@ -63,6 +66,15 @@ export const experiments = [
     ],
     metric: { value: '156', label: 'Tests in CI · LLM calls mocked' },
     architecture: ['Rewrite', 'Retrieve', 'Rerank', 'Generate', 'Reflect', 'Heal'],
+    shots: [
+      {
+        src: '/projects/archiva.webp',
+        width: 1600,
+        height: 727,
+        alt: 'Archiva workspace with two loaded documents, topic suggestions drawn from them and a question box',
+        caption: 'The workspace: loaded documents, topics suggested from them, and every answer traced back to a page.',
+      },
+    ],
     stack: ['Python', 'FastAPI', 'PostgreSQL', 'Groq', 'sentence-transformers', 'React'],
     keywords: ['archiva', 'rag', 'retrieval', 'documents', 'document q&a'],
     links: {
@@ -95,6 +107,8 @@ export const experiments = [
     ],
     metric: { value: '85–97%', label: 'Less HTML sent to the LLM' },
     architecture: ['Fetch', 'Distill', 'Infer', 'Validate', 'Output'],
+    // TODO: replace with a real screenshot (without the Naukri preset or stealth label).
+    shots: [{ placeholder: true }],
     stack: ['Python', 'Playwright', 'Groq', 'Pydantic', 'FastAPI', 'React'],
     keywords: ['scraper', 'web scraper', 'scraping', 'agentic'],
     links: {
@@ -127,6 +141,15 @@ export const experiments = [
     ],
     metric: { value: '94/94', label: 'True positives · 11 real models' },
     architecture: ['PBIP', 'Extract', 'Canonical', 'Rules', 'Scoring', 'Reports'],
+    shots: [
+      {
+        src: '/projects/pbip-sentinel.webp',
+        width: 1600,
+        height: 726,
+        alt: 'PBIP Sentinel web workbench: a drop zone for a .pbip folder, a scan comparison button and two demo reports with health scores',
+        caption: 'The in-browser workbench: drop a .pbip folder and it is scanned locally, with nothing uploaded to a server.',
+      },
+    ],
     stack: ['Python', 'TypeScript', 'MCP', 'SARIF', 'Jinja'],
     keywords: ['power bi', 'powerbi', 'pbiscan', 'scanner'], // help the chat assistant recognise it
     links: {
@@ -203,14 +226,4 @@ export const certifications = [
   { name: 'Python Programming', issuer: 'DataFlair', link: '#' },
   { name: 'Web Development Bootcamp', issuer: 'Udemy', link: '#' },
   { name: 'SQL Skills', issuer: 'HackerRank', link: '#' },
-]
-
-// GITHUB ACTIVITY: the latest commits from each project's code repo, plus the extra repos
-// listed here, show as a live feed under the projects. Only these repos are shown.
-const extraActivityRepos = [{ url: 'https://github.com/KULLOLLITARUN/tarun-kullolli-portfolio', label: 'This portfolio' }]
-export const activityRepos = [
-  ...experiments
-    .filter((e) => e.links?.code?.startsWith('https://github.com/'))
-    .map((e) => ({ url: e.links.code, label: e.title })),
-  ...extraActivityRepos,
 ]

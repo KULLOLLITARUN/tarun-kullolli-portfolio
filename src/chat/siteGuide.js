@@ -7,7 +7,7 @@ const themeNames = THEMES.map((t) => t.name).join(', ')
 
 export const SITE_GUIDE = [
   'Top of the page: Tarun’s name, Kairo (the alarm-clock mascot) and this chat. “Take the 60-second tour” scrolls through the whole page for you (Back, Pause, Next; Esc ends it).',
-  'Work: his projects as case studies. Click a card for the problem, approach, results and architecture; each has its own shareable link and an “Ask Kairo about this” button. Below them, “Live from GitHub” lists his latest commits on those projects.',
+  'Work: his projects as case studies. Click a card for the problem, approach, results and architecture; each has its own shareable link and an “Ask Kairo about this” button.',
   'Journey: his career timeline. A mini Kairo walks along it as you scroll; hover an entry to send it there.',
   'Skills: skills and tools, education and certifications.',
   'Contact: email (with a copy button), phone, LinkedIn, GitHub and the resume PDF.',

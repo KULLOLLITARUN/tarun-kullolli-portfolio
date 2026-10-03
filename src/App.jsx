@@ -9,6 +9,7 @@ import Acts from './components/Acts.jsx'
 import SystemIndex from './components/SystemIndex.jsx'
 import Contact from './components/Contact.jsx'
 import RecruiterView from './components/RecruiterView.jsx'
+import PrintResume from './components/PrintResume.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import Tour from './components/Tour.jsx'
 import Cursor from './components/Cursor.jsx'
@@ -36,8 +37,8 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Printing (Ctrl+P or the recruiter view's button) always prints the recruiter view as a
-  // résumé. In lab view it is added just for the print, so the animated page stays as it was.
+  // Printing (Ctrl+P, the recruiter view's button or the command menu) prints a conventional
+  // résumé (PrintResume), mounted only for the print so the page itself stays as it was.
   useEffect(() => {
     const before = () => flushSync(() => setPrinting(true))
     const after = () => setPrinting(false)
@@ -142,9 +143,9 @@ export default function App() {
           </>
         )}
       </main>
-      {printing && !recruiter && (
+      {printing && (
         <div className="print-sheet">
-          <RecruiterView onCopyEmail={copyEmail} />
+          <PrintResume />
         </div>
       )}
       <footer className="footer">

@@ -1046,16 +1046,20 @@ html.has-cursor textarea {
   color: #a5f3fc;
   opacity: 0;
   transform: translateY(4px);
-  transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
+  /* Sequential swap (never both visible): out quickly, in after the stack line has gone. */
+  transition: opacity 150ms var(--ease), transform 150ms var(--ease);
 }
 .holo:hover .holo-cta,
 .holo:focus-within .holo-cta {
   opacity: 1;
   transform: none;
+  transition-duration: 250ms;
+  transition-delay: 150ms;
 }
 .holo:hover .holo-stack,
 .holo:focus-within .holo-stack {
   opacity: 0;
+  transition-delay: 0s;
 }
 .holo h3 {
   font-size: var(--fs-xl);
@@ -1091,7 +1095,7 @@ html.has-cursor textarea {
 .holo-stack {
   font-size: var(--fs-xs);
   color: rgba(var(--ice), 0.65);
-  transition: opacity var(--t-med) var(--ease);
+  transition: opacity 150ms var(--ease) 150ms;
 }
 .holo-head {
   display: grid;
@@ -1451,7 +1455,9 @@ html.has-cursor textarea {
 .acts {
   display: grid;
   grid-template-columns: repeat(var(--acts, 4), 1fr); /* one column per act (set from data) */
-  border-top: 1px solid var(--line-strong);
+  /* --tl (0–1) is set by the particle scene: the line and dots appear as the particles
+     that draw them arrive. Without the effect it is unset, so they show normally. */
+  border-top: 1px solid rgba(255, 255, 255, calc(0.24 * var(--tl, 1)));
 }
 .act {
   position: relative;
@@ -1459,6 +1465,12 @@ html.has-cursor textarea {
   gap: var(--s-2);
   align-content: start;
   padding: var(--s-6) var(--s-5) var(--s-6) 0;
+}
+/* Act text appears when the particles reach the act's dot (--reveal, set by the particle
+   scene; unset = fully visible, e.g. reduced motion, recruiter mode, no WebGL). */
+.act > * {
+  opacity: var(--reveal, 1);
+  transform: translateY(calc((1 - var(--reveal, 1)) * 10px));
 }
 .act::before {
   content: '';
@@ -1469,6 +1481,7 @@ html.has-cursor textarea {
   height: 9px;
   border-radius: 50%;
   background: var(--text);
+  opacity: var(--tl, 1);
 }
 .act-next::before {
   background: var(--amber);
@@ -1500,7 +1513,7 @@ html.has-cursor textarea {
   .acts {
     grid-template-columns: 1fr;
     border-top: 0;
-    border-left: 1px solid var(--line-strong);
+    border-left: 1px solid rgba(255, 255, 255, calc(0.24 * var(--tl, 1)));
   }
   .act {
     padding: 0 0 var(--s-6) var(--s-5);

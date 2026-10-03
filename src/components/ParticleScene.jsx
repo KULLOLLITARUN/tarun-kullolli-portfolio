@@ -161,6 +161,12 @@ uniform vec2 uView;
 uniform float uScanX;
 uniform float uScanGold; // 1 = golden sweep, 0 = white sweep
 uniform vec4 uSpot; // hover spotlight: xy centre, z radius (name space), w strength
+// Timeline station (section 3): progress, line ends (world x0,y0,x1,y1), act dots, dot radius.
+uniform float uTl;
+uniform vec4 uLine;
+uniform vec2 uDots[4];
+uniform float uDotCount;
+uniform float uDotR;
 attribute vec3 aTarget;
 attribute vec3 aStart;
 attribute float aRand;
@@ -173,6 +179,38 @@ varying float vAlpha;
 varying float vForce;
 mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 vec3 toLocal(vec3 w) { return (w - uGroupPos) / uGroupScale; }
+
+// One leg of the journey (world space): a curve that bows out to one side by a random amount
+// (bow = how far, as a share of the screen width) with flowing turbulence mid-flight.
+vec3 flowPath(vec3 a, vec3 b, float e, float bow, float turb) {
+  float side = aOff.x < 0.0 ? -1.0 : 1.0;
+  vec3 ctrl = vec3(mix(b.x, side * uView.x * bow, abs(aOff.x)), (a.y + b.y) * 0.5, aOff.z * 1.2 * bow / 0.3);
+  float it = 1.0 - e;
+  vec3 p = it * it * a + 2.0 * it * e * ctrl + e * e * b;
+  p += vec3(
+    sin(p.y * 1.3 + uTime * 0.8 + aRand * 6.28),
+    cos(p.x * 1.1 - uTime * 0.7 + aRand * 3.0),
+    sin(uTime * 0.5 + aRand * 9.0)
+  ) * turb * sin(e * 3.14159);
+  return p;
+}
+
+// Where this particle lands on the timeline: in a small cluster at one of the act dots,
+// or somewhere along the line (h = its position along the line, 0 = start).
+vec3 timelineTarget(float h) {
+  if (fract(aRand * 53.3 + aOff.x * 7.7) < 0.4 && uDotCount > 0.5) {
+    float di = min(floor(h * uDotCount), uDotCount - 1.0);
+    vec2 c = uDots[0];
+    for (int i = 1; i < 4; i++) {
+      if (float(i) == di) c = uDots[i];
+    }
+    float ang = fract(aRand * 37.7) * 6.28318;
+    return vec3(c + vec2(cos(ang), sin(ang)) * sqrt(fract(aRand * 17.3)) * uDotR, 0.0);
+  }
+  vec2 dir = normalize(uLine.zw - uLine.xy + vec2(1e-5));
+  vec2 perp = vec2(-dir.y, dir.x);
+  return vec3(mix(uLine.xy, uLine.zw, h) + perp * (fract(aRand * 29.1) - 0.5) * uDotR * 0.3, 0.0);
+}
 void main() {
   // Left-to-right sweep: the name is "written" as the particles land.
   float p = clamp((uProgress - aDelay * 0.55) / 0.45, 0.0, 1.0);
@@ -204,27 +242,29 @@ void main() {
   float e = tp * tp * (3.0 - 2.0 * tp);
   vec3 nameW = pos * uGroupScale + uGroupPos;
   vec3 cardW = vec3(r.x + (aUV.x - 0.5) * r.z, r.y - (aUV.y - 0.5) * r.w, 0.0);
-  // Curved path: bows out toward one side (by varying amounts) and back into the card.
-  float side = aOff.x < 0.0 ? -1.0 : 1.0;
-  vec3 ctrl = vec3(mix(cardW.x, side * uView.x * 0.3, abs(aOff.x)), (nameW.y + cardW.y) * 0.5, aOff.z * 1.2);
-  float it = 1.0 - e;
-  vec3 pathW = it * it * nameW + 2.0 * it * e * ctrl + e * e * cardW;
-  // Flowing turbulence mid-flight, calm at both ends.
-  float fl = sin(e * 3.14159);
-  pathW += vec3(
-    sin(pathW.y * 1.3 + uTime * 0.8 + aRand * 6.28),
-    cos(pathW.x * 1.1 - uTime * 0.7 + aRand * 3.0),
-    sin(uTime * 0.5 + aRand * 9.0)
-  ) * 0.28 * fl;
+  // Leg 1, name → card: a wide, lively river.
+  vec3 pathW = flowPath(nameW, cardW, e, 0.3, 0.28);
+
+  // Leg 2, card → timeline: ~40% of the particles continue, in a calmer stream.
+  // The line is drawn left to right (particles further along the line leave a little later).
+  float h = fract(aRand * 91.7 + aOff.z * 3.1);
+  float cont = step(aOff.y, 0.4);
+  float t2 = clamp((uTl - h * 0.35 - aRand * 0.1) / 0.55, 0.0, 1.0) * cont;
+  float e2 = t2 * t2 * (3.0 - 2.0 * t2);
+  // Particles resting in a card leave from its bottom edge (not across its face, over the text).
+  vec3 from2 = e >= 0.999 ? vec3(cardW.x, r.y - r.w * 0.5, 0.0) : pathW;
+  if (e2 > 0.0) pathW = flowPath(from2, timelineTarget(h), e2, 0.12, 0.12);
+
   if (uCount > 0.5) pos = toLocal(pathW);
   float dd = e;
-  // Mid-flight the river is dimmer and finer; particles brighten as they lock onto a card,
-  // so particles waiting for later cards read as a faint stream, not a cloud of dust.
+  // Mid-flight the river is brighter and a little larger than the stars, so it reads clearly
+  // against the white star field (it also turns cyan, see vColor below).
   float flight = uCount > 0.5 ? smoothstep(0.0, 0.15, e) * (1.0 - smoothstep(0.8, 1.0, e)) : 0.0;
   // Cards below the first row: their particles stay invisible in transit and only
   // appear near the card, so the card condenses out of sparkles as it scrolls in.
   float lateVis = uCount > 0.5 ? mix(1.0, smoothstep(0.7, 0.92, e), late) : 1.0;
-  float cc = e;
+  // Card-outline emphasis fades once a particle moves on to the timeline.
+  float cc = e * (1.0 - e2);
   float cp = T;
 
   // Hover spotlight: these particles show only inside the circle the crisp name is masked out of.
@@ -246,16 +286,23 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
   float edge = step(min(min(aUV.x, 1.0 - aUV.x), min(aUV.y, 1.0 - aUV.y)), 0.001);
-  gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6 + edge * cc * 0.35) * (1.0 + scan * 0.6) * (1.0 - 0.3 * flight) / -mv.z;
+  gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6 + edge * cc * 0.35) * (1.0 + scan * 0.6) * (1.0 + 0.3 * flight) / -mv.z;
   // White as the name; a few amber sparks appear only once the river is flowing.
-  vec3 col = mix(vec3(0.96), vec3(0.96, 0.71, 0.27), step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
+  // The name is white; once the particles leave it they turn the cards' cyan (#7dd3fc),
+  // except a few amber sparks.
+  float journeyT = uCount > 0.5 ? smoothstep(0.0, 0.2, dd) : 0.0;
+  vec3 col = mix(vec3(0.96), vec3(0.49, 0.83, 0.99), journeyT);
+  col = mix(col, vec3(0.96, 0.71, 0.27), step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
   // Card outlines glow icy blue as they lock into place.
   vColor = mix(col, vec3(0.62, 0.86, 1.0), edge * cc * 0.85);
-  // Particles hand over to the glass card once it has fully formed.
-  float handover = 1.0 - smoothstep(0.96, 1.0, cp) * step(0.5, uCount);
+  // Particles hand over to the glass card once it has fully formed, reappear while they travel
+  // on to the timeline, and hand over again to the timeline's line and dots.
+  float atCard = smoothstep(0.96, 1.0, cp) * step(0.5, uCount);
+  float transit2 = smoothstep(0.0, 0.04, e2) * (1.0 - smoothstep(0.94, 1.0, e2));
+  float handover = mix(1.0, transit2 * 0.85, atCard);
   // Gentle per-particle shimmer, so the dotted name feels alive.
   float shimmer = 0.82 + 0.18 * sin(uTime * (1.5 + aRand * 2.0) + aRand * 80.0);
-  vAlpha = ((0.6 + 0.4 * aRand) * shimmer + scan * 0.6 + edge * cc * 0.3) * max(uFade, spot) * handover * (1.0 - 0.6 * flight) * lateVis;
+  vAlpha = ((0.6 + 0.4 * aRand) * shimmer + scan * 0.6 + edge * cc * 0.3) * max(uFade, spot) * handover * (1.0 + 0.35 * flight) * lateVis;
   vForce = scan * 0.5 * uScanGold;
 }
 `
@@ -389,6 +436,8 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
   const splitT = useRef(reduce && split ? 1 : 0)
   const formed = useRef(false)
   const travel = useRef(new Array(MAX_CARDS).fill(0))
+  const tl = useRef(0) // timeline stage progress
+  const tlMark = useRef('') // last --tl value written to the timeline
   const sweeps = useRef({ gold: null, white: null, done: false }) // start times of the two sweeps
   const spot = useRef({ k: 0, px: 0, py: 0, lx: 0, ly: 0, R: 1, Rl: 1, mask: '' })
   const hoverable = useMemo(() => window.matchMedia('(hover: hover) and (pointer: fine)').matches, [])
@@ -446,6 +495,8 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         el.style.opacity = ''
         el.style.filter = ''
       })
+      document.querySelector('#acts .acts')?.style.removeProperty('--tl')
+      document.querySelectorAll('#acts .act').forEach((a) => a.style.removeProperty('--reveal'))
       if (anchor?.current) {
         anchor.current.style.opacity = ''
         anchor.current.style.webkitMaskImage = ''
@@ -469,6 +520,11 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     uView: { value: new THREE.Vector2(1, 1) },
     uScanX: { value: 99 },
     uScanGold: { value: 1 },
+    uTl: { value: 0 },
+    uLine: { value: new THREE.Vector4() },
+    uDots: { value: Array.from({ length: 4 }, () => new THREE.Vector2()) },
+    uDotCount: { value: 0 },
+    uDotR: { value: 0.05 },
     uSpot: { value: new THREE.Vector4(0, 0, 1, 0) },
   }))
 
@@ -552,6 +608,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const count = Math.min(cards.length, MAX_CARDS)
     const scrollPx = window.scrollY
     const first = count ? (cards[0].querySelector('.holo') || cards[0]).getBoundingClientRect() : null
+    let cardsAt = 0 // scroll position (px) at which the last card has formed
     for (let i = 0; i < count; i++) {
       const card = cards[i]
       const r = (card.querySelector('.holo') || card).getBoundingClientRect()
@@ -559,6 +616,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       u.uLate.value[i] = first && r.top > first.top + first.height / 2 ? 1 : 0
       // Travel: 0 at the top of the page, 1 when the card's centre reaches 55% of the screen.
       const remaining = r.top + r.height / 2 - c.height * 0.55
+      cardsAt = Math.max(cardsAt, scrollPx + remaining)
       const goal = journey ? Math.min(1, scrollPx / Math.max(1, scrollPx + Math.max(0, remaining))) : 0
       // Momentum: the particles ease toward the scroll position instead of tracking it rigidly.
       travel.current[i] += (goal - travel.current[i]) * (1 - Math.exp(-dt * 5))
@@ -579,6 +637,64 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       }
     }
     u.uCount.value = journey ? count : 0
+
+    // ── Station 3: the career timeline (line + act dots) ──
+    const toWX = (px) => ((px - c.left) / c.width - 0.5) * viewport.width
+    const toWY = (py) => -((py - c.top) / c.height - 0.5) * viewport.height
+    const timeline = document.querySelector('#acts .acts')
+    let tlGoal = 0
+    if (timeline && count) {
+      const ar = timeline.getBoundingClientRect()
+      const items = [...timeline.children].slice(0, 4).map((a) => a.getBoundingClientRect())
+      // Desktop: a horizontal line along the top. Phones: a vertical line down the left side.
+      const vertical = items.length > 1 && Math.abs(items[1].left - items[0].left) < 2
+      if (vertical) u.uLine.value.set(toWX(ar.left), toWY(ar.top), toWX(ar.left), toWY(ar.bottom))
+      else u.uLine.value.set(toWX(ar.left), toWY(ar.top), toWX(ar.right), toWY(ar.top))
+      // Dot centres, matching .act::before (9px dots; see styles.css).
+      items.forEach((a, i) => {
+        if (vertical) u.uDots.value[i].set(toWX(ar.left), toWY(a.top + 8.5))
+        else u.uDots.value[i].set(toWX(a.left + 4.5), toWY(ar.top - 0.5))
+      })
+      u.uDotCount.value = items.length
+      u.uDotR.value = (7 / c.height) * viewport.height
+      // 0 once the last card has formed, 1 when the timeline is ~60% down the screen.
+      const tlAt = scrollPx + ar.top + (vertical ? Math.min(ar.height, c.height * 0.5) / 2 : 0) - c.height * 0.6
+      if (journey) {
+        tlGoal = tlAt > cardsAt + 1 ? (scrollPx - cardsAt) / (tlAt - cardsAt) : scrollPx >= tlAt ? 1 : 0
+        tlGoal = Math.min(1, Math.max(0, tlGoal))
+      }
+    }
+    // Slower momentum than the first river: by now the visitor is reading.
+    tl.current += (tlGoal - tl.current) * (1 - Math.exp(-dt * 3.5))
+    if (Math.abs(tlGoal - tl.current) < 0.0005) tl.current = tlGoal
+    u.uTl.value = tl.current
+    // The real line and dots appear as the particles arrive (CSS reads --tl), and each act's
+    // text fades in when the particles reach its dot (--reveal), in drawing order.
+    if (timeline) {
+      const on = journey && count
+      const mark = on ? smoothstepJS(0.85, 1, tl.current).toFixed(3) : ''
+      if (mark !== tlMark.current) {
+        if (mark) timeline.style.setProperty('--tl', mark)
+        else timeline.style.removeProperty('--tl')
+        tlMark.current = mark
+      }
+      const L4 = u.uLine.value
+      const len = Math.hypot(L4.z - L4.x, L4.w - L4.y) || 1
+      ;[...timeline.children].forEach((act, i) => {
+        let v = ''
+        if (on && i < 4) {
+          // How far along the line this act's dot is (0 = start), as the shader sees it.
+          const d = u.uDots.value[i]
+          const h = Math.min(1, Math.hypot(d.x - L4.x, d.y - L4.y) / len)
+          const from = 0.5 + 0.35 * h
+          v = smoothstepJS(from, Math.min(1, from + 0.25), tl.current).toFixed(3)
+        }
+        if (act.style.getPropertyValue('--reveal') !== v) {
+          if (v) act.style.setProperty('--reveal', v)
+          else act.style.removeProperty('--reveal')
+        }
+      })
+    }
 
     // Intro hand-over: once the crisp name shows, the particles hide until scrolling begins.
     // Slow cross-fade (matches the .hero-name opacity transition).

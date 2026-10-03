@@ -17,6 +17,17 @@ function hasWebGL() {
   }
 }
 
+// Phones and low-power devices skip the particle scene (seconds of main-thread work on a
+// mid-range phone) and start straight on the solid name, Tick and the chat.
+function canRunParticles() {
+  const nav = navigator
+  if (window.matchMedia('(max-width: 640px)').matches) return false
+  if (nav.connection?.saveData) return false
+  if (nav.deviceMemory && nav.deviceMemory < 4) return false
+  if (nav.hardwareConcurrency && nav.hardwareConcurrency < 4) return false
+  return hasWebGL()
+}
+
 function useWide() {
   const query = '(min-width: 900px)'
   const [wide, setWide] = useState(() => window.matchMedia(query).matches)
@@ -64,14 +75,14 @@ function SplitText({ text }) {
 export default function Hero({ onTour }) {
   const ref = useRef(null)
   const nameRef = useRef(null)
-  const [webgl] = useState(hasWebGL)
+  const [particles] = useState(canRunParticles)
   const reduce = useReducedMotion()
   const wide = useWide()
   const fontsReady = useFontsReady()
   // Phase 1: the name forms. Phase 2 ("split"): name moves aside, face + chat appear.
-  const [split, setSplit] = useState(() => reduce || !webgl)
+  const [split, setSplit] = useState(() => reduce || !particles)
   // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
-  const [resolved, setResolved] = useState(() => reduce || !webgl)
+  const [resolved, setResolved] = useState(() => reduce || !particles)
 
   // Normally the particle scene resolves the name after its white sweep (onSwept);
   // this is only a safety net in case frames stall.
@@ -113,7 +124,7 @@ export default function Hero({ onTour }) {
   return (
     <section id="top" ref={ref} className={`hero${reduce ? '' : ' intro'}${split ? ' is-split' : ''}`} aria-labelledby="hero-title">
       <div className="hero-canvas" aria-hidden="true">
-        {webgl && fontsReady ? (
+        {particles && fontsReady ? (
           <Suspense fallback={null}>
             <ParticleScene
               active

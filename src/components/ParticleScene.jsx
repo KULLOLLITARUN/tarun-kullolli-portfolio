@@ -85,7 +85,7 @@ function buildName(words, maxPoints) {
       ctx.fillStyle = '#fff'
       ctx.textBaseline = 'middle'
       ctx.fillText(word, 10, h / 2)
-    }, 3)
+    }, 2) // 2px grid: enough points for the larger particle counts (trimmed to maxPoints below)
     return { width, pts: shuffle(pts.map(([x, y]) => [x - 10, y - h / 2])) }
   })
   const total = sampled.reduce((n, w) => n + w.pts.length, 0)
@@ -119,6 +119,30 @@ function buildName(words, maxPoints) {
   return { a, b, delay, count }
 }
 
+// Points inside a word, normalised to its text box (0–1 across the advance width, 0–1 down the
+// font's ascent+descent), matching the DOM element's box so they can be mapped onto it.
+// Font settings mirror .contact-title (Geist 300, -0.03em tracking).
+function sampleWord(text, weight = 300, trackingEm = -0.03) {
+  const size = 200
+  const font = `${weight} ${size}px Geist, system-ui, sans-serif`
+  const ctx0 = document.createElement('canvas').getContext('2d')
+  ctx0.font = font
+  if ('letterSpacing' in ctx0) ctx0.letterSpacing = `${size * trackingEm}px`
+  const m = ctx0.measureText(text)
+  const asc = m.fontBoundingBoxAscent || size * 0.95
+  const desc = m.fontBoundingBoxDescent || size * 0.25
+  const w = Math.max(1, Math.ceil(m.width))
+  const h = Math.ceil(asc + desc)
+  const pts = sampleCanvas(w + 8, h, (ctx) => {
+    ctx.font = font
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${size * trackingEm}px`
+    ctx.fillStyle = '#fff'
+    ctx.textBaseline = 'alphabetic'
+    ctx.fillText(text, 0, asc)
+  }, 2)
+  return shuffle(pts.map(([x, y]) => [x / w, y / h]))
+}
+
 // ── Shaders ─────────────────────────────────────────────────────────
 const fragment = /* glsl */ `
 uniform vec3 uAccent;
@@ -135,6 +159,7 @@ void main() {
 `
 
 const MAX_CARDS = 8
+const MAX_PANELS = 8 // skill panels traced in section 4
 const SWEEP_S = 2.4 // duration of each light sweep across the name
 // Eased sweep position in name space: glides in, lingers across the letters, glides out.
 const sweepX = (k) => -8 + 16 * (0.5 - 0.5 * Math.cos(Math.PI * k))
@@ -167,6 +192,20 @@ uniform vec4 uLine;
 uniform vec2 uDots[4];
 uniform float uDotCount;
 uniform float uDotR;
+uniform vec4 uActs[4]; // act glass panels (world centre x,y + size w,h)
+// Skills station (section 4): progress, panel rects (world centre x,y + size w,h),
+// cumulative share of the total perimeter per panel, and the panel count.
+uniform float uSkT;
+uniform vec4 uSk[${MAX_PANELS}];
+uniform float uSkCum[${MAX_PANELS}];
+uniform float uSkCount;
+// Contact finale (section 5): progress, the highlighted word's box (world left, top, w, h),
+// and the two buttons (world centre x,y + size w,h).
+uniform float uCt;
+uniform vec4 uWord;
+uniform vec4 uBtn[2];
+uniform float uBtnCount;
+attribute vec2 aWord;
 attribute vec3 aTarget;
 attribute vec3 aStart;
 attribute float aRand;
@@ -195,21 +234,78 @@ vec3 flowPath(vec3 a, vec3 b, float e, float bow, float turb) {
   return p;
 }
 
-// Where this particle lands on the timeline: in a small cluster at one of the act dots,
-// or somewhere along the line (h = its position along the line, 0 = start).
+// A point on the outline of a rect (world centre x,y + size w,h); u = 0…1 around it.
+vec2 rectPoint(vec4 b, float u) {
+  float d = u * 2.0 * (b.z + b.w);
+  float l = b.x - b.z * 0.5;
+  float r = b.x + b.z * 0.5;
+  float t = b.y + b.w * 0.5;
+  float btm = b.y - b.w * 0.5;
+  if (d < b.z) return vec2(l + d, t);
+  if (d < b.z + b.w) return vec2(r, t - (d - b.z));
+  if (d < 2.0 * b.z + b.w) return vec2(r - (d - b.z - b.w), btm);
+  return vec2(l, btm + (d - 2.0 * b.z - b.w));
+}
+
+// A point on the outline of a pill-shaped button (rect with fully rounded ends); u = 0…1.
+vec2 pillPoint(vec4 b, float u) {
+  float rad = min(b.z, b.w) * 0.5;
+  float straight = max(0.0, b.z - 2.0 * rad);
+  float arc = 3.14159 * rad;
+  float d = u * (2.0 * straight + 2.0 * arc);
+  float l = b.x - straight * 0.5;
+  float r = b.x + straight * 0.5;
+  if (d < straight) return vec2(l + d, b.y + rad);
+  d -= straight;
+  if (d < arc) {
+    float a = 1.5708 - d / rad;
+    return vec2(r + cos(a) * rad, b.y + sin(a) * rad);
+  }
+  d -= arc;
+  if (d < straight) return vec2(r - d, b.y - rad);
+  d -= straight;
+  float a2 = -1.5708 - d / rad;
+  return vec2(l + cos(a2) * rad, b.y + sin(a2) * rad);
+}
+
+// Where this particle lands on the timeline (h = its position along the line, 0 = start):
+// half trace the act's glass card, the rest gather at the act's dot or draw the line.
 vec3 timelineTarget(float h) {
-  if (fract(aRand * 53.3 + aOff.x * 7.7) < 0.4 && uDotCount > 0.5) {
+  float pick = fract(aRand * 53.3 + aOff.x * 7.7);
+  if (pick < 0.65 && uDotCount > 0.5) {
     float di = min(floor(h * uDotCount), uDotCount - 1.0);
     vec2 c = uDots[0];
+    vec4 card = uActs[0];
     for (int i = 1; i < 4; i++) {
-      if (float(i) == di) c = uDots[i];
+      if (float(i) == di) {
+        c = uDots[i];
+        card = uActs[i];
+      }
     }
+    if (pick < 0.5) return vec3(rectPoint(card, fract(aRand * 23.7 + aOff.z * 4.1)), 0.0);
     float ang = fract(aRand * 37.7) * 6.28318;
     return vec3(c + vec2(cos(ang), sin(ang)) * sqrt(fract(aRand * 17.3)) * uDotR, 0.0);
   }
   vec2 dir = normalize(uLine.zw - uLine.xy + vec2(1e-5));
   vec2 perp = vec2(-dir.y, dir.x);
   return vec3(mix(uLine.xy, uLine.zw, h) + perp * (fract(aRand * 29.1) - 0.5) * uDotR * 0.3, 0.0);
+}
+
+// A point on the outline of one skill panel. Panels get particles in proportion to their
+// perimeter; bi returns which panel (for the one-after-another order).
+vec3 skillTarget(out float bi) {
+  float pick = fract(aRand * 61.3 + aOff.x * 2.1);
+  vec4 b = uSk[0];
+  bi = 0.0;
+  float start = 0.0;
+  for (int i = 0; i < ${MAX_PANELS}; i++) {
+    if (float(i) < uSkCount && pick >= start) {
+      bi = float(i);
+      b = uSk[i];
+    }
+    start = uSkCum[i];
+  }
+  return vec3(rectPoint(b, fract(aRand * 17.9 + aOff.z * 5.3)), 0.0);
 }
 void main() {
   // Left-to-right sweep: the name is "written" as the particles land.
@@ -245,21 +341,49 @@ void main() {
   // Leg 1, name → card: a wide, lively river.
   vec3 pathW = flowPath(nameW, cardW, e, 0.3, 0.28);
 
-  // Leg 2, card → timeline: ~40% of the particles continue, in a calmer stream.
+  // Leg 2, card → timeline: ~70% of the particles continue.
   // The line is drawn left to right (particles further along the line leave a little later).
   float h = fract(aRand * 91.7 + aOff.z * 3.1);
-  float cont = step(aOff.y, 0.4);
-  float t2 = clamp((uTl - h * 0.35 - aRand * 0.1) / 0.55, 0.0, 1.0) * cont;
+  float cont = step(aOff.y, 0.7);
+  float t2 = clamp((uTl - h * 0.3 - aRand * 0.1) / 0.55, 0.0, 1.0) * cont;
   float e2 = t2 * t2 * (3.0 - 2.0 * t2);
   // Particles resting in a card leave from its bottom edge (not across its face, over the text).
   vec3 from2 = e >= 0.999 ? vec3(cardW.x, r.y - r.w * 0.5, 0.0) : pathW;
-  if (e2 > 0.0) pathW = flowPath(from2, timelineTarget(h), e2, 0.12, 0.12);
+  vec3 tlW = timelineTarget(h);
+  if (e2 > 0.0) pathW = flowPath(from2, tlW, e2, 0.2, 0.2);
+
+  // Leg 3, timeline → skill panels: ~55% of all particles (a subset of the timeline ones)
+  // leave the line and trace the panels' outlines, one panel after another.
+  float bi;
+  vec3 skW = skillTarget(bi);
+  float cont3 = step(aOff.y, 0.55) * step(0.5, uSkCount);
+  float t3 = clamp((uSkT - bi / max(uSkCount, 1.0) * 0.4 - aRand * 0.1) / 0.4, 0.0, 1.0) * cont3;
+  float e3 = t3 * t3 * (3.0 - 2.0 * t3);
+  vec3 from3 = e2 >= 0.999 ? tlW : pathW;
+  if (e3 > 0.0) pathW = flowPath(from3, skW, e3, 0.18, 0.18);
+
+  // Leg 4, skill panels → Contact finale: ~50% of all particles (a subset of the skills ones).
+  // 70% form the highlighted word ("intelligent"), 30% trace the two buttons, word first.
+  float kind = step(0.7, fract(aRand * 41.3 + aOff.z * 2.9)) * step(0.5, uBtnCount); // 1 = button
+  vec3 ctW = vec3(uWord.x + aWord.x * uWord.z, uWord.y - aWord.y * uWord.w, 0.0);
+  if (kind > 0.5) {
+    vec4 bb = (fract(aRand * 7.1) > 0.5 && uBtnCount > 1.5) ? uBtn[1] : uBtn[0];
+    ctW = vec3(pillPoint(bb, fract(aRand * 13.3 + aOff.x * 3.3)), 0.0);
+  }
+  float cont4 = step(aOff.y, 0.5) * step(0.001, uWord.z);
+  float t4 = clamp((uCt - kind * 0.2 - aRand * 0.1) / 0.5, 0.0, 1.0) * cont4;
+  float e4 = t4 * t4 * (3.0 - 2.0 * t4);
+  vec3 from4 = e3 >= 0.999 ? skW : pathW;
+  if (e4 > 0.0) pathW = flowPath(from4, ctW, e4, 0.18, 0.18);
 
   if (uCount > 0.5) pos = toLocal(pathW);
   float dd = e;
   // Mid-flight the river is brighter and a little larger than the stars, so it reads clearly
   // against the white star field (it also turns cyan, see vColor below).
   float flight = uCount > 0.5 ? smoothstep(0.0, 0.15, e) * (1.0 - smoothstep(0.8, 1.0, e)) : 0.0;
+  // Later legs get the same in-flight boost as the first river, so they read clearly.
+  float flightOn = sin(e2 * 3.14159) * (1.0 - smoothstep(0.94, 1.0, e2)) + sin(e3 * 3.14159) + sin(e4 * 3.14159);
+  flight = max(flight, clamp(flightOn, 0.0, 1.0) * smoothstep(0.96, 1.0, T) * step(0.5, uCount));
   // Cards below the first row: their particles stay invisible in transit and only
   // appear near the card, so the card condenses out of sparkles as it scrolls in.
   float lateVis = uCount > 0.5 ? mix(1.0, smoothstep(0.7, 0.92, e), late) : 1.0;
@@ -293,13 +417,26 @@ void main() {
   float journeyT = uCount > 0.5 ? smoothstep(0.0, 0.2, dd) : 0.0;
   vec3 col = mix(vec3(0.96), vec3(0.49, 0.83, 0.99), journeyT);
   col = mix(col, vec3(0.96, 0.71, 0.27), step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
+  // Particles forming the finale word turn its amber as they settle into it.
+  col = mix(col, vec3(0.96, 0.71, 0.27), (1.0 - kind) * smoothstep(0.5, 1.0, e4));
   // Card outlines glow icy blue as they lock into place.
   vColor = mix(col, vec3(0.62, 0.86, 1.0), edge * cc * 0.85);
   // Particles hand over to the glass card once it has fully formed, reappear while they travel
   // on to the timeline, and hand over again to the timeline's line and dots.
   float atCard = smoothstep(0.96, 1.0, cp) * step(0.5, uCount);
-  float transit2 = smoothstep(0.0, 0.04, e2) * (1.0 - smoothstep(0.94, 1.0, e2));
-  float handover = mix(1.0, transit2 * 0.85, atCard);
+  // Landed particles stay lit on the outline until their card fades in (same timing as the
+  // --reveal values set in JS), then cross-fade into it, so the outline never blinks out.
+  float f2 = min(0.85, 0.65 + 0.3 * floor(h * uDotCount) / max(uDotCount, 1.0));
+  float keep2 = 1.0 - smoothstep(f2 + 0.05, f2 + 0.15, uTl);
+  float transit2 = smoothstep(0.0, 0.04, e2) * mix(1.0, keep2, smoothstep(0.9, 1.0, e2));
+  float f3 = min(0.85, 0.5 + 0.4 * bi / max(uSkCount, 1.0));
+  float keep3 = 1.0 - smoothstep(f3 + 0.05, f3 + 0.15, uSkT);
+  float transit3 = smoothstep(0.0, 0.04, e3) * mix(1.0, keep3, smoothstep(0.9, 1.0, e3));
+  float f4 = kind > 0.5 ? 0.82 : 0.62;
+  float keep4 = 1.0 - smoothstep(f4 + 0.05, f4 + 0.15, uCt);
+  float transit4 = smoothstep(0.0, 0.04, e4) * mix(1.0, keep4, smoothstep(0.9, 1.0, e4));
+  float onward = mix(mix(transit2, transit3, step(0.0001, e3)), transit4, step(0.0001, e4));
+  float handover = mix(1.0, onward, atCard);
   // Gentle per-particle shimmer, so the dotted name feels alive.
   float shimmer = 0.82 + 0.18 * sin(uTime * (1.5 + aRand * 2.0) + aRand * 80.0);
   vAlpha = ((0.6 + 0.4 * aRand) * shimmer + scan * 0.6 + edge * cc * 0.3) * max(uFade, spot) * handover * (1.0 + 0.35 * flight) * lateVis;
@@ -437,18 +574,24 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
   const formed = useRef(false)
   const travel = useRef(new Array(MAX_CARDS).fill(0))
   const tl = useRef(0) // timeline stage progress
+  const sk = useRef(0) // skills stage progress
+  const ct = useRef(0) // contact finale progress
   const tlMark = useRef('') // last --tl value written to the timeline
   const sweeps = useRef({ gold: null, white: null, done: false }) // start times of the two sweeps
   const spot = useRef({ k: 0, px: 0, py: 0, lx: 0, ly: 0, R: 1, Rl: 1, mask: '' })
   const hoverable = useMemo(() => window.matchMedia('(hover: hover) and (pointer: fine)').matches, [])
 
   const geometry = useMemo(() => {
-    const { a, b, delay, count } = buildName(profile.name.toUpperCase().split(' '), wide ? 13000 : 6000)
+    const { a, b, delay, count } = buildName(profile.name.toUpperCase().split(' '), wide ? 18000 : 8000)
     const start = new Float32Array(count * 3)
     const rand = new Float32Array(count)
     const cardSel = new Float32Array(count)
     const uv = new Float32Array(count * 2)
     const off = new Float32Array(count * 3)
+    // Finale: each particle's point inside the Contact headline's highlighted word.
+    const wordText = document.querySelector('.contact-title em')?.textContent?.trim() || 'intelligent'
+    const wordPts = sampleWord(wordText)
+    const word = new Float32Array(count * 2)
     const golden = Math.PI * (3 - Math.sqrt(5))
     for (let i = 0; i < count; i++) {
       const y = 1 - (i / (count - 1)) * 2
@@ -470,6 +613,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       }
       uv.set([u, v], i * 2)
       off.set([Math.random() * 2 - 1, Math.random(), Math.random() * 2 - 1], i * 3)
+      if (wordPts.length) word.set(wordPts[i % wordPts.length], i * 2)
     }
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(a, 3))
@@ -480,6 +624,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     g.setAttribute('aCardSel', new THREE.BufferAttribute(cardSel, 1))
     g.setAttribute('aUV', new THREE.BufferAttribute(uv, 2))
     g.setAttribute('aOff', new THREE.BufferAttribute(off, 3))
+    g.setAttribute('aWord', new THREE.BufferAttribute(word, 2))
     return g
   }, [wide])
   useEffect(() => () => geometry.dispose(), [geometry])
@@ -496,7 +641,9 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         el.style.filter = ''
       })
       document.querySelector('#acts .acts')?.style.removeProperty('--tl')
-      document.querySelectorAll('#acts .act').forEach((a) => a.style.removeProperty('--reveal'))
+      document
+        .querySelectorAll('#acts .act, #system .glass-panel, .contact-title em, #contact .contact-row .btn')
+        .forEach((a) => a.style.removeProperty('--reveal'))
       if (anchor?.current) {
         anchor.current.style.opacity = ''
         anchor.current.style.webkitMaskImage = ''
@@ -525,6 +672,15 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     uDots: { value: Array.from({ length: 4 }, () => new THREE.Vector2()) },
     uDotCount: { value: 0 },
     uDotR: { value: 0.05 },
+    uActs: { value: Array.from({ length: 4 }, () => new THREE.Vector4()) },
+    uSkT: { value: 0 },
+    uSk: { value: Array.from({ length: MAX_PANELS }, () => new THREE.Vector4()) },
+    uSkCum: { value: new Array(MAX_PANELS).fill(1) },
+    uSkCount: { value: 0 },
+    uCt: { value: 0 },
+    uWord: { value: new THREE.Vector4() },
+    uBtn: { value: [new THREE.Vector4(), new THREE.Vector4()] },
+    uBtnCount: { value: 0 },
     uSpot: { value: new THREE.Vector4(0, 0, 1, 0) },
   }))
 
@@ -643,6 +799,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const toWY = (py) => -((py - c.top) / c.height - 0.5) * viewport.height
     const timeline = document.querySelector('#acts .acts')
     let tlGoal = 0
+    let tlAt = 0 // scroll position (px) at which the timeline is fully drawn
     if (timeline && count) {
       const ar = timeline.getBoundingClientRect()
       const items = [...timeline.children].slice(0, 4).map((a) => a.getBoundingClientRect())
@@ -656,9 +813,19 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         else u.uDots.value[i].set(toWX(a.left + 4.5), toWY(ar.top - 0.5))
       })
       u.uDotCount.value = items.length
+      // The act glass cards, traced by half of the particles that reach the timeline.
+      ;[...timeline.children].slice(0, 4).forEach((act, i) => {
+        const pr = (act.querySelector('.act-panel') || act).getBoundingClientRect()
+        u.uActs.value[i].set(
+          toWX(pr.left + pr.width / 2),
+          toWY(pr.top + pr.height / 2),
+          (pr.width / c.width) * viewport.width,
+          (pr.height / c.height) * viewport.height,
+        )
+      })
       u.uDotR.value = (7 / c.height) * viewport.height
       // 0 once the last card has formed, 1 when the timeline is ~60% down the screen.
-      const tlAt = scrollPx + ar.top + (vertical ? Math.min(ar.height, c.height * 0.5) / 2 : 0) - c.height * 0.6
+      tlAt = scrollPx + ar.top + (vertical ? Math.min(ar.height, c.height * 0.5) / 2 : 0) - c.height * 0.6
       if (journey) {
         tlGoal = tlAt > cardsAt + 1 ? (scrollPx - cardsAt) / (tlAt - cardsAt) : scrollPx >= tlAt ? 1 : 0
         tlGoal = Math.min(1, Math.max(0, tlGoal))
@@ -686,8 +853,11 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
           // How far along the line this act's dot is (0 = start), as the shader sees it.
           const d = u.uDots.value[i]
           const h = Math.min(1, Math.hypot(d.x - L4.x, d.y - L4.y) / len)
-          const from = 0.5 + 0.35 * h
-          v = smoothstepJS(from, Math.min(1, from + 0.25), tl.current).toFixed(3)
+          // The last particle for this act lands at tl = 0.55 + 0.3h + 0.1 (see leg 2 in the
+          // shader); the card only fades in after that, so it appears once its outline is done.
+          // (Keep in sync with f2 in the shader.)
+          const from = Math.min(0.85, 0.65 + 0.3 * h)
+          v = smoothstepJS(from, Math.min(1, from + 0.15), tl.current).toFixed(3)
         }
         if (act.style.getPropertyValue('--reveal') !== v) {
           if (v) act.style.setProperty('--reveal', v)
@@ -695,6 +865,93 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         }
       })
     }
+
+    // ── Station 4: the skill panels (outlines traced one after another) ──
+    const panels = [...document.querySelectorAll('#system .glass-panel')].slice(0, MAX_PANELS)
+    let skGoal = 0
+    let skAt = 0 // scroll position (px) at which the skill panels are traced
+    if (panels.length && timeline && count) {
+      const rects = panels.map((p) => p.getBoundingClientRect())
+      const per = rects.map((pr) => 2 * (pr.width + pr.height))
+      const total = per.reduce((a, b) => a + b, 0) || 1
+      let cum = 0
+      rects.forEach((pr, i) => {
+        u.uSk.value[i].set(
+          toWX(pr.left + pr.width / 2),
+          toWY(pr.top + pr.height / 2),
+          (pr.width / c.width) * viewport.width,
+          (pr.height / c.height) * viewport.height,
+        )
+        cum += per[i] / total
+        u.uSkCum.value[i] = cum
+      })
+      // 0 once the timeline is drawn, 1 when the first (headline) panel is ~60% down the screen.
+      skAt = scrollPx + rects[0].top + Math.min(rects[0].height, c.height * 0.3) - c.height * 0.6
+      if (journey) {
+        skGoal = skAt > tlAt + 1 ? (scrollPx - tlAt) / (skAt - tlAt) : scrollPx >= skAt ? 1 : 0
+        skGoal = Math.min(1, Math.max(0, skGoal))
+      }
+    }
+    u.uSkCount.value = journey && count ? panels.length : 0
+    sk.current += (skGoal - sk.current) * (1 - Math.exp(-dt * 3.5))
+    if (Math.abs(skGoal - sk.current) < 0.0005) sk.current = skGoal
+    u.uSkT.value = sk.current
+    // Each panel fades in once its outline is traced (CSS reads --reveal; unset = visible).
+    panels.forEach((p, i) => {
+      let v = ''
+      if (journey && count) {
+        // The last particle for panel i lands at sk = 0.4·i/n + 0.4 + 0.1 (see leg 3 in the
+        // shader); the panel only fades in after that. (Keep in sync with f3 in the shader.)
+        const from = Math.min(0.85, 0.5 + (0.4 * i) / panels.length)
+        v = smoothstepJS(from, Math.min(1, from + 0.15), sk.current).toFixed(3)
+      }
+      if (p.style.getPropertyValue('--reveal') !== v) {
+        if (v) p.style.setProperty('--reveal', v)
+        else p.style.removeProperty('--reveal')
+      }
+    })
+
+    // ── Station 5 (finale): Contact — the highlighted word, then the two buttons ──
+    const wordEl = document.querySelector('.contact-title em')
+    const btns = [...document.querySelectorAll('#contact .contact-row .btn')].slice(0, 2)
+    let ctGoal = 0
+    if (wordEl && panels.length && count) {
+      const wr = wordEl.getBoundingClientRect()
+      u.uWord.value.set(toWX(wr.left), toWY(wr.top), (wr.width / c.width) * viewport.width, (wr.height / c.height) * viewport.height)
+      btns.forEach((b, i) => {
+        const br = b.getBoundingClientRect()
+        u.uBtn.value[i].set(
+          toWX(br.left + br.width / 2),
+          toWY(br.top + br.height / 2),
+          (br.width / c.width) * viewport.width,
+          (br.height / c.height) * viewport.height,
+        )
+      })
+      // 0 once the skill panels are traced, 1 when the word is ~55% down the screen — capped at
+      // the bottom of the page, since Contact is last and may never scroll that high.
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+      const ctAt = Math.min(scrollPx + wr.top + wr.height / 2 - c.height * 0.55, maxScroll - 2)
+      if (journey) {
+        ctGoal = ctAt > skAt + 1 ? (scrollPx - skAt) / (ctAt - skAt) : scrollPx >= ctAt ? 1 : 0
+        ctGoal = Math.min(1, Math.max(0, ctGoal))
+      }
+    }
+    u.uWord.value.z = journey && count && wordEl ? u.uWord.value.z : 0
+    u.uBtnCount.value = journey && count ? btns.length : 0
+    ct.current += (ctGoal - ct.current) * (1 - Math.exp(-dt * 3.5))
+    if (Math.abs(ctGoal - ct.current) < 0.0005) ct.current = ctGoal
+    u.uCt.value = ct.current
+    // The crisp word and the buttons appear once their particles have landed (word lands by
+    // ct ≈ 0.6, buttons by ≈ 0.8; keep in sync with f4 in the shader).
+    const reveal = (el, from) => {
+      const v = journey && count ? smoothstepJS(from, from + 0.15, ct.current).toFixed(3) : ''
+      if (el.style.getPropertyValue('--reveal') !== v) {
+        if (v) el.style.setProperty('--reveal', v)
+        else el.style.removeProperty('--reveal')
+      }
+    }
+    if (wordEl) reveal(wordEl, 0.62)
+    btns.forEach((b) => reveal(b, 0.82))
 
     // Intro hand-over: once the crisp name shows, the particles hide until scrolling begins.
     // Slow cross-fade (matches the .hero-name opacity transition).

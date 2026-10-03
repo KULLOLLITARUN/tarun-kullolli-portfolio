@@ -1492,9 +1492,9 @@ html.has-cursor textarea {
   position: relative;
   padding: var(--s-6) var(--s-5) var(--s-6) 0;
 }
+/* Fade only (no shift), so the card outline the particles trace stays put. */
 .act > * {
   opacity: var(--reveal, 1);
-  translate: 0 calc((1 - var(--reveal, 1)) * 10px);
 }
 /* Glowing node on the line. */
 .act::before {
@@ -1717,7 +1717,12 @@ html.has-cursor textarea {
   }
 }
 
-/* System index: glass skill modules; the first (AI / ML) spans the full width. */
+/* System index: glass skill modules; the first (AI / ML) spans the full width.
+   Each panel fades in once the particles have traced its outline (--reveal; unset = visible).
+   Opacity only, no shift, so the outline the particles trace stays put. */
+#system .glass-panel {
+  opacity: var(--reveal, 1);
+}
 .system-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1815,6 +1820,11 @@ html.has-cursor textarea {
 .contact-title em {
   font-style: normal;
   color: var(--amber);
+  /* Finale: the particles form this word, then it appears (--reveal; unset = visible). */
+  opacity: var(--reveal, 1);
+}
+.contact-row .btn {
+  opacity: var(--reveal, 1);
 }
 .contact-row {
   display: flex;

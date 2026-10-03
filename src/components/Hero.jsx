@@ -64,7 +64,6 @@ function SplitText({ text }) {
 export default function Hero({ onTour }) {
   const ref = useRef(null)
   const nameRef = useRef(null)
-  const [visible, setVisible] = useState(true)
   const [webgl] = useState(hasWebGL)
   const reduce = useReducedMotion()
   const wide = useWide()
@@ -121,7 +120,7 @@ export default function Hero({ onTour }) {
         {webgl && fontsReady ? (
           <Suspense fallback={null}>
             <ParticleScene
-              active={visible}
+              active
               split={split}
               resolved={resolved}
               nameAnchor={nameRef}

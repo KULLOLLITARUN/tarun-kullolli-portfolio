@@ -57,7 +57,8 @@ html {
 }
 body {
   margin: 0;
-  background: var(--bg);
+  /* Transparent so the fixed star field (z-index -1) shows; the black comes from <html>. */
+  background: transparent;
   color: var(--text);
   font-family: var(--font);
   font-size: var(--fs-md);
@@ -417,11 +418,12 @@ html.has-cursor textarea {
   position: relative;
   min-height: max(100svh, 680px);
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
 }
+/* One continuous space background behind the whole page. */
 .hero-canvas {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
 }
 .hud {
@@ -472,6 +474,14 @@ html.has-cursor textarea {
   gap: var(--s-4);
   text-align: left;
 }
+.hero-left::before {
+  content: '';
+  position: absolute;
+  inset: -12% -8% -14% 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 62% 58% at 34% 52%, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.35) 55%, transparent 78%);
+}
 /* Same metrics as the particle sampler (Geist 600, 0.04em tracking, 0.98 leading)
    so the particles land exactly on these letters before dissolving. */
 .hero-name {
@@ -514,7 +524,8 @@ html.has-cursor textarea {
   color: var(--amber);
 }
 .hero-quote {
-  max-width: 46ch;
+  max-width: 60ch;
+  text-wrap: balance;
   font-size: var(--fs-xs);
   line-height: 2;
   color: var(--text-2);
@@ -682,7 +693,7 @@ html.has-cursor textarea {
 }
 .chat-log {
   flex: 0 1 auto;
-  min-height: 72px;
+  min-height: min(190px, 22vh);
   min-height: 0;
   overflow-y: auto;
   padding: var(--s-4);
@@ -763,11 +774,21 @@ html.has-cursor textarea {
 }
 .chat-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--s-2);
   padding: 0 var(--s-4) var(--s-3);
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, #000 85%, transparent);
+}
+.chat-chips::-webkit-scrollbar {
+  display: none;
+}
+.chat-chips li {
+  flex: 0 0 auto;
 }
 .chat-chips button {
+  white-space: nowrap;
   padding: 6px var(--s-3);
   border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: var(--r-pill);
@@ -909,85 +930,248 @@ html.has-cursor textarea {
   color: var(--text-2);
 }
 
-/* Experiments */
-.exp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: var(--s-4);
+/* Experiments: icy-blue frosted glass panels */
+/* While the particle scene drives them, cards start hidden; JS sets opacity as they form. */
+.can-assemble #experiments .holo-card {
+  opacity: 0;
 }
-.exp-card {
+.holo-grid-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+  gap: 72px var(--s-6);
+  padding-bottom: var(--s-8);
+}
+.holo-card {
+  --ice: 186, 230, 253; /* pale sky blue */
+  --sky: 125, 211, 252;
+  position: relative;
+  scroll-margin-top: 96px;
+  perspective: 1200px;
+  animation: holo-float 8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.6s);
+}
+@keyframes holo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+/* Blue light pool under each panel. */
+.holo-card::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -38px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(96, 165, 250, 0.3), rgba(37, 99, 235, 0.08) 55%, transparent 72%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+.holo {
+  --rx: 0deg;
+  --ry: 0deg;
+  --gx: 30%;
+  --gy: 0%;
+  position: relative;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  overflow: hidden;
-  scroll-margin-top: 96px;
-  transition: border-color var(--t-med), transform var(--t-med) var(--ease);
-}
-.exp-card:hover,
-.exp-card:focus-within {
-  border-color: var(--line-strong);
-  transform: translateY(-4px);
-}
-.specimen {
-  display: block;
-  width: 100%;
-  height: 150px;
-  background: radial-gradient(120% 90% at 50% 100%, rgba(167, 139, 250, 0.12), transparent 60%), #000;
-  border-bottom: 1px solid var(--line);
-}
-.specimen path {
-  fill: none;
-  stroke: var(--text);
-  stroke-width: 0.6;
-  opacity: calc(0.15 + var(--i) * 0.035);
-  vector-effect: non-scaling-stroke;
-  transition: transform 900ms var(--ease), stroke var(--t-med);
-}
-.exp-card:hover .specimen path {
-  stroke: var(--amber);
-  transform: translateX(calc((var(--i) - 9) * 1.2px));
-}
-.exp-body {
-  display: grid;
-  gap: var(--s-3);
+  gap: var(--s-4);
+  height: 100%;
   padding: var(--s-5);
-  flex: 1;
-  align-content: start;
+  border: 1px solid rgba(var(--ice), 0.26);
+  border-radius: 8px;
+  /* Frosted glass: low-opacity dark fill + blur, so space shows through softly. */
+  background:
+    linear-gradient(172deg, rgba(var(--ice), 0.07), transparent 30%),
+    rgba(10, 15, 30, 0.4);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 24px rgba(59, 130, 246, 0.16),
+    0 22px 50px rgba(0, 0, 0, 0.4);
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 450ms var(--ease), border-color var(--t-med), box-shadow var(--t-med);
 }
-.exp-body h3 {
+.holo:hover,
+.holo:focus-within {
+  border-color: rgba(var(--ice), 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 36px rgba(59, 130, 246, 0.34),
+    0 22px 50px rgba(0, 0, 0, 0.4);
+  transition: transform 120ms linear, border-color var(--t-med), box-shadow var(--t-med);
+}
+.holo-side {
+  display: none;
+}
+/* Light glare that follows the pointer. */
+.holo-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.14), transparent 45%);
+}
+.holo-head {
+  display: grid;
+  gap: var(--s-1);
+}
+.holo-kicker {
+  font-size: var(--fs-xs);
+  color: rgba(var(--ice), 0.75);
+}
+.holo h3 {
   font-size: var(--fs-xl);
   font-weight: 500;
   letter-spacing: -0.01em;
+  color: #f0f9ff;
+  text-shadow: 0 0 18px rgba(var(--sky), 0.4);
 }
-.exp-sub {
-  color: var(--text-2);
-  margin-top: calc(-1 * var(--s-2));
-}
-.exp-desc {
+.holo-sub {
   font-size: var(--fs-sm);
-  color: var(--text-2);
+  color: rgba(var(--ice), 0.9);
 }
-.exp-result {
+/* System diagram */
+.holo-flow {
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(var(--ice), 0.32);
+  border-radius: 6px;
+  background: rgba(30, 58, 110, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 24px rgba(var(--sky), 0.08);
+}
+.holo-grid {
+  stroke: rgba(var(--ice), 0.07);
+  stroke-width: 0.5;
+}
+.holo-edge-line {
+  fill: none;
+  stroke: rgba(var(--ice), 0.45);
+  stroke-width: 1;
+}
+.holo-pulse {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 6 300;
+  filter: drop-shadow(0 0 3px rgba(var(--sky), 1));
+  animation: holo-pulse 2.4s linear infinite;
+}
+@keyframes holo-pulse {
+  from {
+    stroke-dashoffset: 300;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.holo-node rect {
+  fill: rgba(30, 64, 120, 0.5);
+  stroke: rgba(var(--ice), 0.6);
+  stroke-width: 0.8;
+  filter: drop-shadow(0 0 2px rgba(var(--sky), 0.45));
+}
+.holo-node circle {
+  fill: #7dd3fc;
+}
+.holo-node text {
+  fill: #e0f2fe;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.04em;
+}
+/* Headline metric + trend */
+.holo-metric {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid rgba(var(--ice), 0.24);
+  border-radius: 6px;
+  background: rgba(30, 58, 110, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.holo-metric p {
   display: grid;
   gap: 2px;
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--line);
-  color: var(--text);
 }
-.exp-links {
+.holo-value {
+  font-size: clamp(2rem, 1.6rem + 1.2vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #f0f9ff;
+  text-shadow: 0 0 22px rgba(var(--sky), 0.55);
+}
+.holo-mlabel {
+  font-size: 10px;
+  color: rgba(var(--ice), 0.8);
+}
+.holo-spark {
+  width: 42%;
+  height: 40px;
+  flex: none;
+}
+.holo-spark-area {
+  fill: rgba(var(--sky), 0.16);
+}
+.holo-spark-line {
+  fill: none;
+  stroke: #7dd3fc;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(var(--sky), 0.8));
+}
+.holo-desc {
+  font-size: var(--fs-sm);
+  color: rgba(224, 242, 254, 0.85);
+}
+.holo-tags {
   display: flex;
   flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: auto;
+}
+.holo-tags li {
+  padding: 3px var(--s-3);
+  border: 1px solid rgba(var(--ice), 0.32);
+  border-radius: var(--r-pill);
+  background: rgba(var(--ice), 0.1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 10px rgba(var(--sky), 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-size: var(--fs-xs);
+  color: #e0f2fe;
+}
+.holo-links {
+  display: flex;
   gap: var(--s-4);
   font-size: var(--fs-sm);
 }
-.exp-links a {
-  color: var(--amber);
+.holo-links a {
+  color: #7dd3fc;
   text-decoration: none;
 }
-.exp-links a:hover {
+.holo-links a:hover {
   text-decoration: underline;
+}
+@media (prefers-reduced-motion: reduce) {
+  .holo-card {
+    animation: none;
+  }
+  .holo-pulse {
+    display: none;
+  }
 }
 
 /* Acts */

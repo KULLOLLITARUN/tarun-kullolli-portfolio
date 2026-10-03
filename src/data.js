@@ -26,6 +26,7 @@ export const profile = {
 
 // PLACEHOLDER PROJECTS — replace with your real AI projects.
 // Each one renders as an "EXP" card. Links set to '#' are hidden.
+// metric = the big number on the card; trend = shape of its mini chart (up | down | flat).
 export const experiments = [
   {
     code: 'COMMERCE',
@@ -35,6 +36,7 @@ export const experiments = [
       'E-commerce site with user authentication, dynamic product browsing and CSRF protection. Query optimisation cut load time.',
     stack: ['Django', 'MySQL', 'JavaScript', 'HTML/CSS'],
     result: '30% faster page loads',
+    metric: { value: '-30%', label: 'Page load time', trend: 'down' },
     links: { code: '#', live: '#' },
   },
   {
@@ -45,6 +47,7 @@ export const experiments = [
       'Category-based blog creation, viewing and filtering. React frontend, Express + MySQL backend, mock and live data combined.',
     stack: ['React', 'Node.js', 'Express', 'MySQL'],
     result: 'REST API with category filtering',
+    metric: { value: 'REST', label: 'API with category filters', trend: 'up' },
     links: { code: '#', live: '#' },
   },
   {
@@ -55,6 +58,7 @@ export const experiments = [
       'Desktop enquiry system with dynamic form control, MySQL storage and Excel export for the admissions team.',
     stack: ['Python', 'Tkinter', 'MySQL', 'Excel'],
     result: '+50% registration tracking efficiency',
+    metric: { value: '+50%', label: 'Tracking efficiency', trend: 'up' },
     links: { code: '#', live: '#' },
   },
   {
@@ -65,6 +69,7 @@ export const experiments = [
       'Context API for predictable state management and LocalStorage for persistence across sessions.',
     stack: ['React', 'Context API', 'LocalStorage'],
     result: 'Persistent state, zero backend',
+    metric: { value: '0', label: 'Backend servers needed', trend: 'flat' },
     links: { code: '#', live: '#' },
   },
   {
@@ -75,6 +80,7 @@ export const experiments = [
       'Apple-themed website clone built with modern CSS and interactive JavaScript, tuned for mobile usability.',
     stack: ['HTML', 'CSS', 'JavaScript'],
     result: 'Mobile-first responsive layout',
+    metric: { value: 'Mobile', label: 'First, responsive layout', trend: 'up' },
     links: { code: '#', live: '#' },
   },
 ]

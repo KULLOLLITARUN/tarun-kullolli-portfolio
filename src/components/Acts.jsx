@@ -11,7 +11,7 @@ export default function Acts() {
         From computer science fundamentals to full-stack development, and now AI engineering in production.
       </SectionHead>
 
-      {/* The particle scene draws this timeline (#acts .acts); a mini Tick walks along it. */}
+      {/* The particle scene draws this timeline (#acts .acts); a mini Kairo walks along it. */}
       <div className="acts-wrap">
         <ol className="acts" style={{ '--acts': acts.length }}>
           {acts.map((a, i) => {

@@ -41,7 +41,7 @@ function Message({ m }) {
     <li className={`msg msg-${m.from}`}>
       {m.from === 'bot' && (
         <span className="msg-who mono" aria-hidden="true">
-          TK-01
+          KAIRO
         </span>
       )}
       <div className="msg-text">
@@ -166,22 +166,22 @@ export default function Chat({ visible }) {
   }
   askRef.current = { ask, busy }
 
-  // "Ask Tick about this project" buttons elsewhere on the page.
+  // "Ask Kairo about this project" buttons elsewhere on the page.
   useEffect(() => {
     const onAsk = (e) => {
       const { ask, busy } = askRef.current
       if (busy) setInput(e.detail)
       else ask(e.detail)
     }
-    window.addEventListener('ask-tick', onAsk)
-    return () => window.removeEventListener('ask-tick', onAsk)
+    window.addEventListener('ask-kairo', onAsk)
+    return () => window.removeEventListener('ask-kairo', onAsk)
   }, [])
 
   return (
     <section className={`chat${visible ? ' is-visible' : ''}`} aria-label="Resume assistant" inert={!visible}>
       <header className="chat-head mono">
         <span>
-          <span className="pulse" aria-hidden="true" /> TK-01 <span className="dim">{'// Assistant'}</span>
+          <span className="pulse" aria-hidden="true" /> KAIRO <span className="dim">{'// Assistant'}</span>
         </span>
         <span className="dim small">{mode === 'offline' ? 'Offline mode' : 'Ask about my resume'}</span>
       </header>
@@ -192,7 +192,7 @@ export default function Chat({ visible }) {
         ))}
         {busy && messages.at(-1)?.from === 'user' && (
           <li className="msg msg-bot typing" aria-hidden="true">
-            <span className="msg-who mono">TK-01</span>
+            <span className="msg-who mono">KAIRO</span>
             <span className="dots">
               <i />
               <i />

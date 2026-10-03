@@ -1,4 +1,4 @@
-// Time-of-day colour themes. Clicking Tick rings its alarm and opens a picker (Mascot.jsx);
+// Time-of-day colour themes. Clicking Kairo rings its alarm and opens a picker (Mascot.jsx);
 // the Ctrl+K palette lists them too. Each theme sets the CSS colour tokens (styles.css reads them as `rgb(var(--x-rgb))`)
 // and the particle scene eases its colours toward `themeState.colors`.
 // Recruiter mode always uses Night.
@@ -15,7 +15,7 @@ export const THEMES = [
     glassHi: [165, 243, 252],
     glassPale: [224, 242, 254],
     glassDeep: [30, 58, 110], // dark tint behind glass chips
-    tickA: [56, 189, 248], // Tick's body, light → dark
+    tickA: [56, 189, 248], // Kairo's body, light → dark
     tickB: [29, 78, 216],
     shoe: [245, 158, 11],
     kicker: [96, 165, 250], // section labels ("03 / SYSTEM INDEX")

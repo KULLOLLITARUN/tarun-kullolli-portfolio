@@ -40,7 +40,7 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(''), 2400)
   }, [])
 
-  // Time-of-day themes (Tick's alarm): recruiter mode stays on the plain Night colours.
+  // Time-of-day themes (Kairo's alarm): recruiter mode stays on the plain Night colours.
   useEffect(() => {
     applyTheme(recruiter ? 'night' : storedTheme())
   }, [recruiter])
@@ -88,7 +88,7 @@ export default function App() {
         hint: 'View',
         run: () => setRecruiter((r) => !r),
       },
-      // Time-of-day colours (also picked by clicking Tick); leaves recruiter mode, which stays plain.
+      // Time-of-day colours (also picked by clicking Kairo); leaves recruiter mode, which stays plain.
       ...THEMES.map((t) => ({
         id: `theme-${t.id}`,
         label: `Colours: ${t.name}`,

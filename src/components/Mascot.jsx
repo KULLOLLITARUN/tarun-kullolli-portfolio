@@ -4,7 +4,7 @@ import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
 import { setTheme, themeState, THEMES } from '../theme.js'
 
-// "Tick" — an original rubber-hose alarm-clock character drawn in SVG.
+// "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
 // Eyes follow the cursor, it blinks, waves, talks with the chat, and its
 // clock hands show the visitor's real local time. Click it and the alarm rings and a picker
 // offers the time-of-day themes (theme.js), it dozes off after 30s without input,
@@ -63,7 +63,7 @@ function Arm({ pose, refs }) {
   )
 }
 
-// Time-of-day picker, opened by clicking Tick: above its head; if that would run under the nav,
+// Time-of-day picker, opened by clicking Kairo: above its head; if that would run under the nav,
 // beside the head on the left; failing that (narrow phones), just below the top of the head. Esc, a click elsewhere or scrolling
 // closes it.
 const NAV_H = 80
@@ -356,7 +356,7 @@ export default function Mascot({ visible }) {
       if (faceState.relief && rk >= 0 && rk < 1 && !reduce) hop = -Math.sin(rk * Math.PI) * 16
 
       // Ringing: the hammer rattles between the bells, the body shakes, ring marks flash.
-      // Grumpy Tick rattles its alarm in short angry bursts.
+      // Grumpy Kairo rattles its alarm in short angry bursts.
       let ring = 0
       if (ringStart >= 0) {
         const k = (now - ringStart) / RING_MS
@@ -492,7 +492,7 @@ export default function Mascot({ visible }) {
           </clipPath>
         </defs>
 
-        {/* Light pool where Tick stands on the chat box */}
+        {/* Light pool where Kairo stands on the chat box */}
         <ellipse cx="160" cy="366" rx="86" ry="11" fill="url(#tick-floor)" />
         {/* Legs + shoes (outside the bobbing body so the feet stay planted) */}
         <line ref={r.legs[0]} x1="138" y1="268" x2="132" y2="348" stroke={INK} strokeWidth="7" strokeLinecap="round" />
@@ -611,7 +611,7 @@ export default function Mascot({ visible }) {
           />
         </g>
 
-        {/* "z"s that float up while Tick dozes */}
+        {/* "z"s that float up while Kairo dozes */}
         <g ref={r.zzz} opacity="0" style={{ fill: 'rgb(var(--glass-pale-rgb))' }} fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="22">
           <text>z</text>
           <text>z</text>

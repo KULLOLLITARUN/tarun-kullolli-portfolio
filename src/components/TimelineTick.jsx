@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '../hooks.js'
 
-// A mini "Tick" (the hero mascot) that walks along the career timeline as you scroll.
+// A mini "Kairo" (the hero mascot) that walks along the career timeline as you scroll.
 // It pauses at each act, and its clock hands run behind and catch up to the real time
 // as it reaches the last ("NOW") act, where it waves. Lives next to the timeline <ol>.
 
@@ -11,7 +11,7 @@ const VB = { w: 100, h: 130 }
 const FOOT = 124 // y of the shoe soles in the viewBox
 const STRIDE = 7 // px walked per leg-swing radian
 const WALK = 110 // walking speed cap (px per second)
-const IGNITE = 0.25 // s between the line's ignite flash and Tick popping out
+const IGNITE = 0.25 // s between the line's ignite flash and Kairo popping out
 const POP = 0.6 // s to rise out of the line
 const SINK = 0.35 // s to sink back in
 // Ease-out with a little overshoot (the "pop").
@@ -64,7 +64,7 @@ export default function TimelineTick() {
     let state = 'hidden'
     let popT = 0
     let burstPending = false
-    // Hovering an act sends Tick walking to that act's node (mouse only).
+    // Hovering an act sends Kairo walking to that act's node (mouse only).
     let hover = null
     const onOver = (e) => {
       if (e.pointerType !== 'mouse') return
@@ -90,7 +90,7 @@ export default function TimelineTick() {
       // Walk progress follows the reading position through the section.
       let p = vertical ? (vh * 0.6 - rect.top) / Math.max(1, rect.height * 0.75) : (vh * 0.8 - rect.top) / (vh * 0.55)
       p = reduce ? 1 : clamp01(p)
-      // Between nodes the walk eases in and out, so Tick pauses at every act.
+      // Between nodes the walk eases in and out, so Kairo pauses at every act.
       const segs = nodes.length - 1
       let target = nodes[0]
       if (segs > 0) {
@@ -102,7 +102,7 @@ export default function TimelineTick() {
       if (hover !== null && !reduce && nodes[hover] !== undefined) target = nodes[hover]
 
       // Pop sequence, driven by how far the particles have drawn the line (--tl on the list;
-      // unset = no particle effect, so Tick is simply there). Hysteresis (0.98 / 0.5) stops it
+      // unset = no particle effect, so Kairo is simply there). Hysteresis (0.98 / 0.5) stops it
       // replaying when the scroll wobbles around the line.
       const tlStr = list.style.getPropertyValue('--tl')
       if (tlStr === '' || reduce) state = 'shown'
@@ -147,10 +147,10 @@ export default function TimelineTick() {
         }
       }
 
-      // While hidden, Tick waits where it will pop up; once out, it walks.
+      // While hidden, Kairo waits where it will pop up; once out, it walks.
       if (pos === null || reduce || state === 'hidden') pos = target
       else {
-        // Walk at a steady pace (capped speed), easing in as Tick nears its spot.
+        // Walk at a steady pace (capped speed), easing in as Kairo nears its spot.
         const v = Math.max(-WALK, Math.min(WALK, (target - pos) * 3))
         pos += v * dt
       }
@@ -202,7 +202,7 @@ export default function TimelineTick() {
       raf = requestAnimationFrame(frame)
     }
 
-    // Start right away (so Tick is placed even if the observer is slow), then only keep
+    // Start right away (so Kairo is placed even if the observer is slow), then only keep
     // animating while the timeline is near the viewport.
     last = performance.now()
     raf = requestAnimationFrame(frame)

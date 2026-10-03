@@ -8,7 +8,7 @@
   --text: #f4f4f5;
   --text-2: #a1a1aa;
   --text-3: #8b8b94; /* ≥ 5:1 on black */
-  /* Theme colours (Night). theme.js overrides these when Tick switches the time of day. */
+  /* Theme colours (Night). theme.js overrides these when Kairo switches the time of day. */
   --accent-rgb: 245, 181, 68;
   --accent-hi-rgb: 255, 200, 97;
   --accent-pale-rgb: 255, 244, 214;
@@ -613,7 +613,7 @@ html.has-cursor textarea {
   opacity: 0;
 }
 
-/* ── Mascot ("Tick") ────────────────────────────────────── */
+/* ── Mascot ("Kairo") ────────────────────────────────────── */
 .mascot {
   position: absolute;
   z-index: 1;
@@ -632,7 +632,7 @@ html.has-cursor textarea {
   overflow: visible;
   filter: drop-shadow(0 0 14px rgba(var(--tick-a-rgb), 0.45)) drop-shadow(0 0 40px rgba(var(--tick-b-rgb), 0.35));
 }
-/* Tick itself is clickable (rings the alarm) once it has arrived. */
+/* Kairo itself is clickable (rings the alarm) once it has arrived. */
 .mascot.is-visible .mascot-hit {
   pointer-events: all;
   cursor: pointer;
@@ -1473,7 +1473,7 @@ html.has-cursor textarea {
   }
 }
 
-/* Acts: a lit timeline with glass milestone panels and a mini Tick walking along it.
+/* Acts: a lit timeline with glass milestone panels and a mini Kairo walking along it.
    --tl (0–1, on .acts) and --reveal (0–1, on each .act) are set by the particle scene as its
    particles draw the line and reach each dot. Unset (no effect) = everything fully visible. */
 .acts-wrap {
@@ -1644,7 +1644,7 @@ html.has-cursor textarea {
   content: '— ';
   color: var(--text-3);
 }
-/* Mini Tick walking along the line (positioned by TimelineTick.jsx). */
+/* Mini Kairo walking along the line (positioned by TimelineTick.jsx). */
 .tl-tick {
   position: absolute;
   top: 0;
@@ -1660,7 +1660,7 @@ html.has-cursor textarea {
   width: 100%;
   height: auto;
 }
-/* Sparkle ring where Tick pops out of the line (positioned and triggered by TimelineTick). */
+/* Sparkle ring where Kairo pops out of the line (positioned and triggered by TimelineTick). */
 .tl-burst {
   position: absolute;
   top: -20px;
@@ -2149,7 +2149,7 @@ html.has-cursor textarea {
 }
 
 /* ── Theme sweep ────────────────────────────────────────── */
-/* Clicking Tick switches the time of day: the new colours grow out of Tick as a circle
+/* Clicking Kairo switches the time of day: the new colours grow out of Kairo as a circle
    (theme.js animates the clip-path) instead of the default cross-fade. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -2157,7 +2157,7 @@ html.has-cursor textarea {
   mix-blend-mode: normal;
 }
 
-/* ── Time-of-day picker (opens above Tick when it is clicked) ── */
+/* ── Time-of-day picker (opens above Kairo when it is clicked) ── */
 .theme-picker {
   position: fixed;
   z-index: 60;

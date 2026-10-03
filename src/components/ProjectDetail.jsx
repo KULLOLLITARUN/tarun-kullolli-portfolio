@@ -12,9 +12,9 @@ function Section({ label, children, className = '' }) {
 }
 
 // Scroll up to the hero and put the question to the resume assistant (see Chat.jsx).
-function askTick(question) {
+function askKairo(question) {
   scrollToId('top')
-  window.dispatchEvent(new CustomEvent('ask-tick', { detail: question }))
+  window.dispatchEvent(new CustomEvent('ask-kairo', { detail: question }))
 }
 
 const Bullets =({ items }) => (
@@ -119,8 +119,8 @@ export default function ProjectDetail({ project: e, index, onClose }) {
             {kind === 'code' ? 'View code' : 'Live demo'} <span aria-hidden="true">↗</span>
           </a>
         ))}
-        <button type="button" className="btn pd-ask" onClick={() => askTick(`Tell me about ${e.title}`)}>
-          Ask Tick about this <span aria-hidden="true">↑</span>
+        <button type="button" className="btn pd-ask" onClick={() => askKairo(`Tell me about ${e.title}`)}>
+          Ask Kairo about this <span aria-hidden="true">↑</span>
         </button>
         <span className="pd-hint mono">Esc to close</span>
       </footer>

@@ -209,7 +209,7 @@ const INTENTS = [
   },
 ]
 
-export const GREETING = `Hi, I'm TK-01, ${first}'s resume assistant. Ask me about his experience, projects or skills.`
+export const GREETING = `Hi, I'm Kairo, ${first}'s resume assistant. Ask me about his experience, projects or skills.`
 export const STARTER_CHIPS = ['What does he do now?', 'What projects has he built?', 'What are his skills?']
 
 export function answer(question) {

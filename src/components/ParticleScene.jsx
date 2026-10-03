@@ -876,7 +876,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     u.uTl.value = tl.current
     // The real line and dots appear as the particles arrive (CSS reads --tl), and each act's
     // text fades in when the particles reach its dot (--reveal), in drawing order. All of it fades
-    // out again as the particles leave for the skill panels (sk from the previous frame); Tick
+    // out again as the particles leave for the skill panels (sk from the previous frame); Kairo
     // sinks back into the line with it.
     if (timeline) {
       const on = journey && count

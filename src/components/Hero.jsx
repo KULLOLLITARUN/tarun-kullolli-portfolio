@@ -18,7 +18,7 @@ function hasWebGL() {
 }
 
 // Phones and low-power devices skip the particle scene (seconds of main-thread work on a
-// mid-range phone) and start straight on the solid name, Tick and the chat.
+// mid-range phone) and start straight on the solid name, Kairo and the chat.
 function canRunParticles() {
   const nav = navigator
   if (window.matchMedia('(max-width: 640px)').matches) return false

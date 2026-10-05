@@ -68,6 +68,28 @@ export const THEMES = [
     shoe: [250, 204, 21],
     kicker: [252, 211, 77],
   },
+  {
+    // The only light theme, offered on phones only (see NARROW_QUERY). The page goes light; the glass
+    // cards, chat and menus stay dark panels (styles.css, "Day"), so these colours are the ones
+    // drawn straight on the light page: darker than the other themes to stay readable.
+    id: 'day',
+    name: 'Day',
+    narrowOnly: true,
+    light: true,
+    swatch: ['rgb(250, 250, 252)', 'rgb(56, 189, 248)'], // picker dot: light page + sky
+    accent: [180, 83, 9],
+    accentHi: [146, 64, 14],
+    accentPale: [217, 119, 6],
+    glass: [2, 132, 199],
+    glassSoft: [56, 130, 180],
+    glassHi: [14, 165, 233],
+    glassPale: [3, 105, 161],
+    glassDeep: [30, 58, 110],
+    tickA: [56, 189, 248], // Kairo keeps its usual colours
+    tickB: [29, 78, 216],
+    shoe: [245, 158, 11],
+    kicker: [29, 78, 216],
+  },
 ]
 
 const KEY = 'tk-theme'
@@ -75,12 +97,27 @@ const byId = (id) => THEMES.find((t) => t.id === id) || THEMES[0]
 const TOKENS = ['accent', 'accentHi', 'accentPale', 'glass', 'glassSoft', 'glassHi', 'glassPale', 'glassDeep', 'tickA', 'tickB', 'shoe', 'kicker']
 const cssName = (k) => `--${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}-rgb`
 
+// Phones: where the particle scene is skipped (Hero.jsx uses the same width) and Day is offered.
+export const NARROW_QUERY = '(max-width: 640px)'
+export function isNarrow() {
+  try {
+    return window.matchMedia(NARROW_QUERY).matches
+  } catch {
+    return false
+  }
+}
+// The themes this screen can use: Day only on phones.
+export const availableThemes = () => THEMES.filter((t) => !t.narrowOnly || isNarrow())
+
 // The theme on screen (read every frame by the particle scene).
 export const themeState = { id: THEMES[0].id, colors: THEMES[0] }
 
+// The remembered theme; Day falls back to Night on a screen wider than a phone (it stays
+// remembered for the next time the visitor is on a phone).
 export function storedTheme() {
   try {
-    return byId(localStorage.getItem(KEY)).id
+    const t = byId(localStorage.getItem(KEY))
+    return t.narrowOnly && !isNarrow() ? THEMES[0].id : t.id
   } catch {
     return THEMES[0].id
   }
@@ -92,6 +129,8 @@ export function applyTheme(id) {
   const root = document.documentElement
   for (const k of TOKENS) root.style.setProperty(cssName(k), t[k].join(', '))
   root.dataset.theme = t.id
+  // Browser chrome (address bar) follows the page colour; styles.css sets --bg for Day.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.light ? '#f5f6fa' : '#000000')
   themeState.id = t.id
   themeState.colors = t
 }
@@ -100,7 +139,7 @@ export function applyTheme(id) {
 // (CSS px; default: the middle of the screen) where the browser supports view transitions.
 export function setTheme(id, origin = { x: innerWidth / 2, y: innerHeight / 2 }) {
   const t = byId(id)
-  if (t.id === themeState.id) return t
+  if (t.id === themeState.id || (t.narrowOnly && !isNarrow())) return themeState.colors
   try {
     localStorage.setItem(KEY, t.id)
   } catch {

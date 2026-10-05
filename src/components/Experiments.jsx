@@ -9,7 +9,8 @@ const slugs = experiments.map(projectSlug)
 // #project/<slug> → index of that project, or null.
 function projectFromHash() {
   const m = window.location.hash.match(/^#project\/(.+)$/)
-  const i = m ? slugs.indexOf(decodeURIComponent(m[1])) : -1
+  const hash = m ? decodeURIComponent(m[1]) : null
+  const i = experiments.findIndex((e, k) => slugs[k] === hash || e.aliases?.includes(hash))
   return i >= 0 ? i : null
 }
 

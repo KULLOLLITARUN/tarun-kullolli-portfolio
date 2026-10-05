@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { profile } from './data.js'
-import { scrollToId, useReducedMotion, useSmoothScroll, useStoredFlag } from './hooks.js'
+import { scrollToId, useNarrow, useReducedMotion, useSmoothScroll, useStoredFlag } from './hooks.js'
 import Nav from './components/Nav.jsx'
 import Hero from './components/Hero.jsx'
 import Experiments from './components/Experiments.jsx'
@@ -13,9 +13,10 @@ import PrintResume from './components/PrintResume.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import Tour from './components/Tour.jsx'
 import Cursor from './components/Cursor.jsx'
-import { applyTheme, setTheme, storedTheme, THEMES } from './theme.js'
+import { applyTheme, availableThemes, setTheme, storedTheme } from './theme.js'
+import { recruiterFromSearch } from './urlFlags.js'
 
-const forceRecruiter = new URLSearchParams(window.location.search).has('recruiter') ? true : undefined
+const forceRecruiter = recruiterFromSearch(window.location.search)
 
 export default function App() {
   const [recruiter, setRecruiter] = useStoredFlag('recruiter-mode', forceRecruiter)
@@ -24,6 +25,7 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [printing, setPrinting] = useState(false)
   const toastTimer = useRef()
+  const narrow = useNarrow()
   useSmoothScroll(!useReducedMotion())
 
   useEffect(() => {
@@ -57,9 +59,11 @@ export default function App() {
   }, [])
 
   // Time-of-day themes (Kairo's alarm): recruiter mode stays on the plain Night colours.
+  // `narrow` is a dependency because the light Day theme is for phones only: widening the
+  // window puts Night back, narrowing it again restores Day.
   useEffect(() => {
     applyTheme(recruiter ? 'night' : storedTheme())
-  }, [recruiter])
+  }, [recruiter, narrow])
   useEffect(() => {
     const onTheme = (e) => notify(`Time of day: ${e.detail.name}`)
     window.addEventListener('theme-change', onTheme)
@@ -106,7 +110,7 @@ export default function App() {
         run: () => setRecruiter((r) => !r),
       },
       // Time-of-day colours (also picked by clicking Kairo); leaves recruiter mode, which stays plain.
-      ...THEMES.map((t) => ({
+      ...availableThemes().map((t) => ({
         id: `theme-${t.id}`,
         label: `Colours: ${t.name}`,
         hint: 'Time of day',
@@ -116,7 +120,8 @@ export default function App() {
         },
       })),
     ],
-    [goTo, copyEmail, startTour, recruiter, setRecruiter],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `narrow` re-reads availableThemes()
+    [goTo, copyEmail, startTour, recruiter, setRecruiter, narrow],
   )
 
   return (
@@ -150,7 +155,6 @@ export default function App() {
       )}
       <footer className="footer">
         <span>© 2026 {profile.name}</span>
-        <span className="mono">BUILT WITH REACT · THREE.JS · GLSL</span>
       </footer>
 
       {touring && !recruiter && <Tour onEnd={() => setTouring(false)} />}

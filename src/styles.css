@@ -8,6 +8,14 @@
   --text: #f4f4f5;
   --text-2: #a1a1aa;
   --text-3: #8b8b94; /* ≥ 5:1 on black */
+  /* Colours that flip with the light Day theme (see "Day" at the end of this file). */
+  --on-text: #000; /* text on a --text-coloured fill */
+  --on-amber: #000; /* text on an amber fill */
+  --chip-bg: rgba(0, 0, 0, 0.5);
+  --wash: rgba(255, 255, 255, 0.06); /* hover tint */
+  --nav-bg: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.55));
+  --name-ink: #f4f4f5; /* the hero name */
+  --nav-text: #d4d4d8; /* nav links and the small text at the top: brighter than --text-2 */
   /* Theme colours (Night). theme.js overrides these when Kairo switches the time of day. */
   --accent-rgb: 245, 181, 68;
   --accent-hi-rgb: 255, 200, 97;
@@ -106,7 +114,7 @@ kbd {
 }
 ::selection {
   background: var(--amber);
-  color: #000;
+  color: var(--on-amber);
 }
 :focus-visible {
   outline: 2px solid var(--focus);
@@ -145,7 +153,7 @@ kbd {
   z-index: 100;
   padding: var(--s-2) var(--s-4);
   background: var(--text);
-  color: #000;
+  color: var(--on-text);
   border-radius: var(--r-sm);
   transform: translateY(-200%);
 }
@@ -199,7 +207,7 @@ html.has-cursor textarea {
   padding: 1px 6px;
   border-radius: 3px;
   background: var(--amber);
-  color: #000;
+  color: var(--on-amber);
   font-family: var(--mono);
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -256,7 +264,7 @@ html.has-cursor textarea {
 }
 .btn:hover {
   border-color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--wash);
 }
 .btn:active {
   transform: translateY(1px);
@@ -264,7 +272,7 @@ html.has-cursor textarea {
 .btn-primary {
   background: var(--text);
   border-color: var(--text);
-  color: #000;
+  color: var(--on-text);
 }
 .btn-primary:hover {
   background: var(--amber);
@@ -278,7 +286,7 @@ html.has-cursor textarea {
   padding: 0 var(--s-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--chip-bg);
   font-family: var(--mono);
   font-size: var(--fs-xs);
   letter-spacing: 0.1em;
@@ -296,7 +304,7 @@ html.has-cursor textarea {
 }
 .chip-primary {
   background: var(--text);
-  color: #000;
+  color: var(--on-text);
   border-color: var(--text);
 }
 
@@ -311,18 +319,19 @@ html.has-cursor textarea {
   gap: var(--s-4);
   height: 72px;
   padding: 0 var(--gutter);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.55));
+  background: var(--nav-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
 .wordmark {
-  font-weight: 300;
+  text-transform: uppercase;
+  font-weight: 500;
   font-size: var(--fs-lg);
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-decoration: none;
   white-space: nowrap;
 }
-.wordmark span {
+.wordmark [aria-hidden] {
   color: var(--amber);
   margin: 0 0.15em;
 }
@@ -334,13 +343,14 @@ html.has-cursor textarea {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-pill);
   font-size: var(--fs-sm);
-  color: var(--text-2);
+  font-weight: 500;
+  color: var(--nav-text);
   text-decoration: none;
   transition: color var(--t-fast), background var(--t-fast);
 }
 .nav-links a:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--wash);
 }
 .nav-actions {
   display: flex;
@@ -371,13 +381,13 @@ html.has-cursor textarea {
 }
 .switch[aria-checked='true'] .switch-dot {
   transform: translateX(12px);
-  background: #000;
+  background: var(--on-amber);
 }
 /* Primary call to action: the only amber-filled control in the nav. */
 .chip-cta {
   background: var(--amber);
   border-color: var(--amber);
-  color: #000;
+  color: var(--on-amber);
   font-weight: 600;
   box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.35);
 }
@@ -425,6 +435,35 @@ html.has-cursor textarea {
     display: none;
   }
 }
+/* Small phones (360px is common): tighten the top bar so the Resume button is never cut off. */
+@media (max-width: 420px) {
+  .nav {
+    gap: var(--s-2);
+  }
+  .wordmark {
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+  }
+  .nav-actions {
+    gap: 6px;
+  }
+  .nav-actions .chip {
+    padding: 0 6px;
+    letter-spacing: 0.04em;
+  }
+}
+/* Very narrow phones: the switch alone (still named "Recruiter" for screen readers). */
+@media (max-width: 340px) {
+  .nav-label-xs {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
 
 /* ── Hero ───────────────────────────────────────────────── */
 .hero {
@@ -453,7 +492,8 @@ html.has-cursor textarea {
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  color: var(--text-2);
+  color: var(--nav-text);
+  letter-spacing: 0.08em;
 }
 .pulse {
   display: inline-block;
@@ -515,7 +555,7 @@ html.has-cursor textarea {
 }
 .hero-name.is-resolved {
   opacity: 1;
-  background: linear-gradient(100deg, #f4f4f5 42%, rgb(var(--accent-pale-rgb)) 50%, #f4f4f5 58%) 0 0 / 260% 100%;
+  background: linear-gradient(100deg, var(--name-ink) 42%, rgb(var(--accent-pale-rgb)) 50%, var(--name-ink) 58%) 0 0 / 260% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -541,7 +581,8 @@ html.has-cursor textarea {
   text-wrap: balance;
   font-size: var(--fs-xs);
   line-height: 2;
-  color: var(--text-2);
+  letter-spacing: 0.08em;
+  color: var(--nav-text);
 }
 .word {
   display: inline-block;
@@ -583,7 +624,7 @@ html.has-cursor textarea {
   border: 0;
   background: none;
   font-size: var(--fs-xs);
-  color: var(--text-2);
+  color: var(--nav-text);
   cursor: pointer;
   transition: color var(--t-fast);
 }
@@ -863,7 +904,7 @@ html.has-cursor textarea {
   border: 0;
   border-radius: var(--r-sm);
   background: var(--text);
-  color: #000;
+  color: var(--on-text);
   font-size: var(--fs-lg);
   cursor: pointer;
   transition: background var(--t-fast);
@@ -1309,19 +1350,9 @@ html.has-cursor textarea {
   align-items: center;
   gap: var(--s-3);
 }
-.pd-back {
-  padding: var(--s-2) var(--s-1);
-  border: 0;
-  background: none;
-  font-size: var(--fs-xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(var(--ice), 0.8);
-  cursor: pointer;
-  transition: color var(--t-fast);
-}
-.pd-back:hover {
-  color: #fff;
+/* The close button sits over the top-right corner: keep the EXP line clear of it. */
+.pd-head .holo-top {
+  padding-right: 52px;
 }
 .pd-close {
   display: grid;
@@ -1423,7 +1454,7 @@ html.has-cursor textarea {
 .pd-foot .pd-live {
   background: var(--amber);
   border-color: var(--amber);
-  color: #000;
+  color: var(--on-amber);
 }
 .pd-foot .pd-live:hover {
   background: rgb(var(--accent-hi-rgb));
@@ -1440,9 +1471,6 @@ html.has-cursor textarea {
   }
   .pd-actions {
     top: -10px;
-  }
-  .pd-back {
-    display: none;
   }
   .pd-head h3 {
     padding-right: 48px;
@@ -2319,4 +2347,75 @@ html.has-cursor textarea {
   .theme-picker {
     animation: none;
   }
+}
+
+/* ── Day: the light theme (phones only, see theme.js) ───────
+   The page itself goes light. The glass cards, chat, command menu, tour, toast and theme
+   picker stay dark "islands": they redeclare the Night tokens, so everything inside them
+   (pale text, glass edges, glows) keeps working unchanged. */
+:root[data-theme='day'] {
+  --bg: #f5f6fa;
+  --surface: #fff;
+  --surface-2: #fff;
+  --line: rgba(15, 23, 42, 0.12);
+  --line-strong: rgba(15, 23, 42, 0.3);
+  --text: #0f172a;
+  --text-2: #475569; /* ≥ 7:1 on --bg */
+  --text-3: #5b6577; /* ≥ 5:1 on --bg */
+  --on-text: #f5f6fa;
+  --on-amber: #fff; /* Day's amber is dark enough for white text, not for black */
+  --chip-bg: rgba(255, 255, 255, 0.75);
+  --wash: rgba(15, 23, 42, 0.06);
+  --nav-bg: linear-gradient(to bottom, rgba(245, 246, 250, 0.94), rgba(245, 246, 250, 0.78));
+  --name-ink: #0f172a;
+  --nav-text: #334155;
+  color-scheme: light;
+}
+:root[data-theme='day'] :is(.holo, .act-panel, .glass-panel, .chat, .tour, .palette, .toast span, .theme-picker) {
+  --bg: #000;
+  --surface: #050506;
+  --surface-2: #0c0c0e;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.24);
+  --text: #f4f4f5;
+  --text-2: #a1a1aa;
+  --text-3: #8b8b94;
+  --on-text: #000;
+  --on-amber: #000;
+  --chip-bg: rgba(0, 0, 0, 0.5);
+  --wash: rgba(255, 255, 255, 0.06);
+  --accent-rgb: 245, 181, 68;
+  --accent-hi-rgb: 255, 200, 97;
+  --accent-pale-rgb: 255, 244, 214;
+  --glass-rgb: 125, 211, 252;
+  --glass-soft-rgb: 186, 230, 253;
+  --glass-hi-rgb: 165, 243, 252;
+  --glass-pale-rgb: 224, 242, 254;
+  --glass-deep-rgb: 30, 58, 110;
+  --amber: rgb(var(--accent-rgb));
+  --blue: rgb(96, 165, 250);
+  --focus: var(--amber);
+  color: var(--text);
+  color-scheme: dark;
+}
+/* Dark glass needs an opaque-ish tint: there are no stars behind it to blur on a light page. */
+:root[data-theme='day'] .holo {
+  background: linear-gradient(180deg, rgba(16, 30, 58, 0.96), rgba(10, 20, 42, 0.92));
+}
+:root[data-theme='day'] :is(.act-panel, .glass-panel) {
+  background: linear-gradient(180deg, rgba(18, 32, 62, 0.95), rgba(11, 21, 44, 0.92));
+}
+:root[data-theme='day'] .tour {
+  background: rgba(10, 10, 12, 0.97);
+}
+:root[data-theme='day'] .chat {
+  background: rgba(8, 14, 28, 0.95);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.3);
+}
+/* The dark scrim behind the name is for the particles and the star field; neither is on a light page. */
+:root[data-theme='day'] .hero-left::before {
+  display: none;
+}
+:root[data-theme='day'] .hero-name.is-resolved {
+  filter: none;
 }

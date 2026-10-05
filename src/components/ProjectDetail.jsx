@@ -60,9 +60,6 @@ export default function ProjectDetail({ project: e, index, onClose }) {
           ))}
         </p>
         <div className="pd-actions">
-          <button type="button" className="pd-back mono" onClick={onClose}>
-            <span aria-hidden="true">←</span> Back
-          </button>
           <button type="button" className="pd-close" onClick={onClose} aria-label="Close project">
             <span aria-hidden="true">✕</span>
           </button>

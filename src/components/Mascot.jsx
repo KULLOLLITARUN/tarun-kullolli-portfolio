@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
-import { setTheme, themeState, THEMES } from '../theme.js'
+import { availableThemes, setTheme, themeState } from '../theme.js'
 
 // "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
 // Eyes follow the cursor, it blinks, waves, talks with the chat, and its
@@ -103,13 +103,13 @@ function ThemePicker({ at, onClose }) {
     <div ref={box} className="theme-picker" role="group" aria-label="Time of day colours" style={{ left: at.x, top: at.y }}>
       <span className="theme-picker-label mono">Time of day</span>
       <div className="theme-picker-row">
-        {THEMES.map((t) => (
+        {availableThemes().map((t) => (
           <button
             key={t.id}
             type="button"
             className="theme-swatch"
             aria-pressed={themeState.id === t.id}
-            style={{ '--a': `rgb(${t.tickA})`, '--b': `rgb(${t.accent})` }}
+            style={{ '--a': t.swatch?.[0] ?? `rgb(${t.tickA})`, '--b': t.swatch?.[1] ?? `rgb(${t.accent})` }}
             onClick={(e) => {
               const b = e.currentTarget.getBoundingClientRect()
               setTheme(t.id, { x: b.left + b.width / 2, y: b.top + b.height / 2 })

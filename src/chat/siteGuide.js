@@ -3,7 +3,8 @@
 // Keep it in step with the site when a section or feature changes.
 import { THEMES } from '../theme.js'
 
-const themeNames = THEMES.map((t) => t.name).join(', ')
+const themeNames = THEMES.filter((t) => !t.narrowOnly).map((t) => t.name).join(', ')
+const phoneThemes = THEMES.filter((t) => t.narrowOnly).map((t) => t.name)
 
 export const SITE_GUIDE = [
   'Top of the page: Tarun’s name, Kairo (the alarm-clock mascot) and this chat. “Take the 60-second tour” scrolls through the whole page for you (Back, Pause, Next; Esc ends it).',
@@ -13,6 +14,6 @@ export const SITE_GUIDE = [
   'Contact: email (with a copy button), phone, LinkedIn, GitHub and the resume PDF.',
   'Recruiter mode (switch in the top bar): a plain one-page version of his resume, without animations.',
   'Command menu: press Ctrl+K (Cmd+K on a Mac) or the ⌘ button to jump to a section, copy his email, download the resume, start the tour or change colours.',
-  `Colours: click Kairo to ring its alarm and pick a time of day (${themeNames}).`,
+  `Colours: click Kairo to ring its alarm and pick a time of day (${themeNames}). On a phone there is also a light theme (${phoneThemes.join(', ')}).`,
   'Kairo’s clock hands show your local time. It dozes off when left alone and gets grumpy at off-topic questions.',
 ]

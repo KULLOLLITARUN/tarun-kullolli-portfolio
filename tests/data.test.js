@@ -29,6 +29,11 @@ describe('projects', () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
+  it('keeps old share links (aliases) from clashing with any current link', () => {
+    const all = [...experiments.map(projectSlug), ...experiments.flatMap((e) => e.aliases || [])]
+    expect(new Set(all).size).toBe(all.length)
+  })
+
   it.each(experiments.filter((e) => e.shots).map((e) => [e.title, e]))('%s screenshots exist in public/', (_, e) => {
     for (const s of e.shots) {
       expect(existsSync(`public${s.src}`), s.src).toBe(true)

@@ -8,7 +8,7 @@ Personal portfolio of **Tarun Kullolli, AI Engineer**: projects, career and skil
 
 ## Features
 
-- **Particle hero.** A Three.js particle field draws the name, then hands over to the solid text. Phones and low-power devices skip it and get the solid name straight away.
+- **Particle hero.** A particle field draws the name, then hands over to the solid text. Phones and low-power devices skip it and get the solid name straight away.
 - **Kairo, the resume assistant.** An alarm-clock mascot with a chat:
   - Answers stream in from an LLM on Groq. The system prompt is generated from the site's own data, so it can't drift from the page.
   - If the live model is unavailable, an offline intent engine answers from the same data.
@@ -18,17 +18,9 @@ Personal portfolio of **Tarun Kullolli, AI Engineer**: projects, career and skil
 - **Recruiter mode.** A plain one-page version of the resume with no animations. Open it with the switch in the top bar or with `?recruiter` in the URL.
 - **Printable resume.** Printing (Ctrl+P) produces a conventional one-page resume, whichever view is open.
 - **Command menu.** Ctrl+K (Cmd+K on a Mac) to jump to sections, copy the email, download the resume, start the tour or change colours.
-- **Time-of-day themes.** Click Kairo to pick Night, Dawn, Aurora or Solar.
+- **Time-of-day themes.** Click Kairo to pick Night, Dawn, Aurora or Solar. On phones there is also a light Day theme.
 - **Guided tour.** "Take the 60-second tour" scrolls through every section.
 - **Optional anonymous question log.** Visitors' questions to Kairo can be logged (question and time only, no IP) to see what people ask. The chat shows a notice only when logging is switched on.
-
-## Tech stack
-
-- React 19 and Vite
-- Three.js via React Three Fiber, anime.js, Lenis smooth scrolling
-- Groq API (`openai/gpt-oss-120b` by default), called from a serverless function so the key stays on the server
-- Upstash Redis (optional) for the question log
-- Deployed on Vercel. Fonts (Geist, Geist Mono) are self-hosted.
 
 ## Running locally
 

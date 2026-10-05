@@ -10,8 +10,9 @@ const LINKS = [
 export default function Nav({ recruiter, onToggleRecruiter, onPalette }) {
   return (
     <header className="nav">
-      <a href="#top" className="wordmark" aria-label="Tarun Kullolli, back to top">
-        TARUN<span aria-hidden="true">·</span>KULLOLLI
+      <a href="#top" className="wordmark">
+        Tarun<span aria-hidden="true">·</span>
+        <span className="sr-only"> </span>Kullolli<span className="sr-only">, back to top</span>
       </a>
 
       {!recruiter && (
@@ -29,7 +30,8 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette }) {
           <span className="switch-track" aria-hidden="true">
             <span className="switch-dot" />
           </span>
-          Recruiter<span className="hide-sm">&nbsp;mode</span>
+          <span className="nav-label-xs">Recruiter</span>
+          <span className="hide-sm">&nbsp;mode</span>
         </button>
         <a className="chip chip-cta" href={profile.resume} download="Tarun-Kullolli-Resume.pdf">
           Resume <span aria-hidden="true">↓</span>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
+import { isNarrow, NARROW_QUERY } from './theme.js'
 
 // Boolean flag persisted in localStorage (storage failures are ignored).
 export function useStoredFlag(key, initial) {
@@ -32,6 +33,18 @@ export function useReducedMotion() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
   return reduce
+}
+
+// True on phone-width screens (theme.js NARROW_QUERY); updates when the window is resized.
+export function useNarrow() {
+  const [narrow, setNarrow] = useState(isNarrow)
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY)
+    const onChange = () => setNarrow(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return narrow
 }
 
 const NAV_OFFSET = -72

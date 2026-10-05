@@ -38,6 +38,7 @@ export const profile = {
 //   shots: [{ src: '/projects/x.webp', width: 1600, height: 726, alt: 'What it shows', caption: 'Optional' }],
 //          (real screenshots in /public/projects, shown at the top of the detailed card)
 // Each project gets a shareable link: #project/<title-in-lowercase-with-dashes>.
+// Optional: slug: '...' overrides that, aliases: ['old-slug'] keeps links from an earlier name working.
 export const experiments = [
   {
     code: 'RAG',
@@ -52,18 +53,21 @@ export const experiments = [
     approach: [
       'Hybrid retrieval: BM25 and dense sentence-transformer embeddings fused with reciprocal rank fusion, then cross-encoder reranking',
       'A score gate replies "Not found in the document" without calling the LLM, and a semantic cache (cosine ≥ 0.97) skips the LLM for repeat questions',
-      'A router sends simple queries to a fast model (Llama 3.1 8B) and complex ones to a strong model (Llama 3.3 70B) on Groq',
+      'A router sends simple queries to a fast model (gpt-oss-20b) and complex ones to a strong model (gpt-oss-120b) on Groq',
       'Deterministic reflection (overlap, number grounding, contradiction check, zero LLM calls) classifies failures; a healer rewrites the query, widens retrieval or tightens the prompt and retries',
-      'Prompt-injection screening on queries and document content, plus multi-hop questions split into sub-questions',
+      'Prompt-injection screening on queries and document content',
+      'Multi-hop questions are split into sub-questions; a later step is rewritten from the real answer of an earlier one, and steps whose prerequisite failed are skipped with an explicit reason',
+      'Scanned PDFs are read with OCR (RapidOCR) as a background job that survives a crash: a lease per job lets another worker take it over',
+      'Documents, chunks and chat sessions live in Postgres; several workers stay in sync through a version counter',
     ],
     result: 'Answers only from your documents, with self-healing retries',
     results: [
-      '156 tests (unit, HTTP integration and Postgres) run in CI on every push, with every LLM call mocked',
-      'Offline retrieval-quality evaluation harness with golden queries',
+      '523 tests (unit, HTTP integration and Postgres) run in CI on every push, with every LLM call mocked',
+      'Offline retrieval-quality evaluation harness with golden queries, plus an end-to-end answer-quality eval against Groq',
       'Ingests .txt, .pdf, .docx, .md, .csv and .html; tables are kept as structured rows',
       'Answers stream over SSE with source citations',
     ],
-    metric: { value: '156', label: 'Tests in CI · LLM calls mocked' },
+    metric: { value: '523', label: 'Tests in CI · LLM calls mocked' },
     architecture: ['Rewrite', 'Retrieve', 'Rerank', 'Generate', 'Reflect', 'Heal'],
     shots: [
       {
@@ -75,7 +79,7 @@ export const experiments = [
       },
     ],
     stack: ['Python', 'FastAPI', 'PostgreSQL', 'Groq', 'sentence-transformers', 'React'],
-    keywords: ['archiva', 'rag', 'retrieval', 'documents', 'document q&a'],
+    keywords: ['archiva', 'rag', 'retrieval', 'documents', 'document q&a', 'ocr'],
     links: {
       code: 'https://github.com/KULLOLLITARUN/Archiva',
     },
@@ -124,43 +128,68 @@ export const experiments = [
   },
   {
     code: 'AGENT',
-    title: 'Agentic Web Scraper',
-    subtitle: 'Plain-English web extraction with a self-healing LLM pipeline',
+    title: 'Markpull',
+    slug: 'markpull',
+    aliases: ['agentic-web-scraper'], // the old share link keeps working
+    subtitle: 'Plain-English web extraction, with every record marked on the page',
     year: '2026',
     role: 'Solo build · AI-assisted',
     description:
-      'Autonomous, self-healing web extraction system: describe the data you want in plain English and get validated, structured JSON from static sites and dynamic React apps, with no CSS selectors.',
+      'Point it at a web page, say what you want in plain words, and get clean structured data back. It shows a picture of the page with every record it found marked and numbered, and exports cards, a table, JSON, CSV or Excel.',
     problem:
       'Traditional scrapers rely on rigid CSS selectors and XPath, so they break as soon as a site changes its design, obfuscates its class names or moves to a client-side React or Next.js app.',
     approach: [
-      'The data to extract is described in plain English instead of CSS selectors',
-      'A headless Playwright browser renders client-side JavaScript and scrolls to load lazy content',
-      'An HTML distiller strips noisy structural tags so the LLM receives 85–97% less input',
-      'A Groq-hosted Qwen model identifies entities by meaning rather than by class names',
-      'A Pydantic validator checks schema and types; on failure it feeds the exact error back to the model to self-correct, up to a set number of retries',
+      'The data to extract is described in plain words, or as typed fields such as price (number) or in_stock (yes/no); typed values are checked and wrong ones are asked for again',
+      'A Playwright Chromium browser renders the page, dismisses cookie banners, scrolls for lazy content and presses "Load more" buttons; "next page" links are followed for up to 10 pages',
+      'The Distiller turns the HTML into plain text (scripts, navigation, footers and SVG removed); long text is read in overlapping parts and merged, and the rest of the page is read again if a list was cut short',
+      'An LLM on Groq (gpt-oss-120b, with smaller backups) extracts the records as JSON; the Validator repairs it and sends the exact problems back to the model, up to 3 attempts',
+      'Locate matches each record to a repeated block on the page, so every record is marked and numbered on a screenshot and gets an "open ↗" link taken from the page itself, not guessed by the model',
     ],
-    result: '85–97% smaller pages before the LLM, in under 8ms',
+    result: '30 of 30 Hacker News stories, each marked on the page',
     results: [
-      'Quotes to Scrape: 10 quotes extracted, 0 retries, 85% compression',
-      'Y Combinator job directory: 30 jobs extracted in a single pass',
-      'Apple: 6 phone models extracted with ₹ prices',
-      'Groq inference in 1–2 seconds after distillation',
+      'Books to Scrape: 20 of 20 books, each marked on the page with its own book link',
+      'Hacker News: 30 of 30 stories, and every "open ↗" matches the story’s link',
+      'A "Load more" page (scrapingcourse.com): 48 products after 3 presses, against 12 without',
+      'Naukri job search, a JavaScript app with cookie banners: a full page of jobs, with a mark on each job card',
+      'Honest about gaps: notes say when text was cut off, a backup model answered, or a page returned far fewer records than the others',
     ],
-    metric: { value: '85–97%', label: 'Less HTML sent to the LLM' },
-    architecture: ['Fetch', 'Distill', 'Infer', 'Validate', 'Output'],
-    shots: [
-      {
-        src: '/projects/agentic-web-scraper.webp',
-        width: 1600,
-        height: 724,
-        alt: 'Web Scraper app: a page URL, the fields to extract described in plain English, retry and scroll options, and the fetch, clean, extract and validate pipeline',
-        caption: 'Describe the fields in plain English; the page is fetched, cleaned, extracted and validated into JSON.',
-      },
-    ],
-    stack: ['Python', 'Playwright', 'Groq', 'Pydantic', 'FastAPI', 'React'],
-    keywords: ['scraper', 'web scraper', 'scraping', 'agentic'],
+    metric: { value: '30/30', label: 'Hacker News stories · every link matches' },
+    architecture: ['Navigate', 'Distill', 'Extract', 'Validate', 'Locate'],
+    stack: ['Python', 'FastAPI', 'Playwright', 'Groq', 'React'],
+    keywords: ['markpull', 'scraper', 'web scraper', 'scraping', 'agentic', 'agentic web scraper'],
     links: {
       code: 'https://github.com/KULLOLLITARUN/Agentic-Web-Scraper',
+    },
+  },
+  {
+    code: 'IMPACT',
+    title: 'AI Impact',
+    subtitle: 'Change-impact and test-gap analysis for Python',
+    year: '2026',
+    description:
+      'Analyzes the statically discoverable blast radius of a Python code change, finds likely test gaps and, optionally, uses an LLM to explain the findings in plain language. The deterministic core needs no API key, and every number in a report traces back to the diff and the repo’s own call graph.',
+    problem:
+      'A code change reaches beyond the lines in the diff: it affects callers, and it may or may not be exercised by any test.',
+    approach: [
+      'Pipeline: git diff, AST, static approximate call graph, backward blast-radius walk, test-coverage mapping, deterministic risk score, report',
+      'For each changed function it reports whether the signature changed and which callers are affected, tiered by distance: a direct caller is HIGH, two hops MEDIUM, three hops LOW',
+      'The core engine has no third-party dependencies (Python 3.10+ and git), and it never invents a caller, a risk level or a dollar figure',
+      'CLI with exit codes for CI gating (0 none or LOW, 1 MEDIUM, 2 HIGH, 3 analysis error), and an MCP server that exposes four tools to agentic IDEs',
+      'Optional explanation with Gemini or Groq: the model only sees the already-computed evidence and cannot change a risk label or invent a caller; with no key, the evidence is still printed',
+    ],
+    result: 'Blast radius and test gaps, with the evidence behind every risk label',
+    results: [
+      '14 of 14 automated tests pass (fixture-driven, no network calls)',
+      'Checked end to end against live Gemini and Groq calls, producing correctly grounded explanations',
+      'Core engine, CLI, MCP server and AI explanation are implemented; an editor UI is planned, not started',
+      'States its limits up front: static analysis rather than proof, a static approximation of test mapping, single repo only',
+    ],
+    metric: { value: '14/14', label: 'Tests passing · no network calls' },
+    architecture: ['Diff', 'AST', 'Call graph', 'Blast radius', 'Test map', 'Risk score'],
+    stack: ['Python', 'MCP', 'Gemini', 'Groq'],
+    keywords: ['ai-impact', 'ai impact', 'impact', 'blast radius', 'test gap', 'change impact'],
+    links: {
+      code: 'https://github.com/KULLOLLITARUN/ai-impact',
     },
   },
 ]

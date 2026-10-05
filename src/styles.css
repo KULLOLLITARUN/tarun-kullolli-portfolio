@@ -927,7 +927,7 @@ html.has-cursor textarea {
 /* ── Hero: narrow screens stack name → face → chat ──────── */
 @media (max-width: 899px) {
   .hero {
-    min-height: max(100svh, 760px);
+    min-height: max(100svh, 780px);
   }
   .hud {
     display: none;
@@ -937,19 +937,33 @@ html.has-cursor textarea {
     width: 100%;
     align-items: center;
     text-align: center;
+    gap: var(--s-3);
   }
-  .hero-left > :not(.hero-name) {
+  /* The name, the role and the one-line pitch stay; the links (scroll cue, tour) are hidden. */
+  .hero-left > :not(.hero-name, .hero-role, .hero-quote) {
     display: none;
   }
   .hero-name {
+    margin-bottom: 0;
     font-size: 12vw;
   }
+  .hero-role {
+    font-size: var(--fs-md);
+    letter-spacing: 0.4em;
+    margin-right: -0.4em; /* the last letter's trailing space would push the centred text off-centre */
+  }
+  .hero-quote {
+    max-width: 34ch;
+    line-height: 1.8;
+  }
+  /* Kairo and the chat sit lower than on desktop to make room for the role and pitch above. */
   .mascot {
     left: 50%;
-    height: 26%;
+    bottom: 37.5%;
+    height: 27%;
   }
   .hero-right {
-    top: 52%;
+    top: 62.5%;
     width: 100%;
     bottom: var(--s-4);
     padding: 0 var(--s-4);

@@ -13,7 +13,7 @@ import PrintResume from './components/PrintResume.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import Tour from './components/Tour.jsx'
 import Cursor from './components/Cursor.jsx'
-import { applyTheme, availableThemes, setTheme, storedTheme } from './theme.js'
+import { applyTheme, availableThemes, recruiterTheme, setTheme, storedTheme } from './theme.js'
 import { recruiterFromSearch } from './urlFlags.js'
 
 const forceRecruiter = recruiterFromSearch(window.location.search)
@@ -58,11 +58,12 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(''), 2400)
   }, [])
 
-  // Time-of-day themes (Kairo's alarm): recruiter mode stays on the plain Night colours.
+  // Time-of-day themes (Kairo's alarm): recruiter mode stays on the plain Night colours, except
+  // that a chosen light theme (Day) carries over.
   // `narrow` is a dependency because the light Day theme is for phones only: widening the
   // window puts Night back, narrowing it again restores Day.
   useEffect(() => {
-    applyTheme(recruiter ? 'night' : storedTheme())
+    applyTheme(recruiter ? recruiterTheme() : storedTheme())
   }, [recruiter, narrow])
   useEffect(() => {
     const onTheme = (e) => notify(`Time of day: ${e.detail.name}`)

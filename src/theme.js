@@ -1,7 +1,7 @@
 // Time-of-day colour themes. Clicking Kairo rings its alarm and opens a picker (Mascot.jsx);
 // the Ctrl+K palette lists them too. Each theme sets the CSS colour tokens (styles.css reads them as `rgb(var(--x-rgb))`)
 // and the particle scene eases its colours toward `themeState.colors`.
-// Recruiter mode always uses Night.
+// Recruiter mode uses plain Night, except that a chosen light theme (Day) carries over.
 
 export const THEMES = [
   {
@@ -121,6 +121,13 @@ export function storedTheme() {
   } catch {
     return THEMES[0].id
   }
+}
+
+// The theme for recruiter mode: plain Night, unless the visitor picked a light theme, which
+// they chose for readability and would not want flipped back to black.
+export function recruiterTheme() {
+  const id = storedTheme()
+  return byId(id).light ? id : THEMES[0].id
 }
 
 // Puts a theme on screen (no animation, not remembered).

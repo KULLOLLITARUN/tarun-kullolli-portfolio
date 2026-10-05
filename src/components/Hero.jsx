@@ -58,7 +58,10 @@ function useFontsReady() {
 
 function SplitText({ text }) {
   return (
-    <span aria-label={text}>
+    <span>
+      {/* The letters below are split into spans for the animation, so a screen reader gets the
+          whole text from here instead. */}
+      <span className="sr-only">{text}</span>
       {text.split(' ').map((word, w) => (
         <span className="word" aria-hidden="true" key={w}>
           {[...word].map((ch, i) => (

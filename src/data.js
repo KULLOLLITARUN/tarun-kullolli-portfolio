@@ -51,14 +51,11 @@ export const experiments = [
     problem:
       'Document Q&A has to answer strictly from the loaded documents, and say so when the answer is not there, instead of returning a weak or ungrounded answer.',
     approach: [
-      'Hybrid retrieval: BM25 and dense sentence-transformer embeddings fused with reciprocal rank fusion, then cross-encoder reranking',
-      'A score gate replies "Not found in the document" without calling the LLM, and a semantic cache (cosine ≥ 0.97) skips the LLM for repeat questions',
-      'A router sends simple queries to a fast model (gpt-oss-20b) and complex ones to a strong model (gpt-oss-120b) on Groq',
-      'Deterministic reflection (overlap, number grounding, contradiction check, zero LLM calls) classifies failures; a healer rewrites the query, widens retrieval or tightens the prompt and retries',
-      'Prompt-injection screening on queries and document content',
-      'Multi-hop questions are split into sub-questions; a later step is rewritten from the real answer of an earlier one, and steps whose prerequisite failed are skipped with an explicit reason',
-      'Scanned PDFs are read with OCR (RapidOCR) as a background job that survives a crash: a lease per job lets another worker take it over',
-      'Documents, chunks and chat sessions live in Postgres; several workers stay in sync through a version counter',
+      'Hybrid search: keyword (BM25) and meaning-based (dense embeddings) results are merged with reciprocal rank fusion, then a cross-encoder re-ranks them',
+      'If no passage scores well enough, it answers "Not found in the document" without calling the LLM, and a semantic cache (cosine ≥ 0.97) skips the LLM for repeat questions',
+      'Self-healing: deterministic checks (overlap, number grounding, contradictions, zero LLM calls) classify a failure, then a healer rewrites the query, widens retrieval or tightens the prompt and retries',
+      'A router sends simple questions to a fast model (gpt-oss-20b) and complex ones to a strong model (gpt-oss-120b) on Groq',
+      'Also: multi-hop questions split into sub-questions, prompt-injection screening, scanned PDFs read with OCR as crash-safe background jobs, and Postgres storage shared by several workers',
     ],
     result: 'Answers only from your documents, with self-healing retries',
     results: [
@@ -139,11 +136,11 @@ export const experiments = [
     problem:
       'Traditional scrapers rely on rigid CSS selectors and XPath, so they break as soon as a site changes its design, obfuscates its class names or moves to a client-side React or Next.js app.',
     approach: [
-      'The data to extract is described in plain words, or as typed fields such as price (number) or in_stock (yes/no); typed values are checked and wrong ones are asked for again',
-      'A Playwright Chromium browser renders the page, dismisses cookie banners, scrolls for lazy content and presses "Load more" buttons; "next page" links are followed for up to 10 pages',
-      'The Distiller turns the HTML into plain text (scripts, navigation, footers and SVG removed); long text is read in overlapping parts and merged, and the rest of the page is read again if a list was cut short',
+      'You describe the data in plain words, or as typed fields such as price (number) or in_stock (yes/no); values of the wrong type are asked for again',
+      'A Playwright Chromium browser renders the page, dismisses cookie banners, scrolls for lazy content, presses "Load more" and follows "next page" links for up to 10 pages',
+      'The Distiller turns the HTML into plain text; long text is read in overlapping parts and merged, and the rest of the page is read again if a list was cut short',
       'An LLM on Groq (gpt-oss-120b, with smaller backups) extracts the records as JSON; the Validator repairs it and sends the exact problems back to the model, up to 3 attempts',
-      'Locate matches each record to a repeated block on the page, so every record is marked and numbered on a screenshot and gets an "open ↗" link taken from the page itself, not guessed by the model',
+      'Locate matches each record to a repeated block on the page, so every record is marked and numbered on a screenshot with an "open ↗" link taken from the page, not guessed by the model',
     ],
     result: '30 of 30 Hacker News stories, each marked on the page',
     results: [

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
+import { IDLE, moodForHour } from '../kairoMoods.js'
 import { availableThemes, setTheme, themeState } from '../theme.js'
 
 // "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
@@ -28,6 +29,7 @@ const INK = '#0b1324'
 const POSE = {
   leftHip: [66, 200, 30, 206, 26, 238, 50, 256, 56, 258, -130],
   leftChin: [70, 206, 44, 250, 80, 292, 121, 276, 126, 262, 18],
+  leftUp: [64, 168, 30, 158, 20, 128, 28, 98, 28, 86, -8],
   rightWave: [256, 168, 290, 158, 300, 128, 292, 98, 292, 86, 8],
   rightHip: [254, 200, 290, 206, 294, 238, 270, 256, 264, 258, 130],
 }
@@ -179,6 +181,10 @@ export default function Mascot({ visible }) {
     const moodW = [0, 0, 0, 0] // smoothed weight of each mood level (0 calm … 3 grumpy)
     let hipR = 0 // right hand on the hip (annoyed / grumpy)
     let seenRelief = faceState.relief
+    let idleKind = null // the time-of-day bit in progress (see kairoMoods.js)
+    let idleStart = -1
+    let nextIdle = performance.now() + 20000
+    let idleV = 0 // smoothed 0..1 strength of that bit
 
     const wake = () => {
       // Waking up: a quick blink as the eyes open.
@@ -240,6 +246,24 @@ export default function Mascot({ visible }) {
 
       think = smooth(think, faceState.thinking ? 1 : 0, dt, 8)
 
+      // Time-of-day bits: now and then, only while calm (not busy, in a mood, dozing or waving).
+      const calm = visible && !reduce && !busy && faceState.mood === 0 && sleep < 0.1 && waveStart < 0
+      if (idleStart < 0 && calm && now > nextIdle) {
+        idleKind = moodForHour(new Date().getHours())
+        if (idleKind) idleStart = now
+        nextIdle = now + (idleKind ? IDLE[idleKind].every * (0.75 + Math.random() * 0.5) : 60000)
+      }
+      let idleEnv = 0
+      if (idleStart >= 0) {
+        const k = (now - idleStart) / IDLE[idleKind].dur
+        if (k >= 1 || !calm) idleStart = -1
+        else idleEnv = Math.sin(k * Math.PI) ** 0.7
+      }
+      idleV = smooth(idleV, idleEnv, dt, 10)
+      const yawn = idleKind === 'late' ? idleV : 0
+      const stretch = idleKind === 'morning' ? idleV : 0
+      const wrist = idleKind === 'lunch' ? idleV : 0
+
       // Eyes: look toward the cursor (in screen space), glance up while thinking, read along
       // while talking, and look down after the particles while the page scrolls.
       let tx = Math.sin(t * 0.5) * 0.4
@@ -253,6 +277,9 @@ export default function Mascot({ visible }) {
       } else if (now < glanceUntil) {
         tx = -0.25
         ty = 1
+      } else if (wrist > 0.05) {
+        tx = -0.6
+        ty = 0.9
       } else if (sleep > 0.5) {
         tx = 0
         ty = 0.4
@@ -281,7 +308,7 @@ export default function Mascot({ visible }) {
         } else lid = 1 - Math.sin(k * Math.PI) * 0.92
       }
       // Dozing closes the eyes; a grumpy glare narrows them.
-      lid = Math.min(lid, 1 - sleep * 0.92, 1 - w3 * 0.3)
+      lid = Math.min(lid, 1 - sleep * 0.92, 1 - w3 * 0.3, 1 - yawn * 0.7, 1 - stretch * 0.6)
       EYES.forEach((e, i) => {
         r.eyes[i].current?.setAttribute('transform', `translate(${e.x} ${e.y}) scale(1 ${lid}) translate(${-e.x} ${-e.y})`)
         r.pupils[i].current?.setAttribute('transform', `translate(${look.x * 8} ${look.y * 11})`)
@@ -304,6 +331,7 @@ export default function Mascot({ visible }) {
       // Mouth: the smile flattens into a frown as the mood sours; "hmm" squiggle while thinking;
       // the open mouth while talking.
       talk = faceState.talking ? Math.max(0.15, 0.55 + 0.45 * Math.sin(t * 15) * Math.sin(t * 4.7)) : smooth(talk, 0, dt, 12)
+      talk = Math.max(talk, yawn * 0.9, stretch * 0.5) // yawns and stretches open the mouth
       const open = talk > 0.05
       r.open.current?.setAttribute('transform', `translate(160 203) scale(1 ${talk}) translate(-160 -203)`)
       r.open.current?.setAttribute('opacity', open ? 1 : 0)
@@ -381,22 +409,24 @@ export default function Mascot({ visible }) {
         if (k >= 1) waveStart = -1
         else wave = Math.sin(k * Math.PI)
       }
-      const armAngle = (wave * Math.sin(t * 11) * 22 + (faceState.talking ? Math.sin(t * 5) * 6 : 0)) * (1 - hipR)
+      const armAngle = (wave * Math.sin(t * 11) * 22 + (faceState.talking ? Math.sin(t * 5) * 6 : 0) + 10 * stretch) * (1 - hipR)
       r.arm.current?.setAttribute('transform', `rotate(${armAngle} 256 168)`)
 
       // Arms: right hand to the hip when annoyed; left hand up to the chin while thinking.
       setArm(right, lerpPose(POSE.rightWave, POSE.rightHip, hipR))
-      const chin = lerpPose(POSE.leftHip, POSE.leftChin, think)
+      // Left arm: hip, chin (thinking, or a glance at the wrist), or up for a stretch.
+      const armUp = Math.max(think, wrist * 0.8)
+      const chin = lerpPose(lerpPose(POSE.leftHip, POSE.leftChin, armUp), POSE.leftUp, stretch)
       setArm(left[0], chin)
       setArm(left[1], chin)
-      r.leftBack.current?.setAttribute('opacity', think < 0.5 ? 1 : 0)
-      r.leftFront.current?.setAttribute('opacity', think < 0.5 ? 0 : 1)
+      r.leftBack.current?.setAttribute('opacity', armUp < 0.5 ? 1 : 0)
+      r.leftFront.current?.setAttribute('opacity', armUp < 0.5 ? 0 : 1)
 
       // Idle bounce: the body bobs (slow breathing while dozing) and the legs stretch to stay
       // planted. Head tilts: sideways when confused, a little back while thinking.
-      const bob = reduce ? 0 : Math.sin(t * (2.2 - sleep * 1.4)) * 3 + nod + hop
+      const bob = reduce ? 0 : Math.sin(t * (2.2 - sleep * 1.4)) * 3 + nod + hop - 10 * stretch
       const shake = Math.sin(t * 70) * 3 * shakeK
-      const tilt = Math.sin(t * 45) * 2.5 * shakeK + 7 * w1 - 4 * think
+      const tilt = Math.sin(t * 45) * 2.5 * shakeK + 7 * w1 - 4 * think - 4 * yawn
       r.body.current?.setAttribute('transform', `translate(${shake} ${bob}) rotate(${tilt} 160 175)`)
       r.legs.forEach((leg, i) => {
         leg.current?.setAttribute('x1', (i ? 182 : 138) + shake)

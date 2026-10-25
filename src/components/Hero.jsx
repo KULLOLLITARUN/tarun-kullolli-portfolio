@@ -175,13 +175,13 @@ export default function Hero({ onTour }) {
           <SplitText text={`“${profile.tagline}”`} />
         </p>
         <div className="hero-links reveal">
-          <a href="#experiments" className="scroll-cue mono">
+          <a href="#experiments" className="scroll-cue mono" data-kairo="work">
             <span className="glyph" aria-hidden="true">
               ∇
             </span>
             See my work <span aria-hidden="true">↓</span>
           </a>
-          <button type="button" className="tour-link mono" onClick={onTour}>
+          <button type="button" className="tour-link mono" data-kairo="tour" onClick={onTour}>
             <span aria-hidden="true">▶</span> Take the 60-second tour
           </button>
         </div>

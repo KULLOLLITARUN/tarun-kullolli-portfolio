@@ -2,7 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
+import { cueText, HELLO_KEY, HELLO_TEXT, helloWanted } from '../kairoBubble.js'
 import { IDLE, moodForHour } from '../kairoMoods.js'
+import { jumpPose } from '../kairoMotion.js'
 import { availableThemes, setTheme, themeState } from '../theme.js'
 
 // "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
@@ -12,7 +14,8 @@ import { availableThemes, setTheme, themeState } from '../theme.js'
 // glances down after the particles when the page scrolls, and nods after answering.
 // While an answer loads it thinks (hand on chin, thought dots, hands spinning); off-topic
 // questions in a row make it confused, then annoyed, then grumpy, and a good question
-// afterwards cheers it up again.
+// afterwards cheers it up again. A first-time visitor gets a short hello in a speech bubble,
+// and it looks at the hero links and the chat box (data-kairo) with a line for each, once.
 
 const SLEEP_MS = 30000
 const RING_MS = 900
@@ -132,6 +135,16 @@ export default function Mascot({ visible }) {
   const root = useRef(null)
   const [picker, setPicker] = useState(null) // where the theme picker is open ({ x, y }), or null
   const closePicker = useRef(() => setPicker(null)).current
+  const [bubble, setBubble] = useState(null) // the speech bubble's text, or null
+  const bubbleOn = useRef(false) // mirrors `bubble` for the event handlers
+  const hideTimer = useRef(0)
+  const shownCues = useRef(new Set()).current // hero cues already spoken this visit
+  const say = useRef((text, ms) => {
+    clearTimeout(hideTimer.current)
+    bubbleOn.current = !!text
+    setBubble(text)
+    if (text) hideTimer.current = setTimeout(() => say(null), ms)
+  }).current
   const armRefs = () => ({ ink: useRef(null), core: useRef(null), glove: useRef(null) })
   const r = {
     body: useRef(null),
@@ -160,6 +173,28 @@ export default function Mascot({ visible }) {
   const left = [armRefs(), armRefs()]
   const right = armRefs()
 
+  // First visit only: once Kairo has arrived and waved, a short hello (replay with ?hello).
+  useEffect(() => {
+    if (!visible) return
+    let seen = false
+    try {
+      seen = localStorage.getItem(HELLO_KEY) === '1'
+    } catch {
+      /* private mode etc. */
+    }
+    if (!helloWanted(window.location.search, seen)) return
+    const show = setTimeout(() => {
+      say(HELLO_TEXT, 9000)
+      try {
+        localStorage.setItem(HELLO_KEY, '1')
+      } catch {
+        /* private mode etc. */
+      }
+    }, 1500)
+    return () => clearTimeout(show)
+  }, [visible])
+  useEffect(() => () => clearTimeout(hideTimer.current), [])
+
   useEffect(() => {
     let raf = 0
     let pointer = null
@@ -181,6 +216,9 @@ export default function Mascot({ visible }) {
     const moodW = [0, 0, 0, 0] // smoothed weight of each mood level (0 calm … 3 grumpy)
     let hipR = 0 // right hand on the hip (annoyed / grumpy)
     let seenRelief = faceState.relief
+    const cue = { el: null, until: 0 } // a hero element Kairo is looking at (data-kairo)
+    let cueHop = -1 // start of the small excited bounce (tour link)
+    let arriveHop = visible && !reduce ? performance.now() + 700 : -1 // a landing hop as it appears
     let idleKind = null // the time-of-day bit in progress (see kairoMoods.js)
     let idleStart = -1
     let nextIdle = performance.now() + 20000
@@ -209,6 +247,32 @@ export default function Mascot({ visible }) {
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('keydown', wake)
     window.addEventListener('touchstart', wake, { passive: true })
+    // Hero elements: look at them on hover or focus and say a line once (never while busy or moody).
+    const onCue = (e) => {
+      const el = e.target.closest?.('[data-kairo]')
+      const id = el?.dataset.kairo
+      if (!el || !visible || (id === 'chat' && e.type !== 'focusin')) return
+      if (faceState.thinking || faceState.talking || faceState.mood > 0) return
+      const now = performance.now()
+      if (!reduce) {
+        cue.el = el
+        cue.until = e.pointerType === 'touch' ? now + 2500 : Infinity // held until it loses hover or focus
+        if (id === 'tour' && cueText(id, shownCues)) cueHop = now
+        if (id === 'chat' && cueText(id, shownCues)) nodStart = now
+      }
+      const text = cueText(id, shownCues)
+      if (text && !bubbleOn.current) {
+        shownCues.add(id)
+        say(text, 3500)
+      }
+    }
+    const onCueEnd = (e) => {
+      if (cue.el && cue.el === e.target.closest?.('[data-kairo]')) cue.el = null
+    }
+    document.addEventListener('pointerover', onCue)
+    document.addEventListener('focusin', onCue)
+    document.addEventListener('pointerout', onCueEnd)
+    document.addEventListener('focusout', onCueEnd)
     window.addEventListener('tick-ring', onRing)
     document.addEventListener('pointerleave', onLeave)
 
@@ -268,12 +332,24 @@ export default function Mascot({ visible }) {
       // while talking, and look down after the particles while the page scrolls.
       let tx = Math.sin(t * 0.5) * 0.4
       let ty = Math.sin(t * 0.37) * 0.2
+      const aim = (px, py) => {
+        const box = svg.getBoundingClientRect()
+        const dx = px - (box.left + box.width * 0.5)
+        const dy = py - (box.top + box.height * 0.38)
+        const len = Math.hypot(dx, dy) || 1
+        const k = Math.min(1, len / 220)
+        tx = (dx / len) * k
+        ty = (dy / len) * k
+      }
       if (faceState.thinking) {
         tx = 0.5
         ty = -0.9
       } else if (faceState.talking) {
         tx = Math.sin(t * 2.6) * 0.7
         ty = 0.35
+      } else if (cue.el?.isConnected && now < cue.until) {
+        const b = cue.el.getBoundingClientRect()
+        aim(b.left + b.width / 2, b.top + b.height / 2)
       } else if (now < glanceUntil) {
         tx = -0.25
         ty = 1
@@ -284,15 +360,7 @@ export default function Mascot({ visible }) {
         tx = 0
         ty = 0.4
       } else if (pointer) {
-        const box = svg.getBoundingClientRect()
-        const cx = box.left + box.width * 0.5
-        const cy = box.top + box.height * 0.38
-        const dx = pointer.x - cx
-        const dy = pointer.y - cy
-        const len = Math.hypot(dx, dy) || 1
-        const k = Math.min(1, len / 220)
-        tx = (dx / len) * k
-        ty = (dy / len) * k
+        aim(pointer.x, pointer.y)
       }
       look.x = smooth(look.x, tx, dt, 12)
       look.y = smooth(look.y, ty, dt, 12)
@@ -376,12 +444,28 @@ export default function Mascot({ visible }) {
 
       // Relief after a bad mood: a happy hop and a wave.
       let hop = 0
+      let squash = 1
+      const jump = (k, h) => {
+        const p = jumpPose(k, h)
+        hop += p.y
+        squash *= p.sy
+      }
       if (faceState.relief !== seenRelief) {
         seenRelief = faceState.relief
         waveStart = now
       }
-      const rk = (now - faceState.relief) / 600
-      if (faceState.relief && rk >= 0 && rk < 1 && !reduce) hop = -Math.sin(rk * Math.PI) * 16
+      const rk = (now - faceState.relief) / 700
+      if (faceState.relief && !reduce) jump(rk, 16)
+      if (cueHop >= 0) {
+        const k = (now - cueHop) / 600
+        if (k >= 1) cueHop = -1
+        else jump(k, 10)
+      }
+      if (arriveHop >= 0) {
+        const k = (now - arriveHop) / 700
+        if (k >= 1) arriveHop = -1
+        else jump(k, 14)
+      }
 
       // Ringing: the hammer rattles between the bells, the body shakes, ring marks flash.
       // Grumpy Kairo rattles its alarm in short angry bursts.
@@ -427,7 +511,7 @@ export default function Mascot({ visible }) {
       const bob = reduce ? 0 : Math.sin(t * (2.2 - sleep * 1.4)) * 3 + nod + hop - 10 * stretch
       const shake = Math.sin(t * 70) * 3 * shakeK
       const tilt = Math.sin(t * 45) * 2.5 * shakeK + 7 * w1 - 4 * think - 4 * yawn
-      r.body.current?.setAttribute('transform', `translate(${shake} ${bob}) rotate(${tilt} 160 175)`)
+      r.body.current?.setAttribute('transform', `translate(${shake} ${bob}) rotate(${tilt} 160 175) translate(160 280) scale(${1 / Math.sqrt(squash)} ${squash}) translate(-160 -280)`)
       r.legs.forEach((leg, i) => {
         leg.current?.setAttribute('x1', (i ? 182 : 138) + shake)
         leg.current?.setAttribute('y1', 268 + bob)
@@ -468,6 +552,10 @@ export default function Mascot({ visible }) {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('keydown', wake)
       window.removeEventListener('touchstart', wake)
+      document.removeEventListener('pointerover', onCue)
+      document.removeEventListener('focusin', onCue)
+      document.removeEventListener('pointerout', onCueEnd)
+      document.removeEventListener('focusout', onCueEnd)
       window.removeEventListener('tick-ring', onRing)
       document.removeEventListener('pointerleave', onLeave)
     }
@@ -649,6 +737,16 @@ export default function Mascot({ visible }) {
         </g>
       </svg>
     </div>
+    {bubble && visible && (
+      <div className={`mascot-bubble-anchor${reduce ? ' is-still' : ''}`}>
+        <div className="mascot-bubble" role="status">
+          <span>{bubble}</span>
+          <button type="button" aria-label="Dismiss" onClick={() => say(null)}>
+            ×
+          </button>
+        </div>
+      </div>
+    )}
     {picker && visible && createPortal(<ThemePicker at={picker} onClose={closePicker} />, document.body)}
     </>
   )

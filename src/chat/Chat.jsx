@@ -238,6 +238,7 @@ export default function Chat({ visible }) {
         </label>
         <input
           id="chat-input"
+          data-kairo="chat"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about Tarun’s experience…"

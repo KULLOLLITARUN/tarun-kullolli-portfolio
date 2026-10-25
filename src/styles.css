@@ -717,6 +717,78 @@ html.has-cursor textarea {
   }
 }
 
+/* Speech bubble: same footprint as .mascot so it can sit beside Kairo's head. */
+.mascot-bubble-anchor {
+  position: absolute;
+  z-index: 3;
+  left: 75%;
+  bottom: 48%;
+  height: 38%;
+  aspect-ratio: 320 / 400;
+  transform: translateX(-50%) translateY(6%);
+  pointer-events: none;
+}
+.mascot-bubble {
+  position: absolute;
+  top: 10%;
+  right: 82%;
+  width: max-content;
+  max-width: 200px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: rgba(6, 6, 8, 0.82);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--text);
+  pointer-events: auto;
+  animation: bubble-in 400ms var(--ease) both;
+}
+.is-still .mascot-bubble {
+  animation: none;
+}
+/* The tail points at Kairo. */
+.mascot-bubble::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  right: -6px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line-strong);
+  background: rgba(6, 6, 8, 0.82);
+  transform: rotate(45deg);
+}
+.mascot-bubble button {
+  flex: none;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font-size: var(--fs-md);
+  line-height: 1;
+  color: var(--nav-text);
+  cursor: pointer;
+}
+.mascot-bubble button:hover {
+  color: var(--text);
+}
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ── Chat ───────────────────────────────────────────────── */
 .chat {
   display: flex;
@@ -964,10 +1036,15 @@ html.has-cursor textarea {
     line-height: 1.8;
   }
   /* Kairo and the chat sit lower than on desktop to make room for the role and pitch above. */
-  .mascot {
+  .mascot,
+  .mascot-bubble-anchor {
     left: 50%;
     bottom: 37.5%;
     height: 27%;
+  }
+  .mascot-bubble {
+    max-width: 130px;
+    right: 78%;
   }
   .hero-right {
     top: 62.5%;
@@ -993,7 +1070,8 @@ html.has-cursor textarea {
   .hero-name {
     font-size: 10vw;
   }
-  .mascot {
+  .mascot,
+  .mascot-bubble-anchor {
     bottom: 40%;
     height: 18%;
   }

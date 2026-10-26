@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { profile } from '../data.js'
@@ -6,6 +6,7 @@ import { faceState } from '../chat/faceState.js'
 import { stationDone } from '../hooks.js'
 import { themeState } from '../theme.js'
 
+const Glow = lazy(() => import('./Glow.jsx'))
 const TEXT_W = 10 // name block width in "name space" units
 const STAR_COLORS = ['#f4f4f5', '#a78bfa', '#60a5fa', '#f5b544', '#f472b6', '#38bdf8', '#fb7185']
 // Muted tints for the large background orbs: red, blue, gold, purple, warm white.
@@ -1216,6 +1217,11 @@ export default function ParticleScene({ active, split, resolved, nameAnchor, red
         onFormed={onFormed}
         onSwept={onSwept}
       />
+      {wide && !reduce && (
+        <Suspense fallback={null}>
+          <Glow />
+        </Suspense>
+      )}
     </Canvas>
   )
 }

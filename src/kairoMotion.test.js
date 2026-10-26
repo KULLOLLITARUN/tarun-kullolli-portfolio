@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jumpPose, springStep } from './kairoMotion.js'
+import { jumpPose, springStep, tickWobble } from './kairoMotion.js'
 
 describe('jumpPose', () => {
   it('is at rest before the start and after the end', () => {
@@ -42,5 +42,16 @@ describe('springStep', () => {
   })
   it('never swings past the limit', () => {
     expect(run(5000).peak).toBeLessThanOrEqual(14)
+  })
+})
+
+describe('tickWobble', () => {
+  it('swings right after the tick, then settles at exactly 0', () => {
+    const peak = Math.max(...Array.from({ length: 60 }, (_, i) => Math.abs(tickWobble(i * 3))))
+    expect(peak).toBeGreaterThan(0.5)
+    expect(peak).toBeLessThan(1.5)
+    expect(tickWobble(350)).toBe(0)
+    expect(tickWobble(900)).toBe(0)
+    expect(tickWobble(-5)).toBe(0)
   })
 })

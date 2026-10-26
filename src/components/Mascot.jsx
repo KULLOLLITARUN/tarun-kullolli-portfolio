@@ -4,7 +4,7 @@ import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
 import { cueText, HELLO_KEY, HELLO_TEXT, helloWanted } from '../kairoBubble.js'
 import { IDLE, moodForHour } from '../kairoMoods.js'
-import { jumpPose, springStep } from '../kairoMotion.js'
+import { jumpPose, springStep, tickWobble } from '../kairoMotion.js'
 import { availableThemes, setTheme, themeState } from '../theme.js'
 
 // "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
@@ -201,6 +201,10 @@ export default function Mascot({ visible }) {
     let pointer = null
     const look = { x: 0, y: 0 }
     let nextBlink = performance.now() + 2500
+    const jitter = { x: 0, y: 0 } // small gaze jumps (saccades)
+    let nextJump = performance.now() + 1500
+    let lastSec = -1
+    let tickAt = -1e9
     let blinkStart = -1
     let talk = 0
     let think = 0
@@ -366,6 +370,16 @@ export default function Mascot({ visible }) {
         ty = 0.4
       } else if (pointer) {
         aim(pointer.x, pointer.y)
+      }
+      // Eyes never sit perfectly still: every second or two they flick a little off target.
+      if (now > nextJump) {
+        jitter.x = (Math.random() - 0.5) * 0.3
+        jitter.y = (Math.random() - 0.5) * 0.2
+        nextJump = now + 700 + Math.random() * 2000
+      }
+      if (!reduce && !faceState.thinking && !faceState.talking && sleep < 0.5) {
+        tx += jitter.x
+        ty += jitter.y
       }
       look.x = smooth(look.x, tx, dt, 12)
       look.y = smooth(look.y, ty, dt, 12)
@@ -556,7 +570,14 @@ export default function Mascot({ visible }) {
       const d = new Date()
       const min = d.getMinutes() + d.getSeconds() / 60
       const hr = (d.getHours() % 12) + min / 60
-      r.minute.current?.setAttribute('transform', `rotate(${min * 6 + spin} ${C.x} ${C.y})`)
+      // Each second the minute hand gives a small mechanical tick.
+      const sec = d.getSeconds()
+      if (sec !== lastSec) {
+        lastSec = sec
+        tickAt = now
+      }
+      const tick = reduce || spin ? 0 : tickWobble(now - tickAt)
+      r.minute.current?.setAttribute('transform', `rotate(${min * 6 + spin + tick} ${C.x} ${C.y})`)
       r.hour.current?.setAttribute('transform', `rotate(${hr * 30 + spin / 12} ${C.x} ${C.y})`)
 
       raf = requestAnimationFrame(frame)

@@ -23,3 +23,10 @@ export function springStep(s, kick, dt, k, c, limit = 14) {
   const x2 = Math.max(-limit, Math.min(limit, s.x + v2 * dt))
   return { x: x2, v: v2 }
 }
+
+// The little quiver a clock hand makes when it ticks: a quick decaying swing (degrees) for ms
+// since the tick. Settles to exactly 0 after 350ms.
+export function tickWobble(ms) {
+  if (!(ms >= 0 && ms < 350)) return 0
+  return 1.4 * Math.exp(-ms / 70) * Math.sin(ms / 14) * (1 - ms / 350)
+}

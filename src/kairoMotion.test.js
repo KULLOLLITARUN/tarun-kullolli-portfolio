@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jumpPose } from './kairoMotion.js'
+import { jumpPose, springStep } from './kairoMotion.js'
 
 describe('jumpPose', () => {
   it('is at rest before the start and after the end', () => {
@@ -14,5 +14,33 @@ describe('jumpPose', () => {
   })
   it('scales the height', () => {
     expect(Math.abs(jumpPose(0.375, 20).y)).toBeGreaterThan(Math.abs(jumpPose(0.375, 10).y))
+  })
+})
+
+describe('springStep', () => {
+  const run = (kick, steps = 90) => {
+    let s = { x: 0, v: 0 }
+    let peak = 0
+    let crossed = false
+    s = springStep(s, kick, 1 / 60, 200, 9)
+    for (let i = 0; i < steps; i++) {
+      const prev = s.x
+      s = springStep(s, 0, 1 / 60, 200, 9)
+      peak = Math.max(peak, Math.abs(s.x))
+      if (prev * s.x < 0) crossed = true
+    }
+    return { s, peak, crossed }
+  }
+  it('stays at rest with no kick', () => {
+    expect(springStep({ x: 0, v: 0 }, 0, 1 / 60, 200, 9)).toEqual({ x: 0, v: 0 })
+  })
+  it('overshoots once or more, then settles', () => {
+    const { s, peak, crossed } = run(100)
+    expect(peak).toBeGreaterThan(3)
+    expect(crossed).toBe(true)
+    expect(Math.abs(s.x)).toBeLessThan(0.1)
+  })
+  it('never swings past the limit', () => {
+    expect(run(5000).peak).toBeLessThanOrEqual(14)
   })
 })

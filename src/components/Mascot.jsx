@@ -4,7 +4,7 @@ import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
 import { cueText, HELLO_KEY, HELLO_TEXT, helloWanted } from '../kairoBubble.js'
 import { IDLE, moodForHour } from '../kairoMoods.js'
-import { jumpPose } from '../kairoMotion.js'
+import { jumpPose, springStep } from '../kairoMotion.js'
 import { availableThemes, setTheme, themeState } from '../theme.js'
 
 // "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
@@ -157,6 +157,7 @@ export default function Mascot({ visible }) {
     open: useRef(null),
     arm: useRef(null),
     hammer: useRef(null),
+    bells: [useRef(null), useRef(null)],
     hour: useRef(null),
     minute: useRef(null),
     legs: [useRef(null), useRef(null)],
@@ -217,6 +218,10 @@ export default function Mascot({ visible }) {
     let hipR = 0 // right hand on the hip (annoyed / grumpy)
     let seenRelief = faceState.relief
     const cue = { el: null, until: 0 } // a hero element Kairo is looking at (data-kairo)
+    let prevBob = 0
+    let prevVy = 0
+    let bellS = { x: 0, v: 0 } // bells and knob lag behind the body (follow-through)
+    let knobS = { x: 0, v: 0 }
     let cueHop = -1 // start of the small excited bounce (tour link)
     let arriveHop = visible && !reduce ? performance.now() + 700 : -1 // a landing hop as it appears
     let idleKind = null // the time-of-day bit in progress (see kairoMoods.js)
@@ -509,6 +514,17 @@ export default function Mascot({ visible }) {
       // Idle bounce: the body bobs (slow breathing while dozing) and the legs stretch to stay
       // planted. Head tilts: sideways when confused, a little back while thinking.
       const bob = reduce ? 0 : Math.sin(t * (2.2 - sleep * 1.4)) * 3 + nod + hop - 10 * stretch
+      // Follow-through: the body's push (change in vertical speed) kicks the bells and the knob.
+      if (dt > 0.001) {
+        const vy = (bob - prevBob) / dt
+        const kick = prevVy - vy // up (negative speed) droops the bells, a landing flicks them up
+        bellS = springStep(bellS, kick, dt, 200, 9)
+        knobS = springStep(knobS, kick * 1.6, dt, 120, 6, 20)
+        prevVy = vy
+      }
+      prevBob = bob
+      r.bells[0].current?.setAttribute('transform', `rotate(${-bellS.x} 96 96) rotate(-28 96 82)`)
+      r.bells[1].current?.setAttribute('transform', `rotate(${bellS.x} 224 96) rotate(28 224 82)`)
       const shake = Math.sin(t * 70) * 3 * shakeK
       const tilt = Math.sin(t * 45) * 2.5 * shakeK + 7 * w1 - 4 * think - 4 * yawn
       r.body.current?.setAttribute('transform', `translate(${shake} ${bob}) rotate(${tilt} 160 175) translate(160 280) scale(${1 / Math.sqrt(squash)} ${squash}) translate(-160 -280)`)
@@ -517,7 +533,7 @@ export default function Mascot({ visible }) {
         leg.current?.setAttribute('y1', 268 + bob)
       })
       const rattle = shakeK > 0 ? Math.sin(t * 60) * 20 * shakeK : wave > 0.2 ? Math.sin(t * 40) * 10 : 0
-      r.hammer.current?.setAttribute('transform', `rotate(${rattle} 160 70)`)
+      r.hammer.current?.setAttribute('transform', `rotate(${rattle + knobS.x} 160 70)`)
 
       // Floating "z"s while dozing.
       if (r.zzz.current) {
@@ -626,11 +642,11 @@ export default function Mascot({ visible }) {
             ))}
           </g>
           {/* Bells + hammer */}
-          <g transform="rotate(-28 96 82)">
+          <g ref={r.bells[0]} transform="rotate(-28 96 82)">
             <path d="M64,96 A32,32 0 0 1 128,96 Z" fill="url(#tick-body)" stroke={INK} strokeWidth="5" strokeLinejoin="round" />
             <circle cx="96" cy="60" r="5" fill={INK} />
           </g>
-          <g transform="rotate(28 224 82)">
+          <g ref={r.bells[1]} transform="rotate(28 224 82)">
             <path d="M192,96 A32,32 0 0 1 256,96 Z" fill="url(#tick-body)" stroke={INK} strokeWidth="5" strokeLinejoin="round" />
             <circle cx="224" cy="60" r="5" fill={INK} />
           </g>

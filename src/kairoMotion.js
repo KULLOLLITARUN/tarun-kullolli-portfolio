@@ -14,3 +14,12 @@ export function jumpPose(k, h) {
     sy: 1 - 0.09 * crouch + 0.07 * air - 0.1 * land + 0.03 * rebound,
   }
 }
+
+// One step of a damped spring (angle x in degrees, speed v) that the body's motion kicks, so
+// loose parts (bells, knob) lag behind it, overshoot a little and settle. Pure; returns a new state.
+export function springStep(s, kick, dt, k, c, limit = 14) {
+  const v = s.v + kick
+  const v2 = v + (-k * s.x - c * v) * dt
+  const x2 = Math.max(-limit, Math.min(limit, s.x + v2 * dt))
+  return { x: x2, v: v2 }
+}

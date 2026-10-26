@@ -2707,3 +2707,115 @@ html.has-cursor textarea {
     display: none;
   }
 }
+
+/* ── Project walk-through (ProjectDemo.jsx) ─────────────── */
+.pd-demo {
+  margin: 0 0 var(--s-6);
+  padding: var(--s-4);
+  border: 1px solid rgba(var(--ice), 0.25);
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.35);
+}
+.demo-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  list-style: none;
+}
+.demo-nodes li {
+  position: relative;
+  padding: 6px var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  transition: color var(--t-med), border-color var(--t-med), background var(--t-med), transform var(--t-med) var(--ease);
+}
+.demo-nodes li .mono {
+  opacity: 0.6;
+}
+.demo-nodes li.done {
+  color: var(--text-2);
+  border-color: rgba(var(--ice), 0.4);
+}
+.demo-nodes li.now {
+  color: var(--on-amber);
+  border-color: var(--amber);
+  background: var(--amber);
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.45);
+}
+.demo-chip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1;
+  width: max-content;
+  max-width: 220px;
+  padding: 3px var(--s-2);
+  border: 1px solid var(--amber);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-xs);
+  font-style: normal;
+  color: var(--amber);
+  animation: demo-chip-in 300ms var(--ease) both;
+}
+@keyframes demo-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.demo-track {
+  height: 3px;
+  margin: 0 0 var(--s-4);
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.demo-track span {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+  transition: width 700ms var(--ease);
+}
+.demo-line {
+  min-height: 3.4em;
+  margin: 0 0 var(--s-3);
+  line-height: 1.6;
+}
+.demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.demo-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-5);
+  margin: var(--s-3) 0 0;
+  padding: var(--s-3) 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+@media (max-width: 640px) {
+  .pd-demo {
+    padding: var(--s-3);
+  }
+  .demo-line {
+    min-height: 6.4em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-nodes li,
+  .demo-track span,
+  .demo-chip {
+    transition: none;
+    animation: none;
+  }
+}

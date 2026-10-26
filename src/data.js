@@ -65,6 +65,35 @@ export const experiments = [
       'Answers stream over SSE with source citations',
     ],
     metric: { value: '523', label: 'Tests in CI · LLM calls mocked' },
+    // The animated walk-through on the detailed card. Every line restates a README fact above.
+    demo: {
+      steps: [
+        { stage: 'Question', line: 'Ask a question about your documents.' },
+        { stage: 'Rewrite', line: 'Multi-hop questions are split into sub-questions.' },
+        { stage: 'Retrieve', line: 'Keyword (BM25) and meaning-based (dense) results are merged with reciprocal rank fusion.' },
+        { stage: 'Rerank', line: 'A cross-encoder re-ranks the merged passages.' },
+        {
+          stage: 'Gate',
+          line: 'No passage good enough? It answers “Not found in the document” without calling the LLM.',
+          branch: 'Not found in the document',
+        },
+        {
+          stage: 'Generate',
+          line: 'A router sends simple questions to gpt-oss-20b and complex ones to gpt-oss-120b, on Groq.',
+        },
+        {
+          stage: 'Reflect',
+          line: 'Deterministic checks (overlap, number grounding, contradictions) look for failures, with zero LLM calls.',
+        },
+        {
+          stage: 'Heal',
+          line: 'A failure triggers a healer: rewrite the query, widen retrieval or tighten the prompt, then retry.',
+          loop: 'Retrieve',
+        },
+        { stage: 'Answer', line: 'The answer streams with source citations.' },
+      ],
+      notes: ['Repeat questions (semantic cache, cosine ≥ 0.97) skip the LLM', '523 tests in CI · LLM calls mocked'],
+    },
     architecture: ['Rewrite', 'Retrieve', 'Rerank', 'Generate', 'Reflect', 'Heal'],
     shots: [
       {
@@ -106,6 +135,25 @@ export const experiments = [
       'Live in-browser studio that runs fully client-side, kept honest by 34 parity tests against the Python engine',
     ],
     metric: { value: '94/94', label: 'True positives · 11 real models' },
+    // The animated walk-through on the detailed card. Every line restates a README fact above.
+    demo: {
+      steps: [
+        { stage: 'PBIP', line: 'Drop in a Power BI Project (.pbip). Nothing is uploaded: the studio runs fully in your browser.' },
+        { stage: 'Extract', line: 'It reads the semantic model (TMDL/TMSL), the DAX and the report layout (PBIR).' },
+        {
+          stage: 'Canonical',
+          line: 'Everything becomes one canonical model with a cycle-safe, transitive DAX dependency graph, so truly unused measures are told apart from internal building blocks.',
+        },
+        { stage: 'Rules', line: '13 rules across model architecture, DAX and report layout, each with a severity and a confidence level.' },
+        { stage: 'Scoring', line: 'Findings roll up into an evidence-backed health score.' },
+        {
+          stage: 'Reports',
+          line: 'SARIF v2.1.0 and JUnit XML output make it a quality gate in GitHub Code Scanning, Azure DevOps and Jenkins.',
+        },
+        { stage: 'Fix', line: 'pbiscan fix applies safe, reversible fixes, with timestamped backups.' },
+      ],
+      notes: ['94 of 94 findings were true positives across 11 real models', '384 tests in about 8 seconds'],
+    },
     architecture: ['PBIP', 'Extract', 'Canonical', 'Rules', 'Scoring', 'Reports'],
     shots: [
       {
@@ -151,6 +199,38 @@ export const experiments = [
       'Honest about gaps: notes say when text was cut off, a backup model answered, or a page returned far fewer records than the others',
     ],
     metric: { value: '30/30', label: 'Hacker News stories · every link matches' },
+    // The animated walk-through on the detailed card. Every line restates a README fact above.
+    demo: {
+      steps: [
+        {
+          stage: 'Request',
+          line: 'Describe the data in plain words, or as typed fields such as price (number) or in_stock (yes/no).',
+        },
+        {
+          stage: 'Navigate',
+          line: 'A Playwright Chromium browser renders the page, dismisses cookie banners, scrolls for lazy content, presses “Load more” and follows “next page” links for up to 10 pages.',
+        },
+        {
+          stage: 'Distill',
+          line: 'The Distiller turns the HTML into plain text; long text is read in overlapping parts and merged.',
+        },
+        { stage: 'Extract', line: 'An LLM on Groq (gpt-oss-120b, with smaller backups) extracts the records as JSON.' },
+        {
+          stage: 'Validate',
+          line: 'The Validator repairs the JSON and sends the exact problems back to the model, up to 3 attempts.',
+          loop: 'Extract',
+        },
+        {
+          stage: 'Locate',
+          line: 'Each record is matched to a repeated block on the page, then marked and numbered on a screenshot, with an “open ↗” link taken from the page, not guessed by the model.',
+        },
+        { stage: 'Export', line: 'Get cards, a table, JSON, CSV or Excel.' },
+      ],
+      notes: [
+        'Hacker News: 30 of 30 stories, every “open ↗” matches',
+        '“Load more” page: 48 products after 3 presses, against 12 without',
+      ],
+    },
     architecture: ['Navigate', 'Distill', 'Extract', 'Validate', 'Locate'],
     stack: ['Python', 'FastAPI', 'Playwright', 'Groq', 'React'],
     keywords: ['markpull', 'scraper', 'web scraper', 'scraping', 'agentic', 'agentic web scraper'],

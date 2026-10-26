@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { scrollToId } from '../hooks.js'
 import { StackFlow, projectLinks } from './Holo.jsx'
+import ProjectDemo from './ProjectDemo.jsx'
 
 function Section({ label, children, className = '' }) {
   return (
@@ -79,6 +80,8 @@ export default function ProjectDetail({ project: e, index, onClose }) {
           {s.caption && <figcaption>{s.caption}</figcaption>}
         </figure>
       ))}
+
+      {e.demo && <ProjectDemo title={e.title} demo={e.demo} />}
 
       <div className="pd-grid">
         <div className="pd-story">

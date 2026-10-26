@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "questions": "node scripts/questions.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.1",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",
+    "playwright-core": "^1.64.1",
     "vite": "^8.3.1",
     "vitest": "^5.0.3"
   }

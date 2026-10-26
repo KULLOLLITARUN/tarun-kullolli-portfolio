@@ -70,7 +70,7 @@ export default function Tour({ onEnd }) {
     if (card && narrow) scrollToId(card)
     else scrollToStation(STEPS[step].id)
     const { line, target } = STEPS[step]
-    window.dispatchEvent(new CustomEvent('kairo-tour', { detail: { line, target, hold: step === STEPS.length - 1 } }))
+    window.dispatchEvent(new CustomEvent('kairo-tour', { detail: { line, target } }))
   }, [step])
   useEffect(() => () => window.dispatchEvent(new Event('kairo-tour-end')), [])
 

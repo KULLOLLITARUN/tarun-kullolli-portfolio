@@ -41,6 +41,14 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette, onTour })
     }
   }, [open])
 
+  // The burger disappears at the desktop width; close the sheet so it is not still open if the window narrows again.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1025px)')
+    const onChange = () => mq.matches && setOpen(false)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   const close = () => setOpen(false)
 
   return (
@@ -77,7 +85,7 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette, onTour })
           className="icon-btn nav-burger"
           aria-label="Menu"
           aria-expanded={open}
-          aria-controls="nav-sheet"
+          aria-controls={open ? 'nav-sheet' : undefined}
           onClick={() => setOpen((o) => !o)}
         >
           <span className={`burger-bars${open ? ' is-open' : ''}`} aria-hidden="true" />

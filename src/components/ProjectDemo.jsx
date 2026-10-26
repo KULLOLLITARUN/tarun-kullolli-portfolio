@@ -18,6 +18,10 @@ export default function ProjectDemo({ title, demo }) {
   const [inView, setInView] = useState(false)
   const root = useRef(null)
   const last = steps.length - 1
+  // Reduced motion switched on while the page is open: stop playing (the button then reads Play).
+  useEffect(() => {
+    if (reduce) setPlaying(false)
+  }, [reduce])
   const step = steps[i]
   const now = stages.indexOf(step.stage)
 

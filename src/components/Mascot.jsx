@@ -142,6 +142,7 @@ export default function Mascot({ visible }) {
   const bubbleOn = useRef(false) // mirrors `bubble` for the event handlers
   const hideTimer = useRef(0)
   const shownCues = useRef(new Set()).current // hero cues already spoken this visit
+  const reactedCues = useRef(new Set()).current // hero cues Kairo already hopped or nodded at
   const say = useRef((text, ms) => {
     clearTimeout(hideTimer.current)
     bubbleOn.current = !!text
@@ -225,7 +226,7 @@ export default function Mascot({ visible }) {
     let hipR = 0 // right hand on the hip (annoyed / grumpy)
     let seenRelief = faceState.relief
     const cue = { el: null, until: 0 } // a hero element Kairo is looking at (data-kairo)
-    let prevBob = 0
+    let prevBob = null
     let prevVy = 0
     let bellS = { x: 0, v: 0 } // bells and knob lag behind the body (follow-through)
     let knobS = { x: 0, v: 0 }
@@ -270,8 +271,12 @@ export default function Mascot({ visible }) {
       if (!reduce) {
         cue.el = el
         cue.until = e.pointerType === 'touch' ? now + 2500 : Infinity // held until it loses hover or focus
-        if (id === 'tour' && cueText(id, shownCues)) cueHop = now
-        if (id === 'chat' && cueText(id, shownCues)) nodStart = now
+        // Once per cue: hovering the link's child nodes fires pointerover again, and the line may still be waiting for a free bubble.
+        if (!reactedCues.has(id) && cueText(id, shownCues)) {
+          reactedCues.add(id)
+          if (id === 'tour') cueHop = now
+          if (id === 'chat') nodStart = now
+        }
       }
       const text = cueText(id, shownCues)
       if (text && !bubbleOn.current) {
@@ -280,7 +285,8 @@ export default function Mascot({ visible }) {
       }
     }
     const onCueEnd = (e) => {
-      if (cue.el && cue.el === e.target.closest?.('[data-kairo]')) cue.el = null
+      // Moving between children of the same element is not leaving it.
+      if (cue.el && cue.el === e.target.closest?.('[data-kairo]') && !cue.el.contains(e.relatedTarget)) cue.el = null
     }
     // The guided tour (Tour.jsx): park in the corner, look at the step's element and say its line.
     let tourSide = 'right'
@@ -291,7 +297,7 @@ export default function Mascot({ visible }) {
       return { side, ...dockPose(window.innerWidth, window.innerHeight, bar, side) }
     }
     const onTour = (e) => {
-      const { line, target, hold } = e.detail
+      const { line, target } = e.detail
       const el = target ? document.querySelector(target) : null
       const box = el?.getBoundingClientRect()
       const side = dockSide(box ? box.left + box.width / 2 : null, window.innerWidth)
@@ -312,7 +318,7 @@ export default function Mascot({ visible }) {
       cue.el = el
       cue.until = el ? Infinity : 0
       if (!reduce) cueHop = now
-      say(line, hold ? 600000 : 8600)
+      say(line, 600000) // stays until the next step replaces it (or the tour ends)
     }
     const onTourEnd = () => {
       tourOn = false
@@ -577,7 +583,7 @@ export default function Mascot({ visible }) {
       // planted. Head tilts: sideways when confused, a little back while thinking.
       const bob = reduce ? 0 : Math.sin(t * (2.2 - sleep * 1.4)) * 3 + nod + hop - 10 * stretch
       // Follow-through: the body's push (change in vertical speed) kicks the bells and the knob.
-      if (dt > 0.001) {
+      if (dt > 0.001 && prevBob !== null) {
         const vy = (bob - prevBob) / dt
         const kick = prevVy - vy // up (negative speed) droops the bells, a landing flicks them up
         bellS = springStep(bellS, kick, dt, 200, 9)

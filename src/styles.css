@@ -2584,7 +2584,7 @@ html.has-cursor textarea {
 .mascot-bubble-anchor.is-touring .mascot-bubble {
   top: auto;
   bottom: 8%;
-  max-width: min(260px, calc(100vw - 150px));
+  max-width: min(205px, calc(100vw - 150px));
 }
 .mascot-bubble-anchor.is-touring .mascot-bubble::after {
   top: auto;

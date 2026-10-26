@@ -94,6 +94,12 @@ export default function App() {
     setTouring(true)
   }, [setRecruiter])
 
+  // Kairo's chat can start the tour (see engine.js).
+  useEffect(() => {
+    window.addEventListener('start-tour', startTour)
+    return () => window.removeEventListener('start-tour', startTour)
+  }, [startTour])
+
   const actions = useMemo(
     () => [
       { id: 'experiments', label: 'Go to Experiments', hint: 'Projects', run: () => goTo('experiments') },

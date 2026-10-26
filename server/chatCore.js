@@ -80,6 +80,12 @@ export async function handleChat({ body, ip, env }) {
       }),
       signal: AbortSignal.timeout(15000),
     })
+    // Groq's own limit (per-minute or daily quota): say so, with when it says to retry, so the chat
+    // can answer offline until then instead of asking again on every question.
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers?.get?.('retry-after')) || undefined
+      return { status: 429, body: { error: 'busy', ...(retryAfter && { retryAfter }) } }
+    }
     if (!res.ok) return { status: 502, body: { error: 'upstream', code: res.status } }
     return { status: 200, stream: textChunks(res) }
   } catch {

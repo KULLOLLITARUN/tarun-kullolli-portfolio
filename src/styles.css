@@ -866,12 +866,25 @@ html.has-cursor textarea {
   gap: var(--s-2) var(--s-4);
   margin-top: var(--s-1);
 }
-.msg-actions a {
+.msg-actions a,
+.msg-actions button {
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--amber);
+  font: inherit;
   text-decoration: none;
+  cursor: pointer;
 }
-.msg-actions a:hover {
+.msg-actions a:hover,
+.msg-actions button:hover {
   text-decoration: underline;
+}
+/* The one-time line saying this answer came from the offline script. */
+.msg-note {
+  margin-top: var(--s-2);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
 }
 .dots {
   display: inline-flex;

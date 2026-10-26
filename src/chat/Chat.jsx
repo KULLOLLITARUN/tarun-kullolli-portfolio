@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { answer, GREETING, STARTER_CHIPS } from './engine.js'
 import { faceState, noteAnswer } from './faceState.js'
+import { createLiveGate } from './liveGate.js'
 
 // The live model starts off-topic replies with this tag (see prompt.js); it is never shown.
 const OFF_TOPIC = /^\s*\[off-topic\]\s*/i
@@ -9,10 +10,14 @@ const OFF_TOPIC_REPLY = 'That’s outside what I can help with. Ask me about Tar
 import { useReducedMotion } from '../hooks.js'
 
 let nextId = 1
+// Once the live model fails (out of quota, down), answer offline for a while instead of waiting on it each time.
+const liveGate = createLiveGate()
+const OFFLINE_NOTE = 'The live assistant is busy right now, so this answer comes straight from his résumé.'
 
 // Live answer from Groq via /api/chat, streamed: onText gets the text so far as it arrives.
 // Resolves to the full text, or null if nothing arrived so the offline engine takes over.
 async function askLive(history, onText) {
+  if (!liveGate.canTry()) return null
   let text = ''
   try {
     const res = await fetch('/api/chat', {
@@ -21,7 +26,11 @@ async function askLive(history, onText) {
       body: JSON.stringify({ messages: history }),
       signal: AbortSignal.timeout(20000),
     })
-    if (!res.ok || !res.body) return null
+    if (!res.ok || !res.body) {
+      const info = await res.json().catch(() => null)
+      liveGate.fail(info?.retryAfter)
+      return null
+    }
     const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
     for (;;) {
       const { value, done } = await reader.read()
@@ -32,7 +41,12 @@ async function askLive(history, onText) {
   } catch {
     /* keep whatever arrived */
   }
-  return text.trim() ? text : null
+  if (!text.trim()) {
+    liveGate.fail()
+    return null
+  }
+  liveGate.ok()
+  return text
 }
 
 function Message({ m }) {
@@ -50,14 +64,21 @@ function Message({ m }) {
         ))}
         {m.actions && m.shown === undefined && (
           <p className="msg-actions">
-            {m.actions.map((a) => (
-              <a key={a.label} href={a.href} {...(a.download ? { download: 'Tarun-Kullolli-Resume.pdf' } : {})}
-                {...(a.external ? { target: '_blank', rel: 'noreferrer' } : {})}>
-                {a.label} <span aria-hidden="true">→</span>
-              </a>
-            ))}
+            {m.actions.map((a) =>
+              a.event ? (
+                <button key={a.label} type="button" onClick={() => window.dispatchEvent(new Event(a.event))}>
+                  {a.label} <span aria-hidden="true">→</span>
+                </button>
+              ) : (
+                <a key={a.label} href={a.href} {...(a.download ? { download: 'Tarun-Kullolli-Resume.pdf' } : {})}
+                  {...(a.external ? { target: '_blank', rel: 'noreferrer' } : {})}>
+                  {a.label} <span aria-hidden="true">→</span>
+                </a>
+              ),
+            )}
           </p>
         )}
+        {m.note && m.shown === undefined && <p className="msg-note">{m.note}</p>}
       </div>
     </li>
   )
@@ -71,6 +92,7 @@ export default function Chat({ visible }) {
   const [announce, setAnnounce] = useState('')
   const [mode, setMode] = useState(null) // 'live' | 'offline' after the first answer
   const [logging, setLogging] = useState(false) // questions are logged (server/questionLog.js)
+  const noted = useRef(false) // the offline note is shown once per visit
   const log = useRef(null)
   const timers = useRef([])
   const askRef = useRef(null)
@@ -153,7 +175,9 @@ export default function Chat({ visible }) {
             setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, text: full, shown } : m)))
           }
           if (!ended || i < full.length) return later(step, 16)
-          setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, text: full, actions: offline.actions, shown: undefined } : m)))
+          const note = !live && !noted.current ? OFFLINE_NOTE : undefined
+          if (note) noted.current = true
+          setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, text: full, actions: offline.actions, note, shown: undefined } : m)))
           faceState.talking = false
           setBusy(false)
           setChips(offline.followUps || [])

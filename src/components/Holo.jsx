@@ -1,4 +1,5 @@
 // Shared "holographic" visuals used by the project cards and the project panel.
+import { projectSlug } from '../projectSlug.js'
 
 function rng(seed) {
   let s = (seed + 1) * 9973
@@ -51,8 +52,8 @@ export function StackFlow({ stack, seed }) {
   )
 }
 
-// URL-friendly id for a project, used in #project/<slug> links.
-export const projectSlug = (e) => e.slug || e.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+// URL-friendly id for a project, used in #project/<slug> links (shared with Kairo's chat).
+export { projectSlug }
 
 // Real links only ('#' placeholders are hidden).
 export const projectLinks = (e) => Object.entries(e.links || {}).filter(([, url]) => url && url !== '#')

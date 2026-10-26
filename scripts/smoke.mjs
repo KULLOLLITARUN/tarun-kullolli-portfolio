@@ -99,6 +99,30 @@ try {
     await ctx.close()
   }
 
+  // Chat fallback: Groq is mocked as out of quota (never the real API), so Kairo answers from the offline script.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' })
+    const page = await ctx.newPage()
+    await page.route('**/api/chat', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({ status: 200, contentType: 'application/json', body: '{"logging":false}' })
+        : route.fulfill({ status: 429, contentType: 'application/json', body: '{"error":"busy","retryAfter":120}' }),
+    )
+    await page.goto(URL, { waitUntil: 'load' })
+    await page.waitForSelector('.chat.is-visible', { timeout: 30000 })
+    await page.fill('#chat-input', 'Tell me about Archiva')
+    await page.press('#chat-input', 'Enter')
+    await page.waitForSelector('.msg-actions a:has-text("Open Archiva case study")', { timeout: 20000 })
+    check((await page.getAttribute('.msg-actions a:has-text("Open Archiva case study")', 'href')) === '#project/archiva', 'chat: offline answer offers "Open Archiva case study"')
+    check((await page.locator('.msg-note').count()) === 1, 'chat: says once that the answer is offline')
+    await page.fill('#chat-input', 'Start the tour')
+    await page.press('#chat-input', 'Enter')
+    await page.click('.msg-actions button:has-text("Start the tour")')
+    await page.waitForSelector('.tour', { timeout: 8000 })
+    check(true, 'chat: "Start the tour" button starts the tour')
+    await ctx.close()
+  }
+
   // Every theme loads.
   for (const theme of THEMES) {
     const { ctx, page, errors } = await open(browser, { width: 1280, height: 800 }, theme)

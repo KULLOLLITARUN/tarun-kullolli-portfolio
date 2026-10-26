@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { answer, GREETING, STARTER_CHIPS } from '../src/chat/engine.js'
 import { experiments, profile } from '../src/data.js'
+import { projectSlug } from '../src/projectSlug.js'
 
 describe('offline engine', () => {
   it('introduces itself as Kairo and offers the site-guide chip', () => {
@@ -64,5 +65,27 @@ describe('offline engine', () => {
 
   it('handles an empty question', () => {
     expect(answer('   ').text).toMatch(/Ask me anything/)
+  })
+
+  it('offers an "Open case study" link for each project, to its own #project address', () => {
+    for (const e of experiments) {
+      const open = answer(`Tell me about ${e.title}`).actions.find((a) => /case study/.test(a.label))
+      expect(open.label).toBe(`Open ${e.title} case study`)
+      expect(open.href).toMatch(/^#project\/[a-z0-9-]+$/)
+      expect(open.href).toBe(`#project/${projectSlug(e)}`)
+    }
+  })
+
+  it('offers to start the tour: a button that fires the start-tour event', () => {
+    for (const q of ['Can you show me around?', 'Start the tour', 'What can I do here?']) {
+      const start = answer(q).actions.find((a) => a.event)
+      expect(start).toEqual({ label: 'Start the tour', event: 'start-tour' })
+    }
+  })
+
+  it('every action is either a link or an event button, never both or neither', () => {
+    for (const q of ['Tell me about Archiva', 'How can I contact him?', 'Show me around', 'What can I do here?']) {
+      for (const a of answer(q).actions) expect(Boolean(a.href) !== Boolean(a.event)).toBe(true)
+    }
   })
 })

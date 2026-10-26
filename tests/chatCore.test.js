@@ -125,10 +125,21 @@ describe('handleChat: Groq', () => {
     expect(body.model).toBe('test-model')
   })
 
-  it('returns 502 with the status code when Groq refuses', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }))
+  it('returns 502 with the status code when Groq fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
     const out = await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })
-    expect(out).toEqual({ status: 502, body: { error: 'upstream', code: 429 } })
+    expect(out).toEqual({ status: 502, body: { error: 'upstream', code: 500 } })
+  })
+
+  it('reports Groq being out of quota as busy, with its retry-after when it gives one', async () => {
+    const headers = { get: (k) => (k === 'retry-after' ? '120' : null) }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, headers }))
+    expect(await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })).toEqual({
+      status: 429,
+      body: { error: 'busy', retryAfter: 120 },
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }))
+    expect(await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })).toEqual({ status: 429, body: { error: 'busy' } })
   })
 
   it('returns 502 when Groq cannot be reached', async () => {

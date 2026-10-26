@@ -1,11 +1,16 @@
 // Offline résumé assistant: matches the question to an intent and answers from data.js.
 // Used when the live model (/api/chat) is unavailable; it also supplies follow-up chips and links.
 import { acts, certifications, currentJob, education, experiments, profile, skills } from '../data.js'
+import { projectSlug } from '../projectSlug.js'
 import { SITE_GUIDE } from './siteGuide.js'
 
 const first = profile.name.split(' ')[0]
 const jobs = acts.filter((a) => a.name !== 'Next' && a.name !== 'Foundations')
 const allSkills = skills.flatMap((g) => g.items)
+
+// An action is a link (href) or a button that fires a window event the page listens for (event).
+const START_TOUR = { label: 'Start the tour', event: 'start-tour' }
+const caseStudy = (e) => ({ label: `Open ${e.title} case study`, href: `#project/${projectSlug(e)}` })
 
 const contactActions = [
   { label: 'Email Tarun', href: `mailto:${profile.email}` },
@@ -208,12 +213,22 @@ const INTENTS = [
     words: ['resume', 'cv', 'pdf', 'download'],
     answer: () => ({ text: `Here's ${first}'s resume as a PDF.`, actions: contactActions.slice(1) }),
   },
+  {
+    id: 'tour',
+    words: ['tour', 'start the tour', 'take the tour', 'begin the tour', 'show me around', 'walk me through', 'walkthrough', 'guided', 'guide me'],
+    answer: () => ({
+      text: 'I can walk you through the page: his projects, career, skills and how to reach him. It takes about a minute, and Esc stops it any time.',
+      actions: [START_TOUR],
+      followUps: ['What projects has he built?', 'What does he do now?'],
+    }),
+  },
   // Last, so a tie with a question about Tarun goes to Tarun.
   {
     id: 'site',
     words: ['site', 'website', 'page', 'section', 'navigate', 'feature', 'do here', 'use this', 'how to use', 'help', 'guide', 'recruiter mode', 'command', 'shortcut', 'ctrl', 'colour', 'color', 'theme', 'dark mode', 'tour', 'kairo', 'mascot', 'clock', 'alarm'],
     answer: () => ({
       text: ['Here’s what you can do on this site:', ...SITE_GUIDE.map((line) => `• ${line}`)].join('\n'),
+      actions: [START_TOUR],
       followUps: ['What projects has he built?', 'What does he do now?', 'How can I contact him?'],
     }),
   },
@@ -240,6 +255,7 @@ export function answer(question) {
       ]
         .filter(Boolean)
         .join('\n'),
+      actions: [caseStudy(e), ...(e.links?.code && e.links.code !== '#' ? [{ label: 'View code', href: e.links.code, external: true }] : [])],
       followUps: experiments.filter((x) => x !== e).slice(0, 2).map((x) => `Tell me about ${x.title}`).concat('What are his skills?'),
     }
   }

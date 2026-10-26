@@ -44,7 +44,10 @@ async function open(browser, viewport, theme = 'night') {
 
 try {
   await waitForServer()
-  const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' })
+  const browser = await chromium.launch({
+    ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' }),
+    args: ['--enable-unsafe-swiftshader'], // software WebGL on machines without a GPU (CI)
+  })
 
   // Desktop: section links in the bar, no burger.
   {

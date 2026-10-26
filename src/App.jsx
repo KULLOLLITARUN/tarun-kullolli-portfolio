@@ -135,6 +135,7 @@ export default function App() {
         recruiter={recruiter}
         onToggleRecruiter={() => setRecruiter((r) => !r)}
         onPalette={() => setPaletteOpen(true)}
+        onTour={startTour}
       />
       <main id="main">
         {recruiter ? (

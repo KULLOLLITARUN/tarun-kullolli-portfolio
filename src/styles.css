@@ -2601,3 +2601,109 @@ html.has-cursor textarea {
   border-bottom: 1px solid var(--line-strong);
   border-left: 1px solid var(--line-strong);
 }
+
+/* ── Menu (burger) for screens without room for the section links ── */
+.nav-burger {
+  display: none;
+}
+.burger-bars,
+.burger-bars::before,
+.burger-bars::after {
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform var(--t-med) var(--ease), background var(--t-fast);
+}
+.burger-bars {
+  position: relative;
+}
+.burger-bars::before,
+.burger-bars::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+.burger-bars::before {
+  top: -5px;
+}
+.burger-bars::after {
+  top: 5px;
+}
+.burger-bars.is-open {
+  background: transparent;
+}
+.burger-bars.is-open::before {
+  transform: translateY(5px) rotate(45deg);
+}
+.burger-bars.is-open::after {
+  transform: translateY(-5px) rotate(-45deg);
+}
+.nav-sheet {
+  position: absolute;
+  top: 100%;
+  right: var(--gutter);
+  width: min(300px, calc(100vw - 2 * var(--gutter)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  padding: var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
+}
+.nav-sheet nav {
+  display: flex;
+  flex-direction: column;
+}
+.nav-sheet nav a,
+.sheet-tour {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-sheet nav a:hover,
+.sheet-tour:hover {
+  background: var(--wash);
+}
+.sheet-tour {
+  color: var(--amber);
+}
+.sheet-switch {
+  display: none;
+  justify-content: flex-start;
+}
+@media (max-width: 1024px) {
+  .nav-burger {
+    display: grid;
+  }
+}
+@media (max-width: 640px) {
+  /* The bar is full: the Recruiter switch moves into the menu. */
+  .nav-switch {
+    display: none;
+  }
+  .sheet-switch {
+    display: flex;
+  }
+}
+@media (min-width: 1025px) {
+  .nav-sheet {
+    display: none;
+  }
+}

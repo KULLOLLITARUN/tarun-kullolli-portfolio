@@ -2509,7 +2509,7 @@ html.has-cursor textarea {
   --nav-text: #334155;
   color-scheme: light;
 }
-:root[data-theme='day'] :is(.holo, .act-panel, .glass-panel, .chat, .tour, .palette, .toast span, .theme-picker) {
+:root[data-theme='day'] :is(.holo, .act-panel, .glass-panel, .chat, .tour, .palette, .toast span, .theme-picker, .mascot-bubble) {
   --bg: #000;
   --surface: #050506;
   --surface-2: #0c0c0e;
@@ -2542,6 +2542,11 @@ html.has-cursor textarea {
 }
 :root[data-theme='day'] :is(.act-panel, .glass-panel) {
   background: linear-gradient(180deg, rgba(18, 32, 62, 0.95), rgba(11, 21, 44, 0.92));
+}
+/* Kairo's speech bubble is a dark island too; on a light page it needs a near-opaque tint. */
+:root[data-theme='day'] .mascot-bubble,
+:root[data-theme='day'] .mascot-bubble::after {
+  background: rgba(8, 12, 24, 0.96);
 }
 :root[data-theme='day'] .tour {
   background: rgba(10, 10, 12, 0.97);

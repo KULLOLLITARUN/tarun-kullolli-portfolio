@@ -11,6 +11,27 @@ const TEXT_W = 10 // name block width in "name space" units
 const STAR_COLORS = ['#f4f4f5', '#a78bfa', '#60a5fa', '#f5b544', '#f472b6', '#38bdf8', '#fb7185']
 // Muted tints for the large background orbs: red, blue, gold, purple, warm white.
 const ORB_COLORS = ['#ff8577', '#7fa8ff', '#f5c56b', '#b394ff', '#fff1e0']
+// Night keeps the multicolour sky above. Every other theme paints its stars and orbs from its own
+// colours (white plus the theme's glass, accent and kicker tones), so the sky changes with the theme.
+const hex = (rgb) => '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
+const keepsSky = (t) => t.id === 'night' || t.light
+const starPalette = (t) => (keepsSky(t) ? STAR_COLORS : ['#f4f4f5', hex(t.glass), hex(t.glassSoft), hex(t.accent), hex(t.kicker), hex(t.glassHi)])
+const orbPalette = (t) => (keepsSky(t) ? ORB_COLORS : [hex(t.accent), hex(t.glass), hex(t.kicker), hex(t.glassHi), '#fff1e0'])
+// Each star remembers its random pick (white or which tint), so it can be repainted when the theme changes.
+function paintStars(color, pick, palette) {
+  const cols = palette.map((h) => new THREE.Color(h))
+  for (let i = 0; i < pick.length / 2; i++) {
+    const c = pick[i * 2] === 0 ? cols[0] : cols[1 + Math.floor(pick[i * 2 + 1] * (cols.length - 1))]
+    color.set([c.r, c.g, c.b], i * 3)
+  }
+}
+function paintOrbs(color, pick, palette) {
+  const cols = palette.map((h) => new THREE.Color(h))
+  for (let i = 0; i < pick.length; i++) {
+    const c = cols[Math.floor(pick[i] * cols.length)]
+    color.set([c.r, c.g, c.b], i * 3)
+  }
+}
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const smooth = (cur, target, dt, speed) => cur + (target - cur) * (1 - Math.exp(-dt * speed))
 
@@ -1062,7 +1083,7 @@ function StarField({ ndc, wide }) {
     const pos = new Float32Array(count * 3)
     const rand = new Float32Array(count)
     const color = new Float32Array(count * 3)
-    const cols = STAR_COLORS.map((h) => new THREE.Color(h))
+    const pick = new Float32Array(count * 2)
     const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random())
     for (let i = 0; i < count; i++) {
       if (i % 5 < 3) {
@@ -1073,13 +1094,15 @@ function StarField({ ndc, wide }) {
         pos.set([(Math.random() - 0.5) * 36, (Math.random() - 0.5) * 20, -10 + Math.random() * 11], i * 3)
       }
       rand[i] = Math.random()
-      const c = Math.random() < 0.45 ? cols[0] : cols[1 + ((Math.random() * (cols.length - 1)) | 0)]
-      color.set([c.r, c.g, c.b], i * 3)
+      pick[i * 2] = Math.random() < 0.45 ? 0 : 1
+      pick[i * 2 + 1] = Math.random()
     }
+    paintStars(color, pick, starPalette(themeState.colors))
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
     g.setAttribute('aColor', new THREE.BufferAttribute(color, 3))
     g.setAttribute('aRand', new THREE.BufferAttribute(rand, 1))
+    g.userData.pick = pick
     return g
   }, [wide])
   useEffect(() => () => geometry.dispose(), [geometry])
@@ -1091,25 +1114,38 @@ function StarField({ ndc, wide }) {
     const pos = new Float32Array(count * 3)
     const rand = new Float32Array(count)
     const color = new Float32Array(count * 3)
-    const cols = ORB_COLORS.map((h) => new THREE.Color(h))
+    const pick = new Float32Array(count)
     for (let i = 0; i < count; i++) {
       pos.set([(Math.random() - 0.5) * 36, (Math.random() - 0.5) * 20, -10 + Math.random() * 7], i * 3)
       rand[i] = Math.random()
-      const c = cols[(Math.random() * cols.length) | 0]
-      color.set([c.r, c.g, c.b], i * 3)
+      pick[i] = Math.random()
     }
+    paintOrbs(color, pick, orbPalette(themeState.colors))
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
     g.setAttribute('aColor', new THREE.BufferAttribute(color, 3))
     g.setAttribute('aRand', new THREE.BufferAttribute(rand, 1))
+    g.userData.pick = pick
     return g
   }, [wide])
   useEffect(() => () => orbGeometry.dispose(), [orbGeometry])
   const orbUniforms = useUniforms(() => ({ uSize: { value: 26 }, uScroll: { value: 0 } }))
   const { viewport } = useThree()
+  const painted = useRef(themeState.id)
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
+    if (painted.current !== themeState.id) {
+      painted.current = themeState.id
+      for (const [g, paint, palette] of [
+        [geometry, paintStars, starPalette],
+        [orbGeometry, paintOrbs, orbPalette],
+      ]) {
+        const attr = g.getAttribute('aColor')
+        paint(attr.array, g.userData.pick, palette(themeState.colors))
+        attr.needsUpdate = true
+      }
+    }
     const scroll = (window.scrollY / window.innerHeight) * viewport.height
     mat.current.uniforms.uTime.value = state.clock.elapsedTime
     mat.current.uniforms.uScroll.value = scroll * 0.35

@@ -1153,8 +1153,8 @@ html.has-cursor textarea {
   padding-bottom: var(--s-8);
 }
 .holo-card {
-  --ice: 186, 230, 253; /* pale sky blue */
-  --sky: 125, 211, 252;
+  --ice: var(--glass-soft-rgb); /* the card edge and glass tint follow the theme */
+  --sky: var(--glass-rgb);
   position: relative;
   scroll-margin-top: 96px;
   perspective: 1200px;
@@ -1439,8 +1439,8 @@ html.has-cursor textarea {
   pointer-events: none;
 }
 .holo.pd {
-  --ice: 186, 230, 253;
-  --sky: 125, 211, 252;
+  --ice: var(--glass-soft-rgb);
+  --sky: var(--glass-rgb);
   display: block;
   min-height: 0;
   margin-bottom: var(--s-8);
@@ -2509,6 +2509,11 @@ html.has-cursor textarea {
   --nav-text: #334155;
   color-scheme: light;
 }
+:root[data-theme='day'] .holo-card,
+:root[data-theme='day'] .holo.pd {
+  --ice: 186, 230, 253;
+  --sky: 125, 211, 252;
+}
 :root[data-theme='day'] :is(.holo, .act-panel, .glass-panel, .chat, .tour, .palette, .toast span, .theme-picker, .mascot-bubble) {
   --bg: #000;
   --surface: #050506;
@@ -2823,4 +2828,21 @@ html.has-cursor textarea {
     transition: none;
     animation: none;
   }
+}
+
+/* A faint wash of the theme's colours behind the star field, so each theme reads as its own place.
+   Day is a light page, so it has none. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(var(--glass-deep-rgb), 0.6), transparent 72%),
+    radial-gradient(ellipse 60% 45% at 0% 100%, rgba(var(--glass-rgb), 0.1), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 100% 100%, rgba(var(--accent-rgb), 0.1), transparent 70%);
+}
+:root[data-theme='day'] body::before {
+  display: none;
 }

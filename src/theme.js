@@ -69,7 +69,7 @@ export const THEMES = [
     kicker: [252, 211, 77],
   },
   {
-    // After Tokyo Night: orange accent on a blue-violet glass. Kairo keeps its usual colours.
+    // After Tokyo Night: orange accent on a blue-violet glass. Kairo is indigo.
     id: 'dusk',
     name: 'Dusk',
     accent: [255, 158, 100],
@@ -80,13 +80,13 @@ export const THEMES = [
     glassHi: [137, 221, 255],
     glassPale: [192, 202, 245],
     glassDeep: [28, 34, 100],
-    tickA: [56, 189, 248],
-    tickB: [29, 78, 216],
+    tickA: [129, 140, 248], // indigo Kairo (Night keeps the sky blue)
+    tickB: [67, 56, 202],
     shoe: [224, 175, 104],
     kicker: [187, 154, 247],
   },
   {
-    // After Catppuccin Mocha: peach accent on a pink glass with a plum wash. Kairo keeps its usual colours.
+    // After Catppuccin Mocha: peach accent on a pink glass with a plum wash. Kairo is mauve-pink.
     id: 'mocha',
     name: 'Mocha',
     accent: [250, 179, 135],
@@ -97,8 +97,8 @@ export const THEMES = [
     glassHi: [250, 215, 240],
     glassPale: [248, 224, 244],
     glassDeep: [88, 38, 78],
-    tickA: [56, 189, 248],
-    tickB: [29, 78, 216],
+    tickA: [240, 171, 225], // mauve-pink Kairo to match the pink glass
+    tickB: [162, 76, 150],
     shoe: [249, 226, 175],
     kicker: [203, 166, 247],
   },

@@ -2557,3 +2557,47 @@ html.has-cursor textarea {
 :root[data-theme='day'] .hero-name.is-resolved {
   filter: none;
 }
+
+/* ── Kairo on the guided tour ──────────────────────────────
+   Mascot.jsx shrinks Kairo and parks it (position: fixed) above the tour bar, beside the thing
+   it is pointing at; the inline transform and height do the flying. */
+.mascot.is-touring,
+.mascot-bubble-anchor.is-touring {
+  position: fixed;
+  right: auto;
+  aspect-ratio: 320 / 400;
+  transition: transform 800ms var(--ease), height 800ms var(--ease);
+}
+.mascot.is-visible.is-touring,
+.mascot.is-touring {
+  z-index: 55;
+  opacity: 1;
+  animation: none;
+}
+.mascot-bubble-anchor.is-touring {
+  z-index: 56;
+}
+.is-landing,
+.is-touring.is-still {
+  transition: none !important;
+}
+.mascot-bubble-anchor.is-touring .mascot-bubble {
+  top: auto;
+  bottom: 8%;
+  max-width: min(260px, calc(100vw - 150px));
+}
+.mascot-bubble-anchor.is-touring .mascot-bubble::after {
+  top: auto;
+  bottom: 14px;
+}
+.mascot-bubble-anchor.is-left .mascot-bubble {
+  right: auto;
+  left: 82%;
+}
+.mascot-bubble-anchor.is-left .mascot-bubble::after {
+  right: auto;
+  left: -6px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  border-left: 1px solid var(--line-strong);
+}

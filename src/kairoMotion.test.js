@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jumpPose, springStep, tickWobble } from './kairoMotion.js'
+import { dockPose, dockSide, jumpPose, springStep, tickWobble } from './kairoMotion.js'
 
 describe('jumpPose', () => {
   it('is at rest before the start and after the end', () => {
@@ -53,5 +53,24 @@ describe('tickWobble', () => {
     expect(tickWobble(350)).toBe(0)
     expect(tickWobble(900)).toBe(0)
     expect(tickWobble(-5)).toBe(0)
+  })
+})
+
+describe('dock', () => {
+  it('parks above the tour bar, inside the screen, on the requested side', () => {
+    const r = dockPose(1280, 800, 90, 'right')
+    expect(r.h).toBe(144)
+    expect(r.x + r.h * 0.8).toBe(1280 - 16)
+    expect(r.y + r.h).toBeLessThanOrEqual(800 - 90 - 16)
+    expect(dockPose(1280, 800, 90, 'left').x).toBe(16)
+  })
+  it('stays small on phones and never goes off the top', () => {
+    expect(dockPose(390, 700, 140, 'right').h).toBe(126)
+    expect(dockPose(390, 400, 300, 'right').y).toBe(16)
+  })
+  it('picks the side away from the target', () => {
+    expect(dockSide(900, 1280)).toBe('left')
+    expect(dockSide(200, 1280)).toBe('right')
+    expect(dockSide(null, 1280)).toBe('right')
   })
 })

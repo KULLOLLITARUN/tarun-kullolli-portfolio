@@ -4,7 +4,7 @@ import { faceState } from '../chat/faceState.js'
 import { useReducedMotion } from '../hooks.js'
 import { cueText, HELLO_KEY, HELLO_TEXT, helloWanted } from '../kairoBubble.js'
 import { IDLE, moodForHour } from '../kairoMoods.js'
-import { jumpPose, springStep, tickWobble } from '../kairoMotion.js'
+import { dockPose, dockSide, jumpPose, springStep, tickWobble } from '../kairoMotion.js'
 import { availableThemes, setTheme, themeState } from '../theme.js'
 
 // "Kairo" — an original rubber-hose alarm-clock character drawn in SVG.
@@ -136,6 +136,9 @@ export default function Mascot({ visible }) {
   const [picker, setPicker] = useState(null) // where the theme picker is open ({ x, y }), or null
   const closePicker = useRef(() => setPicker(null)).current
   const [bubble, setBubble] = useState(null) // the speech bubble's text, or null
+  // Tour mode: Kairo shrinks and parks in the corner above the tour bar ({ side, h, x, y }), or null.
+  const [dock, setDock] = useState(null)
+  const [landing, setLanding] = useState(false) // first frame of the fly-over: no transition yet
   const bubbleOn = useRef(false) // mirrors `bubble` for the event handlers
   const hideTimer = useRef(0)
   const shownCues = useRef(new Set()).current // hero cues already spoken this visit
@@ -226,7 +229,8 @@ export default function Mascot({ visible }) {
     let prevVy = 0
     let bellS = { x: 0, v: 0 } // bells and knob lag behind the body (follow-through)
     let knobS = { x: 0, v: 0 }
-    let cueHop = -1 // start of the small excited bounce (tour link)
+    let cueHop = -1 // start of the small excited bounce (tour link, each tour step)
+    let tourOn = false
     let arriveHop = visible && !reduce ? performance.now() + 700 : -1 // a landing hop as it appears
     let idleKind = null // the time-of-day bit in progress (see kairoMoods.js)
     let idleStart = -1
@@ -278,6 +282,50 @@ export default function Mascot({ visible }) {
     const onCueEnd = (e) => {
       if (cue.el && cue.el === e.target.closest?.('[data-kairo]')) cue.el = null
     }
+    // The guided tour (Tour.jsx): park in the corner, look at the step's element and say its line.
+    let tourSide = 'right'
+    let dockTimer = 0
+    const park = (side) => {
+      tourSide = side
+      const bar = document.querySelector('.tour')?.offsetHeight ?? 90
+      return { side, ...dockPose(window.innerWidth, window.innerHeight, bar, side) }
+    }
+    const onTour = (e) => {
+      const { line, target, hold } = e.detail
+      const el = target ? document.querySelector(target) : null
+      const box = el?.getBoundingClientRect()
+      const side = dockSide(box ? box.left + box.width / 2 : null, window.innerWidth)
+      const now = performance.now()
+      if (!tourOn) {
+        // Fly over from where Kairo stands in the hero.
+        tourOn = true
+        const from = root.current.parentElement.getBoundingClientRect()
+        setDock({ side, h: from.height, x: from.left, y: from.top })
+        if (!reduce) {
+          setLanding(true)
+          dockTimer = setTimeout(() => {
+            setLanding(false)
+            setDock(park(side))
+          }, 60)
+        } else setDock(park(side))
+      } else setDock(park(side))
+      cue.el = el
+      cue.until = el ? Infinity : 0
+      if (!reduce) cueHop = now
+      say(line, hold ? 600000 : 8600)
+    }
+    const onTourEnd = () => {
+      tourOn = false
+      clearTimeout(dockTimer)
+      setLanding(false)
+      setDock(null)
+      cue.el = null
+      say(null)
+    }
+    const onResize = () => tourOn && setDock(park(tourSide))
+    window.addEventListener('kairo-tour', onTour)
+    window.addEventListener('kairo-tour-end', onTourEnd)
+    window.addEventListener('resize', onResize)
     document.addEventListener('pointerover', onCue)
     document.addEventListener('focusin', onCue)
     document.addEventListener('pointerout', onCueEnd)
@@ -587,6 +635,10 @@ export default function Mascot({ visible }) {
       cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('kairo-tour', onTour)
+      window.removeEventListener('kairo-tour-end', onTourEnd)
+      window.removeEventListener('resize', onResize)
+      clearTimeout(dockTimer)
       window.removeEventListener('keydown', wake)
       window.removeEventListener('touchstart', wake)
       document.removeEventListener('pointerover', onCue)
@@ -617,9 +669,14 @@ export default function Mascot({ visible }) {
     )
   })
 
+  const dockClass = dock ? ` is-touring is-${dock.side}${landing ? ' is-landing' : ''}${reduce ? ' is-still' : ''}` : ''
+  const dockStyle = dock
+    ? { left: 0, top: 0, bottom: 'auto', height: dock.h, transform: `translate(${dock.x}px, ${dock.y}px)` }
+    : undefined
+
   return (
     <>
-    <div className={`mascot${visible ? ' is-visible' : ''}`} aria-hidden="true">
+    <div className={`mascot${visible ? ' is-visible' : ''}${dockClass}`} style={dockStyle} aria-hidden="true">
       <svg ref={root} viewBox="0 0 320 400" className="mascot-svg">
         <defs>
           <linearGradient id="tick-body" x1="0" y1="0" x2="0" y2="1">
@@ -774,8 +831,8 @@ export default function Mascot({ visible }) {
         </g>
       </svg>
     </div>
-    {bubble && visible && (
-      <div className={`mascot-bubble-anchor${reduce ? ' is-still' : ''}`}>
+    {bubble && (visible || dock) && (
+      <div className={`mascot-bubble-anchor${reduce ? ' is-still' : ''}${dockClass}`} style={dockStyle}>
         <div className="mascot-bubble" role="status">
           <span>{bubble}</span>
           <button type="button" aria-label="Dismiss" onClick={() => say(null)}>

@@ -30,3 +30,20 @@ export function tickWobble(ms) {
   if (!(ms >= 0 && ms < 350)) return 0
   return 1.4 * Math.exp(-ms / 70) * Math.sin(ms / 14) * (1 - ms / 350)
 }
+
+// Where the small touring Kairo parks (viewport px): `h` is its height (width follows the 320:400
+// aspect), `x`/`y` its top-left corner. It sits above the tour bar (height `barH`) on `side`.
+export function dockPose(vw, vh, barH, side) {
+  const h = Math.round(Math.min(150, Math.max(96, vh * 0.18)))
+  const margin = 16
+  return {
+    h,
+    x: side === 'left' ? margin : vw - margin - h * 0.8,
+    y: Math.max(margin, vh - barH - margin - 12 - h),
+  }
+}
+
+// Park on the side away from the thing it is pointing at (centre x of that element, if any).
+export function dockSide(targetX, vw) {
+  return targetX != null && targetX > vw / 2 ? 'left' : 'right'
+}

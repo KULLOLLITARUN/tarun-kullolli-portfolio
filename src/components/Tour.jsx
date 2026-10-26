@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { profile } from '../data.js'
-import { scrollToStation } from '../hooks.js'
+import { scrollToId, scrollToStation, useNarrow } from '../hooks.js'
 
 // `line` is what Kairo says (facts from the project READMEs and résumé only); `target` is the
 // element it looks at, and decides which side of the screen it parks on.
@@ -14,6 +14,7 @@ const STEPS = [
   {
     id: 'experiments',
     target: '#exp-01',
+    card: 'exp-01', // phones stack the cards, so scroll to this one
     label: 'Archiva',
     note: 'Self-healing agentic RAG',
     line: 'Archiva answers only from your own documents, and retries and repairs its own failures. 523 tests run in CI.',
@@ -21,6 +22,7 @@ const STEPS = [
   {
     id: 'experiments',
     target: '#exp-02',
+    card: 'exp-02', // phones stack the cards, so scroll to this one
     label: 'PBIP Sentinel',
     note: 'Quality gate for Power BI projects',
     line: 'PBIP Sentinel audits Power BI projects: 94 of 94 findings were true positives across 11 real models.',
@@ -28,6 +30,7 @@ const STEPS = [
   {
     id: 'experiments',
     target: '#exp-03',
+    card: 'exp-03', // phones stack the cards, so scroll to this one
     label: 'Markpull',
     note: 'Plain-English web extraction',
     line: 'Markpull turns a web page into structured data from a plain-English request, with every record marked on the page.',
@@ -60,9 +63,12 @@ export default function Tour({ onEnd }) {
   const [step, setStep] = useState(0)
   const [paused, setPaused] = useState(false)
   const last = step === STEPS.length - 1
+  const narrow = useNarrow()
 
   useEffect(() => {
-    scrollToStation(STEPS[step].id)
+    const { card } = STEPS[step]
+    if (card && narrow) scrollToId(card)
+    else scrollToStation(STEPS[step].id)
     const { line, target } = STEPS[step]
     window.dispatchEvent(new CustomEvent('kairo-tour', { detail: { line, target, hold: step === STEPS.length - 1 } }))
   }, [step])

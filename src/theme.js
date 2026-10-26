@@ -69,6 +69,40 @@ export const THEMES = [
     kicker: [252, 211, 77],
   },
   {
+    // After Tokyo Night: orange accent on a blue-violet glass. Kairo keeps its usual colours.
+    id: 'dusk',
+    name: 'Dusk',
+    accent: [255, 158, 100],
+    accentHi: [255, 184, 140],
+    accentPale: [255, 232, 214],
+    glass: [122, 162, 247],
+    glassSoft: [125, 207, 255],
+    glassHi: [137, 221, 255],
+    glassPale: [192, 202, 245],
+    glassDeep: [36, 40, 59],
+    tickA: [56, 189, 248],
+    tickB: [29, 78, 216],
+    shoe: [224, 175, 104],
+    kicker: [187, 154, 247],
+  },
+  {
+    // After Catppuccin Mocha: peach accent on a lavender glass. Kairo keeps its usual colours.
+    id: 'mocha',
+    name: 'Mocha',
+    accent: [250, 179, 135],
+    accentHi: [252, 205, 174],
+    accentPale: [253, 234, 222],
+    glass: [180, 190, 254],
+    glassSoft: [137, 180, 250],
+    glassHi: [148, 226, 213],
+    glassPale: [205, 214, 244],
+    glassDeep: [49, 50, 68],
+    tickA: [56, 189, 248],
+    tickB: [29, 78, 216],
+    shoe: [249, 226, 175],
+    kicker: [137, 180, 250],
+  },
+  {
     // The only light theme, offered on phones only (see NARROW_QUERY). The page goes light; the glass
     // cards, chat and menus stay dark panels (styles.css, "Day"), so these colours are the ones
     // drawn straight on the light page: darker than the other themes to stay readable.

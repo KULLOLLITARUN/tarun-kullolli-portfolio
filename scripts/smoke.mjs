@@ -136,6 +136,43 @@ try {
     await ctx.close()
   }
 
+  // Accessibility of the other states: the command menu, an open case study, recruiter mode and
+  // the phone-only Day theme.
+  const scan = async (page, name) => {
+    const { violations } = await new AxeBuilder({ page }).analyze()
+    const bad = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    check(bad.length === 0, `${name}: no serious accessibility violations ${bad.map((v) => `${v.id} (${v.nodes.length})`).join(', ')}`)
+  }
+  {
+    const { ctx, page } = await open(browser, { width: 1280, height: 800 })
+    await page.keyboard.press('Control+k')
+    await page.waitForSelector('.palette')
+    await scan(page, 'command menu')
+    await ctx.close()
+  }
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+    const page = await ctx.newPage()
+    await page.goto(`${URL}#project/archiva`, { waitUntil: 'load' })
+    await page.waitForSelector('.pd-demo', { timeout: 15000 })
+    await scan(page, 'case study')
+    await ctx.close()
+  }
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+    const page = await ctx.newPage()
+    await page.goto(`${URL}?recruiter`, { waitUntil: 'load' })
+    await page.waitForSelector('.recruiter')
+    await scan(page, 'recruiter mode')
+    await ctx.close()
+  }
+  {
+    const { ctx, page } = await open(browser, { width: 393, height: 852 }, 'day')
+    await page.waitForTimeout(800)
+    await scan(page, 'Day theme on a phone')
+    await ctx.close()
+  }
+
   await browser.close()
 } catch (e) {
   console.error(e)

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { isNarrow, NARROW_QUERY } from './theme.js'
 
-// Boolean flag persisted in localStorage (storage failures are ignored).
+// Boolean flag persisted in localStorage (storage failures are ignored). An `initial` value (from
+// the URL) is used for this visit only: it is saved once the visitor changes the flag themselves.
 export function useStoredFlag(key, initial) {
   const [value, setValue] = useState(() => {
     if (initial !== undefined) return initial
@@ -13,14 +14,20 @@ export function useStoredFlag(key, initial) {
       return false
     }
   })
+  const touched = useRef(initial === undefined)
+  const set = useCallback((next) => {
+    touched.current = true
+    setValue(next)
+  }, [])
   useEffect(() => {
+    if (!touched.current) return
     try {
       localStorage.setItem(key, value ? '1' : '0')
     } catch {
       /* private mode etc. */
     }
   }, [key, value])
-  return [value, setValue]
+  return [value, set]
 }
 
 export function useReducedMotion() {

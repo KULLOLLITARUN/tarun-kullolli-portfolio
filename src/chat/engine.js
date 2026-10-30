@@ -90,10 +90,14 @@ function techAnswer(found, missing) {
   }
 }
 
+// Everyday words that must not point at a project by themselves ("what impact has he had?").
+const COMMON_WORDS = new Set(['impact'])
+
 // Words that point at a project: its full title, the longer words in it, plus its keywords.
 const PROJECT_KEYS = experiments.map((e) => {
   const title = e.title.toLowerCase()
-  return [title, ...title.split(/\s+/).filter((w) => w.length > 3), ...(e.keywords || [])]
+  const words = title.split(/\s+/).filter((w) => w.length > 3 && !COMMON_WORDS.has(w))
+  return [title, ...words, ...(e.keywords || []).filter((k) => !COMMON_WORDS.has(k))]
 })
 
 const INTENTS = [

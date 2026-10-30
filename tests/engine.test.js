@@ -18,6 +18,11 @@ describe('offline engine', () => {
     }
   })
 
+  it('does not mistake an everyday word for a project name', () => {
+    expect(answer('What impact has he had?').text).not.toContain('AI Impact')
+    expect(answer('Tell me about AI Impact').text).toContain('AI Impact')
+  })
+
   it('lists every project when asked about projects in general', () => {
     const a = answer('What projects has he built?')
     for (const e of experiments) expect(a.text).toContain(e.title)

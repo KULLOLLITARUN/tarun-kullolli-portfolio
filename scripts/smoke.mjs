@@ -4,6 +4,7 @@
 // to use another browser. Run with `npm run smoke`.
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright-core'
+import AxeBuilder from '@axe-core/playwright'
 
 const PORT = 4188
 const URL = `http://localhost:${PORT}/`
@@ -123,11 +124,15 @@ try {
     await ctx.close()
   }
 
-  // Every theme loads.
+  // Every theme loads, and has no serious or critical accessibility violations (axe), which
+  // includes colour contrast.
   for (const theme of THEMES) {
     const { ctx, page, errors } = await open(browser, { width: 1280, height: 800 }, theme)
     await page.waitForTimeout(800)
     check((await page.evaluate(() => document.documentElement.dataset.theme)) === theme && errors.length === 0, `theme ${theme} loads cleanly ${errors[0] ?? ''}`)
+    const { violations } = await new AxeBuilder({ page }).analyze()
+    const bad = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    check(bad.length === 0, `theme ${theme}: no serious accessibility violations ${bad.map((v) => `${v.id} (${v.nodes.length})`).join(', ')}`)
     await ctx.close()
   }
 

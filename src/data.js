@@ -37,6 +37,7 @@ export const profile = {
 //   architecture: ['Stage 1', 'Stage 2', ...],  (up to 6 short labels; defaults to stack)
 //   shots: [{ src: '/projects/x.webp', width: 1600, height: 726, alt: 'What it shows', caption: 'Optional' }],
 //          (real screenshots in /public/projects, shown at the top of the detailed card)
+//   tourLine: 'The sentence Kairo says about it on the guided tour (required: one tour stop per project).'
 // Each project gets a shareable link: #project/<title-in-lowercase-with-dashes>.
 // Optional: slug: '...' overrides that, aliases: ['old-slug'] keeps links from an earlier name working.
 export const experiments = [
@@ -58,6 +59,8 @@ export const experiments = [
       'Also: multi-hop questions split into sub-questions, prompt-injection screening, scanned PDFs read with OCR as crash-safe background jobs, and Postgres storage shared by several workers',
     ],
     result: 'Answers only from your documents, with self-healing retries',
+    // What Kairo says about it on the guided tour.
+    tourLine: 'Archiva answers only from your own documents, and retries and repairs its own failures. 523 tests run in CI.',
     results: [
       '523 tests (unit, HTTP integration and Postgres) run in CI on every push, with every LLM call mocked',
       'Offline retrieval-quality evaluation harness with golden queries, plus an end-to-end answer-quality eval against Groq',
@@ -128,6 +131,7 @@ export const experiments = [
       'MCP server that lets AI agents (Claude Desktop, Cursor, Claude Code) query quality scores and measure lineage and propose fixes',
     ],
     result: '94/94 true positives across 11 real models',
+    tourLine: 'PBIP Sentinel audits Power BI projects: 94 of 94 findings were true positives across 11 real models.',
     results: [
       '94 of 94 classified findings were true positives across 11 real models (0 false positives)',
       '0% crash rate across the corpus',
@@ -191,6 +195,7 @@ export const experiments = [
       'Locate matches each record to a repeated block on the page, so every record is marked and numbered on a screenshot with an "open ↗" link taken from the page, not guessed by the model',
     ],
     result: '30 of 30 Hacker News stories, each marked on the page',
+    tourLine: 'Markpull turns a web page into structured data from a plain-English request, with every record marked on the page.',
     results: [
       'Books to Scrape: 20 of 20 books, each marked on the page with its own book link',
       'Hacker News: 30 of 30 stories, and every "open ↗" matches the story’s link',
@@ -255,6 +260,7 @@ export const experiments = [
       'Optional explanation with Gemini or Groq: the model only sees the already-computed evidence and cannot change a risk label or invent a caller; with no key, the evidence is still printed',
     ],
     result: 'Blast radius and test gaps, with the evidence behind every risk label',
+    tourLine: 'AI Impact finds the blast radius of a Python change and its likely test gaps, with the evidence behind every risk label.',
     results: [
       '14 of 14 automated tests pass (fixture-driven, no network calls)',
       'Checked end to end against live Gemini and Groq calls, producing correctly grounded explanations',

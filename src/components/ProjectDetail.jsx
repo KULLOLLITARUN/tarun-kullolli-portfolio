@@ -44,8 +44,11 @@ export default function ProjectDetail({ project: e, index, onClose }) {
   }, [index])
 
   useEffect(() => {
+    // Esc belongs to whatever is on top (command menu, theme picker, tour, phone menu), not to the project behind it.
     const onKey = (ev) => {
-      if (ev.key === 'Escape') onClose()
+      if (ev.key !== 'Escape' || ev.defaultPrevented) return
+      if (document.querySelector('.palette, .theme-picker, .tour, .nav-sheet')) return
+      onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

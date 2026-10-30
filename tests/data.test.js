@@ -18,7 +18,7 @@ describe('profile', () => {
 
 describe('projects', () => {
   it.each(experiments.map((e) => [e.title, e]))('%s has the fields the cards and résumé need', (_, e) => {
-    for (const field of ['code', 'title', 'subtitle', 'description', 'result']) expect(e[field], field).toBeTruthy()
+    for (const field of ['code', 'title', 'subtitle', 'description', 'result', 'tourLine']) expect(e[field], field).toBeTruthy()
     expect(e.stack.length).toBeGreaterThan(0)
     expect(e.links.code).toMatch(/^https:\/\/github\.com\//)
     if (e.architecture) expect(e.architecture.length).toBeLessThanOrEqual(6)

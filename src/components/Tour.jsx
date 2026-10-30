@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
-import { profile } from '../data.js'
+import { acts, currentJob, experiments, profile } from '../data.js'
 import { scrollToId, scrollToStation, useNarrow } from '../hooks.js'
 
+const COUNT = ['zero', 'one', 'two', 'three', 'four', 'five', 'six']
+const first = acts[0]
+
 // `line` is what Kairo says (facts from the project READMEs and résumé only); `target` is the
-// element it looks at, and decides which side of the screen it parks on.
+// element it looks at, and decides which side of the screen it parks on. One stop per project
+// (its tourLine in data.js), so a new project joins the tour on its own.
 const STEPS = [
   {
     id: 'top',
@@ -11,36 +15,23 @@ const STEPS = [
     note: `${profile.name} — ${profile.role}`,
     line: "I'm Kairo. Let me show you Tarun's work. It takes about a minute.",
   },
-  {
-    id: 'experiments',
-    target: '#exp-01',
-    card: 'exp-01', // phones stack the cards, so scroll to this one
-    label: 'Archiva',
-    note: 'Self-healing agentic RAG',
-    line: 'Archiva answers only from your own documents, and retries and repairs its own failures. 523 tests run in CI.',
-  },
-  {
-    id: 'experiments',
-    target: '#exp-02',
-    card: 'exp-02', // phones stack the cards, so scroll to this one
-    label: 'PBIP Sentinel',
-    note: 'Quality gate for Power BI projects',
-    line: 'PBIP Sentinel audits Power BI projects: 94 of 94 findings were true positives across 11 real models.',
-  },
-  {
-    id: 'experiments',
-    target: '#exp-03',
-    card: 'exp-03', // phones stack the cards, so scroll to this one
-    label: 'Markpull',
-    note: 'Plain-English web extraction',
-    line: 'Markpull turns a web page into structured data from a plain-English request, with every record marked on the page.',
-  },
+  ...experiments.map((e, i) => {
+    const n = String(i + 1).padStart(2, '0')
+    return {
+      id: 'experiments',
+      target: `#exp-${n}`,
+      card: `exp-${n}`, // phones stack the cards, so scroll to this one
+      label: e.title,
+      note: e.subtitle,
+      line: e.tourLine,
+    }
+  }),
   {
     id: 'acts',
     target: '#acts',
     label: 'Acts',
     note: 'Career so far',
-    line: 'Three acts: a CS degree, a full-stack internship, and now AI Engineer at Quintesys.',
+    line: `${COUNT[acts.length] || acts.length} acts, from ${first.title} to ${currentJob.title} at ${currentJob.org.replace(/ Pvt\. Ltd$/, '')}.`.replace(/^./, (c) => c.toUpperCase()),
   },
   {
     id: 'system',

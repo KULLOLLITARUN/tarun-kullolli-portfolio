@@ -46,15 +46,14 @@ export default function CommandPalette({ open, onClose, actions }) {
   }
 
   return (
-    <div className="palette-backdrop" onMouseDown={onClose}>
-      <div
-        className="palette"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command menu"
-        onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={onKeyDown}
-      >
+    // The backdrop only catches clicks outside the dialog and the keys bubbling up from the input.
+    <div
+      className="palette-backdrop"
+      role="presentation"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={onKeyDown}
+    >
+      <div className="palette" role="dialog" aria-modal="true" aria-label="Command menu">
         <input
           ref={input}
           className="palette-input"
@@ -73,6 +72,8 @@ export default function CommandPalette({ open, onClose, actions }) {
         <ul id="palette-list" role="listbox" className="palette-list">
           {results.length === 0 && <li className="palette-empty">No matching commands</li>}
           {results.map((a, i) => (
+            // Keyboard use stays on the search input (aria-activedescendant + Enter above).
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events
             <li
               key={a.id}
               id={`cmd-${a.id}`}

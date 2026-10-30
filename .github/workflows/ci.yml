@@ -16,6 +16,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint
       - run: npm test
       - run: npm run build
       # Uses the Chrome that ubuntu-latest ships with. Not yet seen passing on GitHub: once it has, drop

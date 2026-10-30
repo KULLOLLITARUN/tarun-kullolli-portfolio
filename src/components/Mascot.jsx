@@ -149,7 +149,6 @@ export default function Mascot({ visible }) {
     setBubble(text)
     if (text) hideTimer.current = setTimeout(() => say(null), ms)
   }).current
-  const armRefs = () => ({ ink: useRef(null), core: useRef(null), glove: useRef(null) })
   const r = {
     body: useRef(null),
     pupils: [useRef(null), useRef(null)],
@@ -175,8 +174,11 @@ export default function Mascot({ visible }) {
     leftFront: useRef(null),
   }
   // The left arm is drawn twice: behind the body on the hip, in front of it at the chin.
-  const left = [armRefs(), armRefs()]
-  const right = armRefs()
+  const left = [
+    { ink: useRef(null), core: useRef(null), glove: useRef(null) },
+    { ink: useRef(null), core: useRef(null), glove: useRef(null) },
+  ]
+  const right = { ink: useRef(null), core: useRef(null), glove: useRef(null) }
 
   // First visit only: once Kairo has arrived and waved, a short hello (replay with ?hello).
   useEffect(() => {

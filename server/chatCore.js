@@ -41,20 +41,26 @@ function cleanHistory(messages) {
 async function* textChunks(res) {
   const decoder = new TextDecoder()
   let buffer = ''
+  const pieceOf = (line) => {
+    if (!line.startsWith('data: ') || line === 'data: [DONE]') return ''
+    try {
+      return JSON.parse(line.slice(6)).choices?.[0]?.delta?.content || ''
+    } catch {
+      return '' // skip a malformed event
+    }
+  }
   for await (const bytes of res.body) {
     buffer += decoder.decode(bytes, { stream: true })
     const lines = buffer.split('\n')
     buffer = lines.pop()
     for (const line of lines) {
-      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
-      try {
-        const piece = JSON.parse(line.slice(6)).choices?.[0]?.delta?.content
-        if (piece) yield piece
-      } catch {
-        /* skip a malformed event */
-      }
+      const piece = pieceOf(line)
+      if (piece) yield piece
     }
   }
+  // The last event may arrive without a line break after it.
+  const last = pieceOf(buffer + decoder.decode())
+  if (last) yield last
 }
 
 // A signal that fires when the visitor goes away (closes the tab, loses connection), so Groq can

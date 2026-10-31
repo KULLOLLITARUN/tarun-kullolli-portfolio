@@ -201,6 +201,12 @@ describe('handleChat: Groq', () => {
     expect(await collect(out.stream)).toBe('Hello, I am Kairo')
   })
 
+  it('keeps the last event even when no line break follows it', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(groqStream([event('Hello'), event(' there').trimEnd()])))
+    const out = await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })
+    expect(await collect(out.stream)).toBe('Hello there')
+  })
+
   it('asks for a streamed answer from the configured model', async () => {
     const fetch = vi.fn().mockResolvedValue(groqStream([]))
     vi.stubGlobal('fetch', fetch)

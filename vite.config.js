@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { chatInfo, handleChat, sendChat } from './server/chatCore.js'
+import { abortOnClose, chatInfo, handleChat, sendChat } from './server/chatCore.js'
 
 // Serves /api/chat during `npm run dev` / `npm run preview`, mirroring the
 // Vercel function in api/.
@@ -26,7 +26,8 @@ function localApi(env) {
       } catch {
         /* handled as bad_request */
       }
-      await sendChat(res, await handleChat({ body, ip: req.socket.remoteAddress, env }))
+      const signal = abortOnClose(res)
+      await sendChat(res, await handleChat({ body, ip: req.socket.remoteAddress, env, signal }))
     })
   }
   const middleware = (req, res, next) => {

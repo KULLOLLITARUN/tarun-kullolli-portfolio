@@ -1,7 +1,8 @@
 // The chat server (server/chatCore.js). `fetch` is replaced with a fake, so no real Groq or
 // Upstash calls are made and no API key is needed.
+import { EventEmitter } from 'node:events'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { chatInfo, handleChat, sendChat } from '../server/chatCore.js'
+import { abortOnClose, chatInfo, handleChat, sendChat } from '../server/chatCore.js'
 
 const GROQ = { GROQ_API_KEY: 'test-key' }
 const UPSTASH = { UPSTASH_REDIS_REST_URL: 'https://upstash.test', UPSTASH_REDIS_REST_TOKEN: 'test-token' }
@@ -111,6 +112,34 @@ describe('handleChat: input checks', () => {
     ]
     await handleChat({ body: { messages }, ip: freshIp(), env: GROQ })
     expect(JSON.parse(fetch.mock.calls[0][1].body).messages.slice(1).map((m) => m.role)).toEqual(['user', 'user'])
+  })
+})
+
+describe('stopping Groq when the visitor leaves', () => {
+  it('abortOnClose aborts when the response closes', () => {
+    const res = new EventEmitter()
+    const signal = abortOnClose(res)
+    expect(signal.aborted).toBe(false)
+    res.emit('close')
+    expect(signal.aborted).toBe(true)
+  })
+
+  it('passes Groq a signal that aborts when the caller\'s signal does', async () => {
+    const fetch = vi.fn().mockResolvedValue(groqStream([]))
+    vi.stubGlobal('fetch', fetch)
+    const controller = new AbortController()
+    await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ, signal: controller.signal })
+    const sent = fetch.mock.calls[0][1].signal
+    expect(sent.aborted).toBe(false)
+    controller.abort()
+    expect(sent.aborted).toBe(true)
+  })
+
+  it('still has a timeout when no signal is given', async () => {
+    const fetch = vi.fn().mockResolvedValue(groqStream([]))
+    vi.stubGlobal('fetch', fetch)
+    await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })
+    expect(fetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
   })
 })
 

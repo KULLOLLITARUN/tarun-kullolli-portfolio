@@ -55,9 +55,18 @@ async function* textChunks(res) {
   }
 }
 
+// A signal that fires when the visitor goes away (closes the tab, loses connection), so Groq can
+// be told to stop instead of finishing an answer nobody will read. It also fires after a normal
+// finish, when aborting has no effect.
+export function abortOnClose(res) {
+  const controller = new AbortController()
+  res.once('close', () => controller.abort())
+  return controller.signal
+}
+
 // Returns { status, body } for errors, or { status: 200, stream } (async iterable of text)
-// on success, so both runtimes can send it however they like.
-export async function handleChat({ body, ip, env }) {
+// on success, so both runtimes can send it however they like. `signal` aborts the Groq call.
+export async function handleChat({ body, ip, env, signal }) {
   const apiKey = env.GROQ_API_KEY
   if (!apiKey) return { status: 503, body: { error: 'not_configured' } }
   if (rateLimited(ip || 'unknown')) return { status: 429, body: { error: 'rate_limited' } }
@@ -82,7 +91,7 @@ export async function handleChat({ body, ip, env }) {
         stream: true,
         messages: [{ role: 'system', content: isLogging(env) ? SYSTEM.on : SYSTEM.off }, ...history],
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
     })
     // Groq's own limit (per-minute or daily quota): say so, with when it says to retry, so the chat
     // can answer offline until then instead of asking again on every question.

@@ -22,13 +22,17 @@ function rateLimited(ip) {
   return recent.length > MAX_PER_WINDOW
 }
 
+// The browser sends the history, so a visitor can write Kairo's side too. Only Kairo's latest reply
+// (the one just before the new question, enough for "tell me more") is kept; older ones are dropped.
 function cleanHistory(messages) {
   if (!Array.isArray(messages)) return null
-  const out = messages
+  const recent = messages
     .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
     .slice(-8)
+  if (recent.at(-1)?.role !== 'user') return null
+  return recent
+    .filter((m, i) => m.role === 'user' || i === recent.length - 2)
     .map((m) => ({ role: m.role, content: m.content.slice(0, m.role === 'user' ? 300 : 800) }))
-  return out.length && out.at(-1).role === 'user' ? out : null
 }
 
 // Groq's server-sent events → the answer text, piece by piece.

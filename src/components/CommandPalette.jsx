@@ -68,6 +68,9 @@ export default function CommandPalette({ open, onClose, actions }) {
           aria-controls="palette-list"
           aria-activedescendant={results[active] ? `cmd-${results[active].id}` : undefined}
           aria-label="Search commands"
+          name="command-search"
+          autoComplete="off"
+          spellCheck={false}
         />
         <ul id="palette-list" role="listbox" className="palette-list">
           {results.length === 0 && <li className="palette-empty">No matching commands</li>}

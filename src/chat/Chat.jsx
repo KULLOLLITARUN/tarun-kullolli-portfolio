@@ -267,6 +267,7 @@ export default function Chat({ visible }) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about Tarun’s experience…"
           maxLength={200}
+          name="question"
           autoComplete="off"
           aria-describedby={logging ? 'chat-note' : undefined}
         />

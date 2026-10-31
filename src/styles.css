@@ -75,6 +75,8 @@
 html {
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
+  /* The flash on a tap follows the theme's accent instead of the browser's grey. */
+  -webkit-tap-highlight-color: rgba(var(--accent-rgb), 0.18);
 }
 body {
   margin: 0;
@@ -109,6 +111,14 @@ button {
   font: inherit;
   color: inherit;
 }
+/* No double-tap-to-zoom delay on things you tap. */
+a,
+button,
+summary,
+[role='button'],
+[role='option'] {
+  touch-action: manipulation;
+}
 kbd {
   font-family: var(--mono);
 }
@@ -131,6 +141,13 @@ kbd {
 }
 .dim {
   color: var(--text-3);
+}
+/* Digits of equal width, so counters and metrics don't shift as they change. */
+.demo-line .mono,
+.tour-text .mono,
+.demo-nodes .mono,
+.holo-value {
+  font-variant-numeric: tabular-nums;
 }
 .small {
   font-size: var(--fs-xs);
@@ -1490,6 +1507,7 @@ html.has-cursor textarea {
   box-shadow: 0 1px 0 rgba(var(--sky), 0.12);
 }
 .pd-head h3 {
+  text-wrap: balance;
   font-size: var(--fs-2xl);
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -2192,10 +2210,12 @@ html.has-cursor textarea {
 }
 .palette-input:focus-visible {
   outline: none;
+  border-bottom-color: var(--focus); /* the focus ring is this underline */
 }
 .palette-list {
   max-height: 50vh;
   overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling past the end doesn't move the page behind */
   padding: var(--s-2);
 }
 .palette-item {

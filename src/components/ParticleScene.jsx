@@ -734,6 +734,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
     t0.current += dt
+    // Every DOM style change below is queued here and applied at the end of the frame. Changing a
+    // style and then measuring another element (getBoundingClientRect) makes the browser redo the
+    // page layout each time; all measuring first, all writing afterwards, needs it only once.
+    const later = []
     const u = mat.current.uniforms
     u.uTime.value = state.clock.elapsedTime
     // Ease toward the current theme's colours (a time-of-day switch blends over ~0.6s).
@@ -810,7 +814,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const dissolve = journey ? smoothstepJS(0, window.innerHeight * 0.55, window.scrollY) : 0
     u.uDissolve.value = dissolve
     const appear = smoothstepJS(0, 0.12, dissolve)
-    if (journey && el) el.style.opacity = (1 - appear).toFixed(3)
+    if (journey && el) {
+      const nameOpacity = (1 - appear).toFixed(3)
+      later.push(() => (el.style.opacity = nameOpacity))
+    }
 
     const cards = document.querySelectorAll('#experiments .holo-card')
     const count = Math.min(cards.length, MAX_CARDS)
@@ -848,8 +855,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       const k = journey ? smoothstepJS(0.93, 1, travel.current[i]) * stay(tl.current) : 1
       const o = k.toFixed(3)
       if (card.style.opacity !== o) {
-        card.style.opacity = o
-        card.style.filter = k >= 1 ? 'none' : `blur(${((1 - k) * 8).toFixed(1)}px)`
+        later.push(() => {
+          card.style.opacity = o
+          card.style.filter = k >= 1 ? 'none' : `blur(${((1 - k) * 8).toFixed(1)}px)`
+        })
       }
     }
     u.uCount.value = journey ? count : 0
@@ -905,8 +914,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       const out = stay(sk.current)
       const mark = on ? (smoothstepJS(0.85, 1, tl.current) * out).toFixed(3) : ''
       if (mark !== tlMark.current) {
-        if (mark) timeline.style.setProperty('--tl', mark)
-        else timeline.style.removeProperty('--tl')
+        later.push(() => {
+          if (mark) timeline.style.setProperty('--tl', mark)
+          else timeline.style.removeProperty('--tl')
+        })
         tlMark.current = mark
       }
       const L4 = u.uLine.value
@@ -924,8 +935,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
           v = (smoothstepJS(from, Math.min(1, from + 0.15), tl.current) * out).toFixed(3)
         }
         if (act.style.getPropertyValue('--reveal') !== v) {
-          if (v) act.style.setProperty('--reveal', v)
-          else act.style.removeProperty('--reveal')
+          later.push(() => {
+            if (v) act.style.setProperty('--reveal', v)
+            else act.style.removeProperty('--reveal')
+          })
         }
       })
     }
@@ -972,8 +985,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         v = (smoothstepJS(from, Math.min(1, from + 0.15), sk.current) * stay(ct.current)).toFixed(3)
       }
       if (p.style.getPropertyValue('--reveal') !== v) {
-        if (v) p.style.setProperty('--reveal', v)
-        else p.style.removeProperty('--reveal')
+        later.push(() => {
+          if (v) p.style.setProperty('--reveal', v)
+          else p.style.removeProperty('--reveal')
+        })
       }
     })
 
@@ -1010,8 +1025,10 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     const reveal = (el, from) => {
       const v = journey && count ? smoothstepJS(from, from + 0.15, ct.current).toFixed(3) : ''
       if (el.style.getPropertyValue('--reveal') !== v) {
-        if (v) el.style.setProperty('--reveal', v)
-        else el.style.removeProperty('--reveal')
+        later.push(() => {
+          if (v) el.style.setProperty('--reveal', v)
+          else el.style.removeProperty('--reveal')
+        })
       }
     }
     if (wordEl) reveal(wordEl, 0.62)
@@ -1058,11 +1075,15 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
         ? `radial-gradient(circle ${sp.R.toFixed(1)}px at ${sp.px.toFixed(1)}px ${sp.py.toFixed(1)}px, rgba(0,0,0,${(1 - sp.k).toFixed(3)}) 55%, #000 100%)`
         : ''
     if (el && mask !== sp.mask) {
-      el.style.webkitMaskImage = mask
-      el.style.maskImage = mask
+      later.push(() => {
+        el.style.webkitMaskImage = mask
+        el.style.maskImage = mask
+      })
       sp.mask = mask
     }
     group.current.visible = u.uFade.value > 0.001 || sp.k > 0
+
+    for (const write of later) write()
   })
 
   return (

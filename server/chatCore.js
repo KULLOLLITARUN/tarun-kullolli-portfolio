@@ -11,6 +11,8 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const SYSTEM = { on: buildSystemPrompt({ logging: true }), off: buildSystemPrompt() }
 const WINDOW_MS = 10 * 60 * 1000
 const MAX_PER_WINDOW = 25
+const FIRST_BYTE_MS = 8000 // how long Groq has to start answering
+const TOTAL_MS = 45000 // the longest a whole answer may take
 const hitsByIp = new Map()
 
 function rateLimited(ip) {
@@ -77,6 +79,11 @@ export async function handleChat({ body, ip, env, signal }) {
   // Logged while Groq is asked, then awaited before returning (a serverless function may be
   // frozen once it has answered).
   const logged = logQuestion(history.at(-1).content, history.filter((m) => m.role === 'user').length, env)
+  // Give up if Groq doesn't start answering within FIRST_BYTE_MS, but once it does, let the answer
+  // run for up to TOTAL_MS so a long reply isn't cut off.
+  const noStart = new AbortController()
+  const noStartTimer = setTimeout(() => noStart.abort(), FIRST_BYTE_MS)
+  const limits = [noStart.signal, AbortSignal.timeout(TOTAL_MS)]
   try {
     const res = await fetch(GROQ_URL, {
       method: 'POST',
@@ -91,8 +98,9 @@ export async function handleChat({ body, ip, env, signal }) {
         stream: true,
         messages: [{ role: 'system', content: isLogging(env) ? SYSTEM.on : SYSTEM.off }, ...history],
       }),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
+      signal: AbortSignal.any(signal ? [signal, ...limits] : limits),
     })
+    clearTimeout(noStartTimer)
     // Groq's own limit (per-minute or daily quota): say so, with when it says to retry, so the chat
     // can answer offline until then instead of asking again on every question.
     if (res.status === 429) {
@@ -104,6 +112,7 @@ export async function handleChat({ body, ip, env, signal }) {
   } catch {
     return { status: 502, body: { error: 'network' } }
   } finally {
+    clearTimeout(noStartTimer)
     await logged
   }
 }

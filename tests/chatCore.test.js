@@ -143,6 +143,37 @@ describe('stopping Groq when the visitor leaves', () => {
   })
 })
 
+describe('handleChat: timeouts', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('gives up with a network error if Groq has not started answering after 8 seconds', async () => {
+    vi.useFakeTimers()
+    // A Groq that never answers, but honours the abort signal like the real fetch.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_, init) => new Promise((_res, rej) => init.signal.addEventListener('abort', () => rej(new Error('aborted'))))),
+    )
+    const pending = handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })
+    await vi.advanceTimersByTimeAsync(7999)
+    let settled = false
+    pending.then(() => (settled = true))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(await pending).toEqual({ status: 502, body: { error: 'network' } })
+  })
+
+  it('does not cut the answer once Groq has started it', async () => {
+    vi.useFakeTimers()
+    const fetch = vi.fn().mockResolvedValue(groqStream([event('Hi')]))
+    vi.stubGlobal('fetch', fetch)
+    const out = await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })
+    await vi.advanceTimersByTimeAsync(20000)
+    expect(fetch.mock.calls[0][1].signal.aborted).toBe(false)
+    expect(await collect(out.stream)).toBe('Hi')
+  })
+})
+
 describe('handleChat: rate limit', () => {
   it('allows 25 questions per IP in the window, then returns 429', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => groqStream([])))

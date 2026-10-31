@@ -139,6 +139,9 @@ try {
   // Accessibility of the other states: the command menu, an open case study, recruiter mode and
   // the phone-only Day theme.
   const scan = async (page, name) => {
+    // The hero's HUD lines fade in from opacity 0 after the page loads; scanned mid-fade their text
+    // is nearly invisible and axe reports a contrast failure that isn't real.
+    await page.waitForFunction(() => [...document.querySelectorAll('.hud')].every((e) => Number(getComputedStyle(e).opacity) >= 0.99), null, { timeout: 10000 })
     const { violations } = await new AxeBuilder({ page }).analyze()
     const bad = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
     check(bad.length === 0, `${name}: no serious accessibility violations ${bad.map((v) => `${v.id} (${v.nodes.length})`).join(', ')}`)
@@ -170,6 +173,33 @@ try {
     const { ctx, page } = await open(browser, { width: 393, height: 852 }, 'day')
     await page.waitForTimeout(800)
     await scan(page, 'Day theme on a phone')
+    await ctx.close()
+  }
+
+  // Kairo's colour picker works from the keyboard: the button opens it, a colour can be chosen, and
+  // focus returns to the button.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' })
+    const page = await ctx.newPage()
+    await page.goto(URL, { waitUntil: 'load' })
+    await page.waitForSelector('.mascot.is-visible', { timeout: 30000 })
+    const theme = () => page.evaluate(() => document.documentElement.dataset.theme)
+    const before = await theme()
+    await page.focus('.mascot-key')
+    await page.keyboard.press('Enter')
+    await page.waitForSelector('.theme-picker')
+    check((await page.getAttribute('.mascot-key', 'aria-expanded')) === 'true', 'Kairo button: Enter opens the colour picker')
+    await scan(page, 'Kairo colour picker')
+    await page.locator('.theme-swatch[aria-pressed="false"]').first().focus()
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(300)
+    check((await page.locator('.theme-picker').count()) === 0 && (await theme()) !== before, 'Kairo button: choosing a colour changes the theme and closes the picker')
+    check(await page.evaluate(() => document.activeElement?.classList.contains('mascot-key')), 'Kairo button: focus returns to the button')
+    await page.keyboard.press('Enter')
+    await page.waitForSelector('.theme-picker')
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(200)
+    check((await page.locator('.theme-picker').count()) === 0 && (await page.evaluate(() => document.activeElement?.classList.contains('mascot-key'))), 'Kairo button: Escape closes the picker and keeps focus on the button')
     await ctx.close()
   }
 

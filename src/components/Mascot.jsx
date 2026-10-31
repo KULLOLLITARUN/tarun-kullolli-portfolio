@@ -134,7 +134,20 @@ export default function Mascot({ visible }) {
   const reduce = useReducedMotion()
   const root = useRef(null)
   const [picker, setPicker] = useState(null) // where the theme picker is open ({ x, y }), or null
-  const closePicker = useRef(() => setPicker(null)).current
+  const keyBtn = useRef(null) // the keyboard route to the picker (the circle is hidden from assistive tech)
+  const hitRef = useRef(null)
+  // Closing from inside the picker (Esc, choosing a colour) hands focus back to the button, so a
+  // keyboard user isn't dropped at the top of the page. A scroll or click elsewhere leaves focus alone.
+  const closePicker = useRef(() => {
+    if (document.activeElement?.closest?.('.theme-picker')) keyBtn.current?.focus({ preventScroll: true })
+    setPicker(null)
+  }).current
+  // Rings the alarm and opens (or closes) the time-of-day picker above Kairo's head; `el` is the circle.
+  const togglePicker = (el) => {
+    window.dispatchEvent(new Event('tick-ring'))
+    const b = el.getBoundingClientRect()
+    setPicker((p) => (p ? null : { x: b.left + b.width / 2, y: b.top + 4, left: b.left, head: b.top + b.height * 0.35 }))
+  }
   const [bubble, setBubble] = useState(null) // the speech bubble's text, or null
   // Tour mode: Kairo shrinks and parks in the corner above the tour bar ({ side, h, x, y }), or null.
   const [dock, setDock] = useState(null)
@@ -840,18 +853,14 @@ export default function Mascot({ visible }) {
 
           {/* Click target: ring the alarm and open the time-of-day picker */}
           <circle
+            ref={hitRef}
             className="mascot-hit"
-            role="button"
             data-cursor="alarm"
             cx={C.x}
             cy={C.y - 20}
             r="125"
             fill="transparent"
-            onClick={(e) => {
-              window.dispatchEvent(new Event('tick-ring'))
-              const b = e.currentTarget.getBoundingClientRect()
-              setPicker((p) => (p ? null : { x: b.left + b.width / 2, y: b.top + 4, left: b.left, head: b.top + b.height * 0.35 }))
-            }}
+            onClick={(e) => togglePicker(e.currentTarget)}
           />
         </g>
 
@@ -863,6 +872,21 @@ export default function Mascot({ visible }) {
         </g>
       </svg>
     </div>
+    {/* The whole drawing is aria-hidden, so the keyboard route to the picker is a real button over it
+        (same footprint as the speech bubble's wrapper). The mouse still uses the circle. */}
+    {visible && (
+      <div className={`mascot-bubble-anchor${dockClass}`} style={dockStyle}>
+        <button
+          ref={keyBtn}
+          type="button"
+          className="mascot-key"
+          aria-label="Change colours (time of day)"
+          aria-haspopup="true"
+          aria-expanded={!!picker}
+          onClick={() => togglePicker(hitRef.current)}
+        />
+      </div>
+    )}
     {bubble && (visible || dock) && (
       <div className={`mascot-bubble-anchor${reduce ? ' is-still' : ''}${dockClass}`} style={dockStyle}>
         <div className="mascot-bubble" role="status">

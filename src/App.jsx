@@ -25,6 +25,8 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [printing, setPrinting] = useState(false)
   const toastTimer = useRef()
+  const scrollTimer = useRef()
+  useEffect(() => () => clearTimeout(scrollTimer.current), [])
   const narrow = useNarrow()
   useSmoothScroll(!useReducedMotion())
 
@@ -84,7 +86,8 @@ export default function App() {
   const goTo = useCallback(
     (id) => {
       setRecruiter(false)
-      setTimeout(() => scrollToId(id), 60)
+      clearTimeout(scrollTimer.current) // a second jump replaces the first
+      scrollTimer.current = setTimeout(() => scrollToId(id), 60)
     },
     [setRecruiter],
   )

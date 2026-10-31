@@ -86,6 +86,9 @@ export default function Hero({ onTour }) {
   const [split, setSplit] = useState(() => reduce || !particles)
   // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
   const [resolved, setResolved] = useState(() => reduce || !particles)
+  // The pause between the golden sweep and moving the name aside; cleared if the hero goes away first.
+  const splitTimer = useRef()
+  useEffect(() => () => clearTimeout(splitTimer.current), [])
 
   // Normally the particle scene resolves the name after its white sweep (onSwept);
   // this is only a safety net in case frames stall.
@@ -137,7 +140,9 @@ export default function Hero({ onTour }) {
               reduce={reduce}
               wide={wide}
               // Move aside as soon as the golden sweep (2.4s) has crossed the name.
-              onFormed={() => setTimeout(() => setSplit(true), 2400)}
+              onFormed={() => {
+                splitTimer.current = setTimeout(() => setSplit(true), 2400)
+              }}
               onSwept={() => setResolved(true)}
             />
           </Suspense>

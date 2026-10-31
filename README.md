@@ -20,7 +20,7 @@ Personal portfolio of **Tarun Kullolli, AI Engineer**: projects, career and skil
 - **Command menu.** Ctrl+K (Cmd+K on a Mac) to jump to sections, copy the email, download the resume, start the tour or change colours.
 - **Time-of-day themes.** Click Kairo to pick Night, Dawn, Aurora or Solar. On phones there is also a light Day theme.
 - **Guided tour.** "Take the 60-second tour" scrolls through every section.
-- **Optional anonymous question log.** Visitors' questions to Kairo can be logged (question and time only, no IP) to see what people ask. The chat shows a notice only when logging is switched on.
+- **Optional question log.** Visitors' questions to Kairo can be logged (question and time only, no IP, with email addresses, phone numbers and links removed) to see what people ask. The chat shows a notice only when logging is switched on.
 
 ## Running locally
 

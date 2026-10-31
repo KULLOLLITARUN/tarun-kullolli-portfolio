@@ -4,7 +4,7 @@ import { buildSystemPrompt } from '../src/chat/prompt.js'
 import { SITE_GUIDE } from '../src/chat/siteGuide.js'
 import { acts, experiments, profile, skills } from '../src/data.js'
 
-const LOGGING_LINE = /saved anonymously/
+const LOGGING_LINE = /are saved \(just the question and the time, with email addresses, phone numbers and links removed\)/
 
 describe('system prompt', () => {
   const prompt = buildSystemPrompt()

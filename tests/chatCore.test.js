@@ -3,6 +3,7 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { abortOnClose, chatInfo, handleChat, sendChat } from '../server/chatCore.js'
+import { maskContact } from '../server/questionLog.js'
 
 const GROQ = { GROQ_API_KEY: 'test-key' }
 const UPSTASH = { UPSTASH_REDIS_REST_URL: 'https://upstash.test', UPSTASH_REDIS_REST_TOKEN: 'test-token' }
@@ -271,6 +272,30 @@ describe('handleChat: question log', () => {
     await handleChat({ body: ask('hi'), ip, env: { ...GROQ, ...UPSTASH } })
     const call = fetch.mock.calls.find(([url]) => String(url).includes('upstash'))
     expect(call[1].body).not.toContain(ip)
+  })
+
+  it('masks emails, links and phone numbers in the logged copy, but sends Groq the original', async () => {
+    const fetch = vi.fn(async (url) => (String(url).includes('upstash') ? { ok: true } : groqStream([])))
+    vi.stubGlobal('fetch', fetch)
+    const q = 'Mail me at jane.doe@acme.co.uk or +91 98765 43210, see https://linkedin.com/in/jane'
+    await handleChat({ body: ask(q), ip: freshIp(), env: { ...GROQ, ...UPSTASH } })
+
+    const upstash = fetch.mock.calls.find(([url]) => String(url).includes('upstash'))
+    const [[, , entry]] = JSON.parse(upstash[1].body)
+    expect(JSON.parse(entry).q).toBe('Mail me at [email] or [phone], see [link]')
+    const groq = fetch.mock.calls.find(([url]) => String(url).includes('groq'))
+    expect(JSON.parse(groq[1].body).messages.at(-1).content).toBe(q)
+  })
+
+  it('leaves ordinary questions alone, including years, dates and small numbers', () => {
+    for (const q of ['Tell me about Archiva', 'Who did he work for 2020-2024?', 'Since 2026-10-04, 523 tests', 'Has he 5 years of experience?', 'His time at Besant (2024-2025) was?'])
+      expect(maskContact(q)).toBe(q)
+  })
+
+  it('masks phone formats with brackets, dashes and dots', () => {
+    expect(maskContact('(555) 123-4567')).toBe('[phone]')
+    expect(maskContact('call 555.123.4567 now')).toBe('call [phone] now')
+    expect(maskContact('+1-555-123-4567')).toBe('[phone]')
   })
 
   it('does not contact Upstash when logging is not configured', async () => {

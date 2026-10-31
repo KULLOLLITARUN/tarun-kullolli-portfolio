@@ -277,7 +277,7 @@ export default function Chat({ visible }) {
       {/* When questions are logged (server/questionLog.js), say so plainly. */}
       {logging && (
         <p id="chat-note" className="chat-note">
-          Questions are saved anonymously to improve Kairo’s answers.
+          Questions are saved to improve Kairo’s answers, with email addresses, phone numbers and links removed.
         </p>
       )}
     </section>

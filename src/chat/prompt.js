@@ -5,7 +5,7 @@ import { SITE_GUIDE } from './siteGuide.js'
 // logging: whether visitors' questions are logged (server/questionLog.js); Kairo only says so when true.
 export function buildSystemPrompt({ logging = false } = {}) {
   const guide = logging
-    ? [...SITE_GUIDE, 'Questions asked in this chat are saved anonymously (just the question and the time) so Tarun can improve the answers.']
+    ? [...SITE_GUIDE, 'Questions asked in this chat are saved (just the question and the time, with email addresses, phone numbers and links removed) so Tarun can improve the answers.']
     : SITE_GUIDE
   const resume = [
     `NAME: ${profile.name}`,

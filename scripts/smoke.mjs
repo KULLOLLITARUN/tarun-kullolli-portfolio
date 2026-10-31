@@ -203,6 +203,27 @@ try {
     await ctx.close()
   }
 
+  // The custom cursor boxes what it hovers and names its type: Kairo is "alarm", nav items are
+  // "link", and the label is a plain word (no made-up confidence number).
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' })
+    const page = await ctx.newPage()
+    await page.goto(URL, { waitUntil: 'load' })
+    await page.waitForSelector('.mascot.is-visible', { timeout: 30000 })
+    const hoverLabel = async (selector) => {
+      const b = await page.locator(selector).first().boundingBox()
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
+      await page.waitForSelector('.cursor-box.is-locked', { timeout: 3000 })
+      return page.textContent('.cursor-label')
+    }
+    check((await hoverLabel('.mascot-hit')) === 'alarm', 'cursor: locks onto Kairo and labels it "alarm"')
+    await page.mouse.move(5, 400) // off any target
+    await page.waitForFunction(() => !document.querySelector('.cursor-box.is-locked'))
+    const link = await hoverLabel('.nav-links a')
+    check(link === 'link', `cursor: a nav link is labelled "link" with no number ("${link}")`)
+    await ctx.close()
+  }
+
   await browser.close()
 } catch (e) {
   console.error(e)

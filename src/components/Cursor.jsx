@@ -15,17 +15,9 @@ function classify(el) {
   if (el.getAttribute('role') === 'option') return 'command'
   return 'button'
 }
-// Stable pseudo-confidence per element, so the label doesn't flicker.
-function confidence(el) {
-  const s = (el.textContent || el.getAttribute('aria-label') || '').trim()
-  let h = 0
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
-  return (0.9 + (Math.abs(h) % 10) / 100).toFixed(2)
-}
-
 // "AI detection" cursor: an amber core inside corner brackets with a spark trail.
 // Over interactive elements the brackets snap around the element like an
-// object-detection bounding box, labelled with a class and confidence.
+// object-detection bounding box, labelled with its class (no made-up confidence score).
 // Only on fine pointers (mouse / trackpad); touch keeps the default.
 export default function Cursor() {
   const box = useRef(null)
@@ -75,7 +67,7 @@ export default function Cursor() {
       if (next !== target) {
         target = next
         box.current?.classList.toggle('is-locked', !!target)
-        if (target && label.current) label.current.textContent = `${classify(target)} · ${confidence(target)}`
+        if (target && label.current) label.current.textContent = classify(target)
       }
     }
     const onDown = () => (press = 1)

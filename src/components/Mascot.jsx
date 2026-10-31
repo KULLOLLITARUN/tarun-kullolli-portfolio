@@ -298,7 +298,9 @@ export default function Mascot({ visible }) {
       const bar = document.querySelector('.tour')?.offsetHeight ?? 90
       return { side, ...dockPose(window.innerWidth, window.innerHeight, bar, side) }
     }
+    let startLoop = () => {} // set below, once the animation loop exists
     const onTour = (e) => {
+      startLoop()
       const { line, target } = e.detail
       const el = target ? document.querySelector(target) : null
       const box = el?.getBoundingClientRect()
@@ -639,7 +641,29 @@ export default function Mascot({ visible }) {
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
+    // Kairo stands in the hero, so once that has scrolled away there is nothing to animate. Pause
+    // then (the tour parks Kairo in the corner, so it runs for the whole tour) and carry on when it
+    // is near the screen again.
+    let running = true
+    startLoop = () => {
+      if (running) return
+      running = true
+      last = performance.now()
+      raf = requestAnimationFrame(frame)
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting || tourOn) startLoop()
+        else if (running) {
+          running = false
+          cancelAnimationFrame(raf)
+        }
+      },
+      { rootMargin: '100px' },
+    )
+    if (root.current) io.observe(root.current)
     return () => {
+      io.disconnect()
       cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('scroll', onScroll)

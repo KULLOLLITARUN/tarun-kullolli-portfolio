@@ -23,3 +23,8 @@ jobs:
       # continue-on-error so a failure turns the run red.
       - run: npm run smoke
         continue-on-error: true
+      # Lighthouse on the built site (see lighthouserc.json): accessibility, SEO and best practices
+      # must stay high, speed only warns. Not yet seen passing on GitHub, so it can't turn the run red
+      # for now; drop continue-on-error once it has.
+      - run: npx --yes @lhci/cli@0.15.1 autorun
+        continue-on-error: true

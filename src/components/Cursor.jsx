@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useReducedMotion } from '../hooks.js'
 
-const INTERACTIVE = 'a, button, [role="button"], [role="option"], [role="switch"], summary, label'
+const INTERACTIVE = 'a, button, [role="button"], [role="option"], [role="switch"], summary, label, [data-cursor]'
 const TEXT = 'input, textarea, [contenteditable="true"]'
 const TRAIL = 8
 const IDLE = 26 // size of the idle bracket box (px)

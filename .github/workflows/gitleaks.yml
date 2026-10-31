@@ -13,6 +13,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # the whole history, so an old commit is checked too
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

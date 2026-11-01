@@ -7,6 +7,8 @@ import Mascot from './Mascot.jsx'
 
 // Three.js loads after the text has painted, so recruiters see content first.
 const ParticleScene = lazy(() => import('./ParticleScene.jsx'))
+// The AI-core orb: laptops and desktops that can run the particle scene only. Phones keep Kairo.
+const Core = lazy(() => import('./Core.jsx'))
 
 function hasWebGL() {
   try {
@@ -82,6 +84,8 @@ export default function Hero({ onTour }) {
   const reduce = useReducedMotion()
   const wide = useWide()
   const fontsReady = useFontsReady()
+  // Laptops that can run the particle scene get the AI-core orb as Kairo's hero avatar.
+  const orbOn = particles && wide && !reduce
   // Phase 1: the name forms. Phase 2 ("split"): name moves aside, face + chat appear.
   const [split, setSplit] = useState(() => reduce || !particles)
   // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
@@ -192,7 +196,12 @@ export default function Hero({ onTour }) {
         </div>
       </div>
 
-      <Mascot visible={split} />
+      {orbOn ? (
+        <Suspense fallback={null}>
+          <Core visible={split} />
+        </Suspense>
+      ) : null}
+      <Mascot visible={split} hideArt={orbOn} />
 
       <div className="hero-right">
         <Chat visible={split} />

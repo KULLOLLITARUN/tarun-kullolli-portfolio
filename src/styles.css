@@ -2919,3 +2919,40 @@ body::before {
 :root[data-theme='day'] body::before {
   display: none;
 }
+
+/* The AI-core orb behind Kairo: laptops and desktops only (Hero mounts it conditionally). The
+   canvas is added as light (screen blend), so the page's own background shows through it. */
+.core-orb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.core-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* With the orb as the hero avatar, Kairo's drawing is hidden. It stays invisibly in place, so its
+   click target, keyboard button, speech bubble and tour all keep working. While the tour runs the
+   clock appears again, docked beside whatever it points at. */
+.mascot.is-orb:not(.is-touring) {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+/* The tour: the orb's pieces fly into the guide Kairo, which then forms (fades in) where they land. */
+@keyframes kairo-form {
+  from {
+    opacity: 0;
+    filter: blur(8px) brightness(2);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+.mascot.is-orb.is-touring {
+  animation: kairo-form 800ms var(--ease) 450ms both !important;
+}

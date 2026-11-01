@@ -27,14 +27,15 @@ const EYES = [
   { x: 192, y: 158 },
 ]
 const INK = '#0b1324'
+const SKIN = '#f6d5bb'
 
 // Arm poses: shoulder, two curve controls, hand end, and the glove (x, y, rotation).
 const POSE = {
-  leftHip: [66, 200, 30, 206, 26, 238, 50, 256, 56, 258, -130],
+  leftHip: [66, 200, 20, 214, 26, 262, 80, 266, 84, 266, 112],
   leftChin: [70, 206, 44, 250, 80, 292, 121, 276, 126, 262, 18],
   leftUp: [64, 168, 30, 158, 20, 128, 28, 98, 28, 86, -8],
   rightWave: [256, 168, 290, 158, 300, 128, 292, 98, 292, 86, 8],
-  rightHip: [254, 200, 290, 206, 294, 238, 270, 256, 264, 258, 130],
+  rightHip: [254, 200, 300, 214, 294, 262, 240, 266, 236, 266, -112],
 }
 const lerpPose = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k)
 const armD = (p) => `M${p[0]},${p[1]} C${p[2]},${p[3]} ${p[4]},${p[5]} ${p[6]},${p[7]}`
@@ -43,15 +44,28 @@ const gloveT = (p) => `translate(${p[8]} ${p[9]}) rotate(${p[10]})`
 function Glove({ pose, ref }) {
   return (
     <g ref={ref} transform={gloveT(pose)}>
-      {/* cuff */}
-      <rect x="-13" y="10" width="26" height="10" rx="4" fill="#fff" stroke={INK} strokeWidth="4" />
-      {/* fingers */}
-      <rect x="-14" y="-24" width="9" height="22" rx="4.5" fill="#fff" stroke={INK} strokeWidth="4" />
-      <rect x="-5" y="-29" width="9" height="26" rx="4.5" fill="#fff" stroke={INK} strokeWidth="4" />
-      <rect x="4" y="-25" width="9" height="22" rx="4.5" fill="#fff" stroke={INK} strokeWidth="4" />
-      {/* palm + thumb */}
-      <path d="M-15,-6 Q-16,12 0,13 Q16,12 15,-6 Z" fill="#fff" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-      <path d="M13,2 Q26,-2 24,-12 Q20,-16 14,-8" fill="#fff" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+      {/* a real-looking hand: four splayed fingers, a thumb, a palm that covers the finger bases, and a cuff */}
+      <g transform="scale(1.1) translate(0 -2)">
+        <g fill={SKIN} stroke={INK} strokeWidth="3.4" strokeLinejoin="round" strokeLinecap="round">
+          <g transform="rotate(48 12 2)">
+            <rect x="9" y="-22" width="7.5" height="26" rx="3.75" />
+          </g>
+          <g transform="rotate(-16 -11 -4)">
+            <rect x="-15" y="-24" width="7" height="28" rx="3.5" />
+          </g>
+          <g transform="rotate(-6 -5 -4)">
+            <rect x="-8" y="-31" width="7.5" height="35" rx="3.75" />
+          </g>
+          <g transform="rotate(3 2 -4)">
+            <rect x="-1" y="-34" width="7.5" height="38" rx="3.75" />
+          </g>
+          <g transform="rotate(12 9 -4)">
+            <rect x="6" y="-30" width="7.5" height="34" rx="3.75" />
+          </g>
+          <path d="M-16,4 Q-18,-8 -14,-8 L14,-8 Q18,-8 16,6 Q15,16 0,16 Q-15,16 -16,4 Z" />
+        </g>
+        <rect x="-14" y="10" width="28" height="9" rx="4" fill="#fff" stroke={INK} strokeWidth="3.4" />
+      </g>
     </g>
   )
 }
@@ -61,8 +75,8 @@ function Arm({ pose, refs }) {
   const d = armD(pose)
   return (
     <>
-      <path ref={refs.ink} d={d} fill="none" stroke={INK} strokeWidth="15" strokeLinecap="round" />
-      <path ref={refs.core} d={d} fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="8" strokeLinecap="round" />
+      <path ref={refs.ink} d={d} fill="none" stroke={INK} strokeWidth="19" strokeLinecap="round" />
+      <path ref={refs.core} d={d} fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="11" strokeLinecap="round" />
       <Glove pose={pose} ref={refs.glove} />
     </>
   )
@@ -130,7 +144,7 @@ function ThemePicker({ at, onClose }) {
   )
 }
 
-export default function Mascot({ visible }) {
+export default function Mascot({ visible, hideArt = false }) {
   const reduce = useReducedMotion()
   const root = useRef(null)
   const [picker, setPicker] = useState(null) // where the theme picker is open ({ x, y }), or null
@@ -591,10 +605,19 @@ export default function Mascot({ visible }) {
       // Left arm: hip, chin (thinking, or a glance at the wrist), or up for a stretch.
       const armUp = Math.max(think, wrist * 0.8)
       const chin = lerpPose(lerpPose(POSE.leftHip, POSE.leftChin, armUp), POSE.leftUp, stretch)
-      setArm(left[0], chin)
-      setArm(left[1], chin)
-      r.leftBack.current?.setAttribute('opacity', armUp < 0.5 ? 1 : 0)
-      r.leftFront.current?.setAttribute('opacity', armUp < 0.5 ? 0 : 1)
+      // At rest the left arm is never still: a slow sway at the shoulder, a wrist flick, and a small
+      // swing against the waving hand (all off with reduced motion or once the arm is raised).
+      const rest = reduce ? 0 : (1 - armUp) * (1 - stretch) * (1 - sleep * 0.7)
+      const sway = rest * (Math.sin(t * 1.7 + 1) * 3.5 + Math.sin(t * 0.9) * 1.5 - wave * Math.sin(t * 11 + 2) * 7 + (faceState.talking ? Math.sin(t * 4.2) * 3 : 0))
+      const flick = rest * Math.sin(t * 2.3 + 0.5) * 7
+      const leftPose = chin.slice()
+      leftPose[10] += flick
+      setArm(left[0], leftPose)
+      setArm(left[1], leftPose)
+      // The arm is drawn in front of the body in every pose, so the whole hand shows on the hip.
+      r.leftFront.current?.setAttribute('transform', `rotate(${sway.toFixed(2)} 66 200)`)
+      r.leftFront.current?.setAttribute('opacity', 1)
+      r.leftBack.current?.setAttribute('opacity', 0)
 
       // Idle bounce: the body bobs (slow breathing while dozing) and the legs stretch to stay
       // planted. Head tilts: sideways when confused, a little back while thinking.
@@ -721,7 +744,7 @@ export default function Mascot({ visible }) {
 
   return (
     <>
-    <div className={`mascot${visible ? ' is-visible' : ''}${dockClass}`} style={dockStyle} aria-hidden="true">
+    <div className={`mascot${visible ? ' is-visible' : ''}${hideArt ? ' is-orb' : ''}${dockClass}`} style={dockStyle} aria-hidden="true">
       <svg ref={root} viewBox="0 0 320 400" className="mascot-svg">
         <defs>
           <linearGradient id="tick-body" x1="0" y1="0" x2="0" y2="1">
@@ -855,7 +878,7 @@ export default function Mascot({ visible }) {
           <circle
             ref={hitRef}
             className="mascot-hit"
-            data-cursor="alarm"
+            data-cursor={hideArt ? 'colours' : 'alarm'}
             cx={C.x}
             cy={C.y - 20}
             r="125"

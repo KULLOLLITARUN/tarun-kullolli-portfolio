@@ -70,7 +70,7 @@ describe('handleChat: input checks', () => {
     expect(out.status).toBe(400)
   })
 
-  it('sends Groq the recent user turns and only Kairo\'s latest reply, with length caps', async () => {
+  it("sends Groq the recent user turns and only Kairo's latest reply, with length caps", async () => {
     const fetch = vi.fn().mockResolvedValue(groqStream([]))
     vi.stubGlobal('fetch', fetch)
     const messages = Array.from({ length: 12 }, (_, i) => ({
@@ -112,7 +112,11 @@ describe('handleChat: input checks', () => {
       { role: 'user', content: 'b' },
     ]
     await handleChat({ body: { messages }, ip: freshIp(), env: GROQ })
-    expect(JSON.parse(fetch.mock.calls[0][1].body).messages.slice(1).map((m) => m.role)).toEqual(['user', 'user'])
+    expect(
+      JSON.parse(fetch.mock.calls[0][1].body)
+        .messages.slice(1)
+        .map((m) => m.role),
+    ).toEqual(['user', 'user'])
   })
 })
 
@@ -125,7 +129,7 @@ describe('stopping Groq when the visitor leaves', () => {
     expect(signal.aborted).toBe(true)
   })
 
-  it('passes Groq a signal that aborts when the caller\'s signal does', async () => {
+  it("passes Groq a signal that aborts when the caller's signal does", async () => {
     const fetch = vi.fn().mockResolvedValue(groqStream([]))
     vi.stubGlobal('fetch', fetch)
     const controller = new AbortController()
@@ -152,7 +156,9 @@ describe('handleChat: timeouts', () => {
     // A Groq that never answers, but honours the abort signal like the real fetch.
     vi.stubGlobal(
       'fetch',
-      vi.fn((_, init) => new Promise((_res, rej) => init.signal.addEventListener('abort', () => rej(new Error('aborted'))))),
+      vi.fn(
+        (_, init) => new Promise((_res, rej) => init.signal.addEventListener('abort', () => rej(new Error('aborted')))),
+      ),
     )
     const pending = handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })
     await vi.advanceTimersByTimeAsync(7999)
@@ -177,7 +183,10 @@ describe('handleChat: timeouts', () => {
 
 describe('handleChat: rate limit', () => {
   it('allows 25 questions per IP in the window, then returns 429', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => groqStream([])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => groqStream([])),
+    )
     const ip = freshIp()
     for (let i = 0; i < 25; i++) {
       const out = await handleChat({ body: ask('hi'), ip, env: GROQ })
@@ -194,7 +203,13 @@ describe('handleChat: Groq', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         // An event split across two network chunks, a malformed line and the end marker.
-        groqStream([event('Hello'), event(', I am') + 'data: {"choi', 'ces":[{"delta":{"content":" Kairo"}}]}\n', 'data: {oops\n', 'data: [DONE]\n']),
+        groqStream([
+          event('Hello'),
+          event(', I am') + 'data: {"choi',
+          'ces":[{"delta":{"content":" Kairo"}}]}\n',
+          'data: {oops\n',
+          'data: [DONE]\n',
+        ]),
       ),
     )
     const out = await handleChat({ body: ask('Who are you?'), ip: freshIp(), env: GROQ })
@@ -234,7 +249,10 @@ describe('handleChat: Groq', () => {
       body: { error: 'busy', retryAfter: 120 },
     })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }))
-    expect(await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })).toEqual({ status: 429, body: { error: 'busy' } })
+    expect(await handleChat({ body: ask('hi'), ip: freshIp(), env: GROQ })).toEqual({
+      status: 429,
+      body: { error: 'busy' },
+    })
   })
 
   it('returns 502 when Groq cannot be reached', async () => {
@@ -257,7 +275,9 @@ describe('handleChat: question log', () => {
     }
     await handleChat({ body, ip: freshIp(), env: { ...GROQ, ...UPSTASH } })
 
-    const call = fetch.mock.calls.find(([url]) => String(url).includes('upstash'))
+    const call = fetch.mock.calls.find(
+      ([url, o]) => String(url).includes('upstash') && String(o?.body).includes('LPUSH'),
+    )
     expect(call[0]).toBe('https://upstash.test/pipeline')
     const [[cmd, , entry], trim] = JSON.parse(call[1].body)
     expect(cmd).toBe('LPUSH')
@@ -270,7 +290,9 @@ describe('handleChat: question log', () => {
     vi.stubGlobal('fetch', fetch)
     const ip = freshIp()
     await handleChat({ body: ask('hi'), ip, env: { ...GROQ, ...UPSTASH } })
-    const call = fetch.mock.calls.find(([url]) => String(url).includes('upstash'))
+    const call = fetch.mock.calls.find(
+      ([url, o]) => String(url).includes('upstash') && String(o?.body).includes('LPUSH'),
+    )
     expect(call[1].body).not.toContain(ip)
   })
 
@@ -280,7 +302,9 @@ describe('handleChat: question log', () => {
     const q = 'Mail me at jane.doe@acme.co.uk or +91 98765 43210, see https://linkedin.com/in/jane'
     await handleChat({ body: ask(q), ip: freshIp(), env: { ...GROQ, ...UPSTASH } })
 
-    const upstash = fetch.mock.calls.find(([url]) => String(url).includes('upstash'))
+    const upstash = fetch.mock.calls.find(
+      ([url, o]) => String(url).includes('upstash') && String(o?.body).includes('LPUSH'),
+    )
     const [[, , entry]] = JSON.parse(upstash[1].body)
     expect(JSON.parse(entry).q).toBe('Mail me at [email] or [phone], see [link]')
     const groq = fetch.mock.calls.find(([url]) => String(url).includes('groq'))
@@ -288,7 +312,13 @@ describe('handleChat: question log', () => {
   })
 
   it('leaves ordinary questions alone, including years, dates and small numbers', () => {
-    for (const q of ['Tell me about Archiva', 'Who did he work for 2020-2024?', 'Since 2026-10-04, 523 tests', 'Has he 5 years of experience?', 'His time at Besant (2024-2025) was?'])
+    for (const q of [
+      'Tell me about Archiva',
+      'Who did he work for 2020-2024?',
+      'Since 2026-10-04, 523 tests',
+      'Has he 5 years of experience?',
+      'His time at Besant (2024-2025) was?',
+    ])
       expect(maskContact(q)).toBe(q)
   })
 
@@ -337,7 +367,13 @@ describe('sendChat', () => {
 
   it('streams the answer as plain text', async () => {
     const res = fakeResponse()
-    await sendChat(res, { status: 200, stream: (async function* () { yield 'Hi'; yield ' there' })() })
+    await sendChat(res, {
+      status: 200,
+      stream: (async function* () {
+        yield 'Hi'
+        yield ' there'
+      })(),
+    })
     expect(res.statusCode).toBe(200)
     expect(res.headers['content-type']).toMatch(/^text\/plain/)
     expect(res.body).toBe('Hi there')
@@ -353,5 +389,60 @@ describe('sendChat', () => {
     await sendChat(res, { status: 200, stream: broken })
     expect(res.body).toBe('partial')
     expect(res.ended).toBe(true)
+  })
+})
+
+describe('handleChat: shared limits (Upstash)', () => {
+  const pipelineReply = (...counts) => ({
+    ok: true,
+    json: async () => counts.flatMap((n) => [{ result: n }, { result: 1 }]),
+  })
+  const env = { ...GROQ, ...UPSTASH, GROQ_DAILY_CAP: '100' }
+  // Upstash calls get the queued replies in order; anything else is Groq.
+  const fakeFetch = (replies) =>
+    vi.fn(async (url) => {
+      if (String(url).startsWith('https://upstash.test')) return replies.shift() ?? pipelineReply(1)
+      return groqStream([event('ok')])
+    })
+
+  it('lets a question through when both counts are under the limits', async () => {
+    vi.stubGlobal('fetch', fakeFetch([pipelineReply(1), pipelineReply(5), pipelineReply(1)]))
+    expect((await handleChat({ body: ask('hi'), ip: freshIp(), env })).status).toBe(200)
+  })
+
+  it('returns rate_limited when this visitor is over 25 in the window', async () => {
+    vi.stubGlobal('fetch', fakeFetch([pipelineReply(26)]))
+    expect(await handleChat({ body: ask('hi'), ip: freshIp(), env })).toEqual({
+      status: 429,
+      body: { error: 'rate_limited' },
+    })
+  })
+
+  it('returns busy with retryAfter when the daily cap is reached', async () => {
+    vi.stubGlobal('fetch', fakeFetch([pipelineReply(1), pipelineReply(101)]))
+    const out = await handleChat({ body: ask('hi'), ip: freshIp(), env })
+    expect(out.status).toBe(429)
+    expect(out.body.error).toBe('busy')
+    expect(out.body.retryAfter).toBeGreaterThan(0)
+    expect(out.body.retryAfter).toBeLessThanOrEqual(86400)
+  })
+
+  it('does not store the IP in clear text', async () => {
+    const f = fakeFetch([pipelineReply(1), pipelineReply(1), pipelineReply(1)])
+    vi.stubGlobal('fetch', f)
+    await handleChat({ body: ask('hi'), ip: '203.0.113.7', env })
+    const sent = f.mock.calls.filter(([u]) => String(u).startsWith('https://upstash.test')).map(([, o]) => o.body)
+    expect(sent.some((b) => b.includes('203.0.113.7'))).toBe(false)
+  })
+
+  it('falls back to the in-memory limit when Upstash is down', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        if (String(url).startsWith('https://upstash.test')) throw new Error('down')
+        return groqStream([event('ok')])
+      }),
+    )
+    expect((await handleChat({ body: ask('hi'), ip: freshIp(), env })).status).toBe(200)
   })
 })

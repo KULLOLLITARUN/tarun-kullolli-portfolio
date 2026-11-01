@@ -2,6 +2,7 @@
 // The answer streams back as plain text while Groq generates it.
 // Validates input, rate-limits per IP and asks Groq. The API key stays server-side.
 import { buildSystemPrompt } from '../src/chat/prompt.js'
+import { checkLimits } from './rateLimit.js'
 import { isLogging, logQuestion } from './questionLog.js'
 
 // GET /api/chat: what the chat needs to know before the first question.
@@ -9,20 +10,8 @@ export const chatInfo = (env) => ({ logging: isLogging(env) })
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const SYSTEM = { on: buildSystemPrompt({ logging: true }), off: buildSystemPrompt() }
-const WINDOW_MS = 10 * 60 * 1000
-const MAX_PER_WINDOW = 25
 const FIRST_BYTE_MS = 8000 // how long Groq has to start answering
 const TOTAL_MS = 45000 // the longest a whole answer may take
-const hitsByIp = new Map()
-
-function rateLimited(ip) {
-  const now = Date.now()
-  const recent = (hitsByIp.get(ip) || []).filter((t) => now - t < WINDOW_MS)
-  recent.push(now)
-  hitsByIp.set(ip, recent)
-  if (hitsByIp.size > 5000) hitsByIp.clear() // keep memory bounded
-  return recent.length > MAX_PER_WINDOW
-}
 
 // The browser sends the history, so a visitor can write Kairo's side too. Only Kairo's latest reply
 // (the one just before the new question, enough for "tell me more") is kept; older ones are dropped.
@@ -77,7 +66,11 @@ export function abortOnClose(res) {
 export async function handleChat({ body, ip, env, signal }) {
   const apiKey = env.GROQ_API_KEY
   if (!apiKey) return { status: 503, body: { error: 'not_configured' } }
-  if (rateLimited(ip || 'unknown')) return { status: 429, body: { error: 'rate_limited' } }
+  const limit = await checkLimits(ip || 'unknown', env)
+  if (limit?.reason === 'ip') return { status: 429, body: { error: 'rate_limited' } }
+  // The whole site is at its daily Groq allowance: same answer as Groq's own limit, so the chat
+  // falls back to offline answers until tomorrow.
+  if (limit?.reason === 'daily') return { status: 429, body: { error: 'busy', retryAfter: limit.retryAfter } }
 
   const history = cleanHistory(body?.messages)
   if (!history) return { status: 400, body: { error: 'bad_request' } }

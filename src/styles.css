@@ -277,14 +277,20 @@ html.has-cursor textarea {
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast),
+    transform 160ms var(--ease);
 }
 .btn:hover {
   border-color: var(--text);
   background: var(--wash);
 }
-.btn:active {
-  transform: translateY(1px);
+.btn:active,
+.chip:active:not(:disabled),
+.icon-btn:active {
+  transform: scale(0.97);
 }
 .btn-primary {
   background: var(--text);
@@ -310,7 +316,10 @@ html.has-cursor textarea {
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color var(--t-fast), background var(--t-fast);
+  transition:
+    border-color var(--t-fast),
+    background var(--t-fast),
+    transform 160ms var(--ease);
 }
 .chip:hover {
   border-color: var(--text);
@@ -424,7 +433,10 @@ html.has-cursor textarea {
   color: var(--text-2);
   font-size: var(--fs-md);
   cursor: pointer;
-  transition: color var(--t-fast), border-color var(--t-fast);
+  transition:
+    color var(--t-fast),
+    border-color var(--t-fast),
+    transform 160ms var(--ease);
 }
 .icon-btn:hover {
   color: var(--text);
@@ -1800,20 +1812,23 @@ html.has-cursor textarea {
     border-color var(--t-med),
     box-shadow var(--t-med);
 }
-.act:hover .act-panel,
-.glass-panel:hover {
-  transform: translateY(-3px);
-  border-color: rgba(var(--glass-soft-rgb), 0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 0 22px rgba(var(--glass-rgb), 0.12),
-    0 0 26px rgba(var(--glass-rgb), 0.2);
-}
-.act:hover::before {
-  box-shadow: 0 0 18px rgba(var(--glass-rgb), 1);
-}
-.act.is-now:hover::before {
-  box-shadow: 0 0 22px var(--amber);
+/* Hover movement only for a real mouse: on touch a tap would leave the card stuck lifted. */
+@media (hover: hover) and (pointer: fine) {
+  .act:hover .act-panel,
+  .glass-panel:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--glass-soft-rgb), 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 0 22px rgba(var(--glass-rgb), 0.12),
+      0 0 26px rgba(var(--glass-rgb), 0.2);
+  }
+  .act:hover::before {
+    box-shadow: 0 0 18px rgba(var(--glass-rgb), 1);
+  }
+  .act.is-now:hover::before {
+    box-shadow: 0 0 22px var(--amber);
+  }
 }
 /* Big faint outlined numeral behind the content. */
 .act-num {
@@ -2191,7 +2206,7 @@ html.has-cursor textarea {
   background: var(--surface-2);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
   overflow: hidden;
-  animation: pop var(--t-med) var(--ease);
+  animation: pop 160ms var(--ease);
 }
 @keyframes pop {
   from {
@@ -2339,6 +2354,14 @@ html.has-cursor textarea {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Movement snaps, but gentle colour and opacity changes still ease so state changes stay readable. */
+  *,
+  *::before,
+  *::after {
+    transition-property:
+      opacity, color, background-color, border-color, box-shadow, visibility !important;
+    transition-duration: 150ms !important;
   }
 }
 
@@ -2510,8 +2533,10 @@ html.has-cursor textarea {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
   transition: box-shadow var(--t-fast), transform var(--t-fast);
 }
-.theme-swatch:hover .theme-swatch-dot {
-  transform: scale(1.08);
+@media (hover: hover) and (pointer: fine) {
+  .theme-swatch:hover .theme-swatch-dot {
+    transform: scale(1.08);
+  }
 }
 .theme-swatch[aria-pressed='true'] {
   color: var(--text);

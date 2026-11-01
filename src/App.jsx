@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { profile } from './data.js'
 import { scrollToId, useNarrow, useReducedMotion, useSmoothScroll, useStoredFlag } from './hooks.js'
@@ -10,8 +10,8 @@ import SystemIndex from './components/SystemIndex.jsx'
 import Contact from './components/Contact.jsx'
 import RecruiterView from './components/RecruiterView.jsx'
 import PrintResume from './components/PrintResume.jsx'
-import CommandPalette from './components/CommandPalette.jsx'
-import Tour from './components/Tour.jsx'
+const CommandPalette = lazy(() => import('./components/CommandPalette.jsx'))
+const Tour = lazy(() => import('./components/Tour.jsx'))
 import Cursor from './components/Cursor.jsx'
 import { applyTheme, availableThemes, recruiterTheme, setTheme, storedTheme } from './theme.js'
 import { recruiterFromSearch } from './urlFlags.js'
@@ -109,7 +109,7 @@ export default function App() {
       { id: 'acts', label: 'Go to Acts', hint: 'Experience', run: () => goTo('acts') },
       { id: 'system', label: 'Go to System Index', hint: 'Skills', run: () => goTo('system') },
       { id: 'contact', label: 'Go to Contact', hint: 'Reach out', run: () => goTo('contact') },
-      { id: 'resume', label: 'Download resume', hint: 'PDF', run: () => window.open(profile.resume, '_blank') },
+      { id: 'resume', label: 'Download resume', hint: 'PDF', run: () => window.open(profile.resume, '_blank', 'noopener,noreferrer') },
       { id: 'print', label: 'Print resume page', hint: 'Save as PDF', run: () => window.print() },
       { id: 'email', label: 'Copy email address', hint: profile.email, run: copyEmail },
       { id: 'tour', label: 'Start auto tour', hint: '60 seconds', run: startTour },
@@ -168,8 +168,10 @@ export default function App() {
         <span>© 2026 {profile.name}</span>
       </footer>
 
-      {touring && !recruiter && <Tour onEnd={() => setTouring(false)} />}
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={actions} />
+      <Suspense fallback={null}>
+        {touring && !recruiter && <Tour onEnd={() => setTouring(false)} />}
+        {paletteOpen && <CommandPalette open onClose={() => setPaletteOpen(false)} actions={actions} />}
+      </Suspense>
       <div className="toast" role="status" aria-live="polite">
         {toast && <span>{toast}</span>}
       </div>

@@ -5,3 +5,6 @@ dist
 .env.local
 .env.*.local
 .vercel
+
+# Claude Code skills and local settings (tooling for my editor, not part of the site)
+.claude/

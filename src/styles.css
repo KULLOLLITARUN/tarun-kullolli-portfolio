@@ -1052,7 +1052,7 @@ html.has-cursor textarea {
 /* ── Hero: narrow screens stack name → face → chat ──────── */
 @media (max-width: 899px) {
   .hero {
-    min-height: max(100svh, 780px);
+    min-height: max(100svh, 880px);
   }
   .hud {
     display: none;
@@ -1092,15 +1092,17 @@ html.has-cursor textarea {
   .mascot,
   .mascot-bubble-anchor {
     left: 50%;
-    bottom: 37.5%;
-    height: 27%;
+    bottom: 380px; /* its feet rest on the chat panel, which is a fixed height (below) */
+    height: 190px;
   }
   .mascot-bubble {
     max-width: 130px;
     right: 78%;
   }
+  /* The chat panel keeps a fixed height so its message area shows about three lines of
+     Kairo's greeting instead of being squeezed to two. */
   .hero-right {
-    top: 62.5%;
+    top: calc(100% - 380px);
     width: 100%;
     bottom: var(--s-4);
     padding: 0 var(--s-4);

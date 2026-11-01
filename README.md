@@ -8,12 +8,12 @@ Personal portfolio of **Tarun Kullolli, AI Engineer**: projects, career and skil
 
 ## Quality at a glance
 
-Measured on the live site on 2026-11-01 with Lighthouse 12 (headless Chrome, software WebGL, so real devices will differ):
+Measured on the live site on 2026-11-01 (median of three runs) with Lighthouse 12 (headless Chrome, software WebGL, so real devices will differ):
 
 | Lighthouse | Performance | Accessibility | Best practices | SEO |
 | --- | :---: | :---: | :---: | :---: |
-| Desktop | 91 | 100 | 100 | 100 |
-| Mobile | 84 | 100 | 100 | 100 |
+| Desktop | 94 | 100 | 100 | 100 |
+| Mobile | 99 | 100 | 100 | 100 |
 
 | Check | Result |
 | --- | --- |

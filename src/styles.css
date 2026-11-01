@@ -1129,7 +1129,7 @@ html.has-cursor textarea {
   }
   .mascot,
   .mascot-bubble-anchor {
-    bottom: 340px;
+    bottom: 358px; /* just above the chat panel, which starts 356px from the bottom */
     height: 120px;
   }
   .hero-right {

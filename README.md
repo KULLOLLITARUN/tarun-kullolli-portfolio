@@ -6,6 +6,26 @@ Personal portfolio of **Tarun Kullolli, AI Engineer**: projects, career and skil
 
 **Live:** https://tarun-kullolli-portfolio.vercel.app
 
+## Quality at a glance
+
+Measured on the live site on 2026-11-01 with Lighthouse 12 (headless Chrome, software WebGL, so real devices will differ):
+
+| Lighthouse | Performance | Accessibility | Best practices | SEO |
+| --- | :---: | :---: | :---: | :---: |
+| Desktop | 91 | 100 | 100 | 100 |
+| Mobile | 84 | 100 | 100 | 100 |
+
+| Check | Result |
+| --- | --- |
+| Tests | 139 Vitest tests pass on every push |
+| Accessibility | Automated axe checks pass on the main view, a case study, recruiter mode, the Day theme and the colour picker; `eslint-plugin-jsx-a11y` runs in lint |
+| Quality gates | Lighthouse CI fails the build if accessibility or SEO drop below 95, or best practices below 90 |
+| Initial load | About 121 kB of JavaScript and 11 kB of CSS (gzipped); the 3D scene loads separately and is skipped on phones |
+| Layout stability | Cumulative Layout Shift 0 on mobile, 0.001 on desktop |
+| Dependencies | `npm audit` reports 0 known vulnerabilities; Dependabot and a gitleaks secret scan run on GitHub |
+| Security headers | Strict Content-Security-Policy (no inline scripts), `X-Frame-Options: DENY`, `nosniff`, referrer and permissions policies |
+| Chat protection | Per-visitor and daily limits shared across serverless instances; the visitor's IP is only kept as an expiring hash |
+
 ## Features
 
 - **Particle hero.** A particle field draws the name, then hands over to the solid text. Phones and low-power devices skip it and get the solid name straight away.
@@ -49,7 +69,8 @@ The dev server also serves `/api/chat`, mirroring the Vercel function, so the as
 | --- | --- | --- |
 | `GROQ_API_KEY` | For the live assistant | Groq API key ([console.groq.com/keys](https://console.groq.com/keys)) |
 | `GROQ_MODEL` | No | Override the model (default `openai/gpt-oss-120b`) |
-| `UPSTASH_REDIS_REST_URL` | No | Turns on the anonymous question log, together with the token |
+| `GROQ_DAILY_CAP` | No | Most questions all visitors together may ask per UTC day (default 1000). Needs the Upstash variables; over the cap Kairo answers from the resume |
+| `UPSTASH_REDIS_REST_URL` | No | Turns on the anonymous question log and the shared rate limits, together with the token |
 | `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis REST token |
 
 Locally they go in `.env` (git-ignored). On Vercel, set them under Project Settings → Environment Variables.
@@ -60,7 +81,7 @@ Locally they go in `.env` (git-ignored). On Vercel, set them under Project Setti
 
 - **Offline engine:** correct answers about projects and skills, honest "not on his resume" for unlisted skills, no guessing about salary or notice period, and off-topic questions flagged.
 - **System prompt:** built from `data.js`, keeps its guardrails, and mentions the question log only when logging is on.
-- **Chat server:** input checks, the per-IP rate limit, history trimming, streaming (including split and malformed events), Groq errors, and the question log (no IP stored; the chat still answers if logging fails). `fetch` is faked, so no API keys are needed and nothing is sent to Groq or Upstash.
+- **Chat server:** input checks, the per-visitor and daily limits (shared through Upstash, with an in-memory fallback), history trimming, streaming (including split and malformed events), Groq errors, and the question log (no IP stored; the chat still answers if logging fails). `fetch` is faked, so no API keys are needed and nothing is sent to Groq or Upstash.
 - **Printed resume:** section order, oldest-first entries, and no placeholder links.
 - **Content checks:** every project is complete, share links are unique, and screenshots and the resume PDF exist.
 
@@ -78,7 +99,8 @@ All site content lives in [`src/data.js`](src/data.js): profile, projects, caree
 
 ```
 api/chat.js            Vercel function: POST streams Kairo's answer, GET reports whether logging is on
-server/chatCore.js     Input checks, rate limit, Groq call (shared by Vercel and the dev server)
+server/chatCore.js     Input checks, Groq call (shared by Vercel and the dev server)
+server/rateLimit.js    Per-visitor and daily limits (Upstash, in-memory fallback)
 server/questionLog.js  Optional anonymous question log (Upstash Redis)
 scripts/questions.mjs  Reads the question log (npm run questions)
 tests/                 Vitest tests: offline engine, prompt, chat server, printed resume, data checks

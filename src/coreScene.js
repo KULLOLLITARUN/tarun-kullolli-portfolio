@@ -160,7 +160,7 @@ const CAM_Z = 8.2
 
 export function createCore(container, getStateName) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25)
+  const pixelRatio = 1
 
   const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(pixelRatio)
@@ -202,6 +202,7 @@ export function createCore(container, getStateName) {
     const h = Math.max(container.clientHeight, 1)
     renderer.setSize(w, h)
     composer.setSize(w, h)
+    bloom.setSize(w / 2, h / 2) // the glow is soft anyway: half resolution costs a quarter as much
     camera.aspect = w / h
     camera.position.z = CAM_Z
     // Shift the view so the orb lands on the anchor point instead of the middle.
@@ -285,6 +286,8 @@ export function createCore(container, getStateName) {
 
   // A band made of circuit traces (right-angle paths with bright nodes) plus fine dust.
   function ringBand({ r, bw, tilt, spin, traces, dust }) {
+    traces = Math.round(traces * 0.75)
+    dust = Math.round(dust * 0.7)
     const b = dashes(), pb = particles(), p1 = rnd(0, 6), p2 = rnd(0, 6)
     const xy = (th, rho) => [Math.cos(th) * rho, Math.sin(th) * rho, 0]
     for (let k = 0; k < traces; k++) {
@@ -390,7 +393,7 @@ export function createCore(container, getStateName) {
   // A faint hollow shell of dust: the see-through volume.
   {
     const ps = particles()
-    for (let k = 0; k < 3500; k++) {
+    for (let k = 0; k < 2200; k++) {
       const a = rnd(0, TAU), c = Math.acos(rnd(-1, 1)), r = rnd(0.72, 1.08)
       const n = [Math.sin(c) * Math.cos(a), Math.cos(c), Math.sin(c) * Math.sin(a)]
       const t = new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).cross(new THREE.Vector3(...n)).normalize()
@@ -414,7 +417,7 @@ export function createCore(container, getStateName) {
   }
   // The hub: small off-centre target rings.
   const core = new THREE.Group()
-  core.position.set(0.07, -0.02, 0.05)
+  core.position.set(0, 0, 0.05)
   orb.add(core)
   for (const [r, w, span] of [[0.06, 3.2, TAU], [0.092, 2, 4.4], [0.13, 1.6, 3.6], [0.19, 1.2, 5]]) {
     const b = dashes(), a0 = rnd(0, TAU)

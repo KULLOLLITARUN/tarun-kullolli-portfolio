@@ -768,6 +768,20 @@ html.has-cursor textarea {
   border-radius: 50%;
   pointer-events: none;
 }
+/* With the orb as the avatar the focus ring is a circle round the whole orb (about 0.56 of the
+   box's height in radius, centred on the orb), and the bubble sits just outside the orb's left rim. */
+.mascot-key.is-orb {
+  inset: auto;
+  left: 50%;
+  top: 36.5%;
+  height: 112.5%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+.mascot-bubble-anchor.is-orb:not(.is-touring) .mascot-bubble {
+  top: 12%;
+  right: calc(121% + 14px);
+}
 .mascot-bubble {
   position: absolute;
   top: 10%;

@@ -22,6 +22,11 @@ const RING_MS = 900
 const COOL_MS = 20000 // a bad mood eases one level after this long without another miss
 
 const C = { x: 160, y: 175 } // dial centre
+// The click target over the orb, in drawing units: the orb's rim is about 19% of the hero's height
+// from its centre, and the drawing is 38% of the hero's height for 400 units. Keep the CSS
+// (.mascot-key.is-orb, .mascot-bubble-anchor.is-orb) in step with this.
+const ORB_HIT_R = 225
+const ORB_HIT_DY = 9 // the orb's centre sits a little above Kairo's dial centre
 const EYES = [
   { x: 128, y: 158 },
   { x: 192, y: 158 },
@@ -737,7 +742,10 @@ export default function Mascot({ visible, hideArt = false }) {
     )
   })
 
-  const dockClass = dock ? ` is-touring is-${dock.side}${landing ? ' is-landing' : ''}${reduce ? ' is-still' : ''}` : ''
+  // With the orb as the avatar (and not touring), the click target, focus ring and speech bubble
+  // follow the orb's size instead of Kairo's drawing.
+  const orbMode = hideArt && !dock
+  const dockClass = dock ?` is-touring is-${dock.side}${landing ? ' is-landing' : ''}${reduce ? ' is-still' : ''}` : ''
   const dockStyle = dock
     ? { left: 0, top: 0, bottom: 'auto', height: dock.h, transform: `translate(${dock.x}px, ${dock.y}px)` }
     : undefined
@@ -880,8 +888,8 @@ export default function Mascot({ visible, hideArt = false }) {
             className="mascot-hit"
             data-cursor={hideArt ? 'colours' : 'alarm'}
             cx={C.x}
-            cy={C.y - 20}
-            r="125"
+            cy={C.y - 20 - (orbMode ? ORB_HIT_DY : 0)}
+            r={orbMode ? ORB_HIT_R : 125}
             fill="transparent"
             onClick={(e) => togglePicker(e.currentTarget)}
           />
@@ -902,7 +910,7 @@ export default function Mascot({ visible, hideArt = false }) {
         <button
           ref={keyBtn}
           type="button"
-          className="mascot-key"
+          className={`mascot-key${orbMode ? ' is-orb' : ''}`}
           aria-label="Change colours (time of day)"
           aria-haspopup="true"
           aria-expanded={!!picker}
@@ -911,7 +919,7 @@ export default function Mascot({ visible, hideArt = false }) {
       </div>
     )}
     {bubble && (visible || dock) && (
-      <div className={`mascot-bubble-anchor${reduce ? ' is-still' : ''}${dockClass}`} style={dockStyle}>
+      <div className={`mascot-bubble-anchor${reduce ? ' is-still' : ''}${orbMode ? ' is-orb' : ''}${dockClass}`} style={dockStyle}>
         <div className="mascot-bubble" role="status">
           <span>{bubble}</span>
           <button type="button" aria-label="Dismiss" onClick={() => say(null)}>

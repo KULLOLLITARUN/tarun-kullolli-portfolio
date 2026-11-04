@@ -588,12 +588,16 @@ export function createCore(container, getStateName) {
     // The tour starts: the pieces fly into the guide Kairo. It ends: they fly back out and re-form the orb.
     tourStart() {
       tourOn = true
-      // Kairo must not show before the pieces get there (this runs before it mounts).
-      lastForm = '0.000'
-      document.documentElement.style.setProperty('--kairo-form', '0')
+      // Kairo must not show before the pieces get there (this runs before it mounts). If the orb is
+      // paused (off screen or a hidden tab) nothing will fly, and the loop that would publish the
+      // value is not running, so Kairo simply appears.
+      if (!active) tour = 1
+      lastForm = active ? '0.000' : '1.000'
+      document.documentElement.style.setProperty('--kairo-form', active ? '0' : '1')
     },
     tourEnd() {
       tourOn = false
+      if (!active) tour = 0 // paused: nothing to animate back, the orb is simply whole again
     },
     // The alarm: a quick bright, shaking flash (Kairo rings its alarm when clicked).
     ring() {
@@ -603,6 +607,13 @@ export function createCore(container, getStateName) {
     setActive(on) {
       if (on === active) return
       active = on
+      // Pausing in the middle of a tour would freeze Kairo's fade half way (the loop publishes it),
+      // so finish it now: the pieces are out of sight anyway.
+      if (!on && tourOn) {
+        tour = 1
+        lastForm = '1.000'
+        document.documentElement.style.setProperty('--kairo-form', '1')
+      }
       if (on && !raf) {
         last = performance.now()
         raf = requestAnimationFrame(frame)

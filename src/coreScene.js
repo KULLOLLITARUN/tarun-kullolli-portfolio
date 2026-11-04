@@ -465,6 +465,7 @@ export function createCore(container, getStateName) {
   let scroll = 0 // 0 at the top of the page, 1 once the hero has scrolled away
   let tour = 0 // 0 = the orb, 1 = all of it has flown into the guide Kairo
   let tourOn = false
+  let lastForm = null // last --kairo-form value written to the page
   let kairoPx = null // where the docked guide Kairo is on screen (CSS pixels)
   let lastInput = performance.now()
   const onInput = () => {
@@ -538,6 +539,14 @@ export function createCore(container, getStateName) {
       U.uTourPos.value.set(dx * unitsPerPx, -dy * unitsPerPx, -CAM_Z)
     }
     U.uTour.value = tour
+    // Tell the CSS how far the pieces have arrived (0.45 → 0.95 of the tour, when the last of them
+    // are landing and fading), so the guide Kairo forms out of them instead of on a fixed timer.
+    const formT = Math.min(1, Math.max(0, (tour - 0.45) / 0.5))
+    const form = (formT * formT * (3 - 2 * formT)).toFixed(3)
+    if (form !== lastForm) {
+      lastForm = form
+      document.documentElement.style.setProperty('--kairo-form', form)
+    }
     const target = CORE_STATES[getStateName()] || CORE_STATES.idle
     for (const k of ['speed', 'scale', 'pulse', 'red', 'jitter', 'smear']) cur[k] += (target[k] - cur[k]) * Math.min(1, dt * 3)
     const sp = (reducedMotion ? 0.15 : cur.speed) * (1 - 0.65 * sleep)
@@ -579,6 +588,9 @@ export function createCore(container, getStateName) {
     // The tour starts: the pieces fly into the guide Kairo. It ends: they fly back out and re-form the orb.
     tourStart() {
       tourOn = true
+      // Kairo must not show before the pieces get there (this runs before it mounts).
+      lastForm = '0.000'
+      document.documentElement.style.setProperty('--kairo-form', '0')
     },
     tourEnd() {
       tourOn = false
@@ -602,6 +614,7 @@ export function createCore(container, getStateName) {
       window.removeEventListener('pointermove', onMove)
       for (const ev of ['keydown', 'pointerdown', 'wheel']) window.removeEventListener(ev, onInput)
       ro.disconnect()
+      document.documentElement.style.removeProperty('--kairo-form')
       scene.traverse((o) => {
         o.geometry?.dispose?.()
         const m = o.material

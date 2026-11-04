@@ -34,6 +34,27 @@ function Leg({ legRef, hipX, footX }) {
   )
 }
 
+// The same hand as the big Kairo's (Mascot.jsx Glove): four fingers, a thumb, a palm and a cuff,
+// scaled down. (x, y) is just past the arm's end, and rot points the fingers along the arm.
+const SKIN = '#f6d5bb'
+function Hand({ x, y, rot }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(0.34)`}>
+      <g transform="scale(1.1) translate(0 -2)">
+        <g fill={SKIN} stroke={INK} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
+          <rect x="9" y="-22" width="7.5" height="26" rx="3.75" transform="rotate(48 12 2)" />
+          <rect x="-15" y="-24" width="7" height="28" rx="3.5" transform="rotate(-16 -11 -4)" />
+          <rect x="-8" y="-31" width="7.5" height="35" rx="3.75" transform="rotate(-6 -5 -4)" />
+          <rect x="-1" y="-34" width="7.5" height="38" rx="3.75" transform="rotate(3 2 -4)" />
+          <rect x="6" y="-30" width="7.5" height="34" rx="3.75" transform="rotate(12 9 -4)" />
+          <path d="M-16,4 Q-18,-8 -14,-8 L14,-8 Q18,-8 16,6 Q15,16 0,16 Q-15,16 -16,4 Z" />
+        </g>
+        <rect x="-14" y="10" width="28" height="9" rx="4" fill="#fff" stroke={INK} strokeWidth="5.5" />
+      </g>
+    </g>
+  )
+}
+
 export default function TimelineTick() {
   const reduce = useReducedMotion()
   const host = useRef(null)
@@ -268,7 +289,7 @@ export default function TimelineTick() {
           {/* left arm on the hip */}
           <path d="M18,66 C6,70 6,82 14,88" fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round" />
           <path d="M18,66 C6,70 6,82 14,88" fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="3.5" strokeLinecap="round" />
-          <circle cx="15" cy="89" r="5" fill="#fff" stroke={INK} strokeWidth="2.5" />
+          <Hand x={18} y={91} rot={127} />
           {/* body + dial */}
           <circle cx={C.x} cy={C.y} r="34" fill="url(#mtick-body)" stroke={INK} strokeWidth="3" />
           <circle cx={C.x} cy={C.y} r="28" fill="url(#mtick-dial)" stroke={INK} strokeWidth="2" />
@@ -290,7 +311,7 @@ export default function TimelineTick() {
           <g ref={r.arm}>
             <path d="M82,60 C94,56 96,46 93,38" fill="none" stroke={INK} strokeWidth="7" strokeLinecap="round" />
             <path d="M82,60 C94,56 96,46 93,38" fill="none" style={{ stroke: 'rgb(var(--tick-a-rgb))' }} strokeWidth="3.5" strokeLinecap="round" />
-            <circle cx="93" cy="35" r="5" fill="#fff" stroke={INK} strokeWidth="2.5" />
+            <Hand x={92} y={32.5} rot={-12} />
           </g>
         </g>
       </svg>

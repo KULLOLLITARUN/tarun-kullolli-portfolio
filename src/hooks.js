@@ -73,10 +73,10 @@ export function useSmoothScroll(enabled) {
 // section id. Written every frame by the particle scene; empty without it.
 export const stationDone = {}
 
-export function scrollToId(id) {
+export function scrollToId(id, duration = 1.4) {
   const el = document.getElementById(id)
   if (!el) return
-  if (lenis) lenis.scrollTo(el, { offset: id === 'top' ? 0 : NAV_OFFSET, duration: 1.4 })
+  if (lenis) lenis.scrollTo(el, { offset: id === 'top' ? 0 : NAV_OFFSET, duration })
   else el.scrollIntoView({ block: 'start' })
 }
 

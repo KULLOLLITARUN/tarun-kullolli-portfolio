@@ -83,7 +83,12 @@ export default function Cursor() {
       let gy = ptr.y
       let gw = IDLE
       let gh = IDLE
-      if (target && target.isConnected) {
+      // The element under a resting pointer can fade out (e.g. the rocket); let go of it then.
+      if (target && (!target.isConnected || getComputedStyle(target).visibility === 'hidden')) {
+        target = null
+        box.current?.classList.remove('is-locked')
+      }
+      if (target) {
         // An element can ask to be boxed by a larger ancestor (e.g. a card's open button → the card).
         const r = ((target.dataset.cursor && target.closest('[data-cursor-box]')) || target).getBoundingClientRect()
         gx = r.left + r.width / 2

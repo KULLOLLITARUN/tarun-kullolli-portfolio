@@ -3060,3 +3060,67 @@ body::before {
   opacity: var(--form);
   filter: blur(calc((1 - var(--form)) * 8px)) brightness(calc(1 + (1 - var(--form))));
 }
+
+/* ── Rocket: back to top, shown only while Contact is on screen ── */
+.rocket-top {
+  --rocket-window: var(--on-amber);
+  position: fixed;
+  right: var(--s-5);
+  bottom: calc(var(--s-5) + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 10px 16px 10px 12px;
+  border: 1px solid var(--amber);
+  border-radius: var(--r-pill);
+  background: var(--amber);
+  color: var(--on-amber);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px);
+  transition: opacity 300ms var(--ease), transform 300ms var(--ease), visibility 0s linear 300ms, box-shadow var(--t-fast);
+}
+.rocket-top.is-on {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+.rocket-top:hover {
+  box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rocket-top,
+  .rocket-icon {
+    transition: none;
+  }
+}
+
+.rocket-icon {
+  overflow: visible;
+}
+
+/* Rocket button: round, dark glass, rocket only */
+.rocket-top {
+  --rocket-window: var(--black);
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid rgba(var(--accent-rgb), 0.7);
+  border-radius: 50%;
+  background: rgba(10, 10, 14, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--amber);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+.rocket-top:hover,
+.rocket-top:focus-visible {
+  border-color: var(--amber);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.5), 0 6px 24px rgba(0, 0, 0, 0.45);
+}

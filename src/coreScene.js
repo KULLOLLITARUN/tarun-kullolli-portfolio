@@ -287,7 +287,7 @@ export function createCore(container, getStateName) {
   // A band made of circuit traces (right-angle paths with bright nodes) plus fine dust.
   function ringBand({ r, bw, tilt, spin, traces, dust }) {
     traces = Math.round(traces * 0.75)
-    dust = Math.round(dust * 0.7)
+    dust = Math.round(dust * 0.4)
     const b = dashes(), pb = particles(), p1 = rnd(0, 6), p2 = rnd(0, 6)
     const xy = (th, rho) => [Math.cos(th) * rho, Math.sin(th) * rho, 0]
     for (let k = 0; k < traces; k++) {
@@ -304,7 +304,7 @@ export function createCore(container, getStateName) {
         else rho2 = Math.min(r + bw / 2, Math.max(r - bw / 2, rho + len * (Math.random() < 0.5 ? 1 : -1)))
         const q = xy(th2, rho2)
         b.add(p, q, hot ? rnd(2.4, 3.6) : rnd(1.2, 2.2), 0.4, hot ? 1.35 : rnd(0.7, 1.1), hot ? PALE : undefined)
-        if (Math.random() < 0.75) pb.add(q, [q[0] - p[0], q[1] - p[1], 0], hot ? 1.5 : 0.9, hot ? 34 : 18)
+        if (Math.random() < 0.5) pb.add(q, [q[0] - p[0], q[1] - p[1], 0], hot ? 1.5 : 0.9, hot ? 34 : 18)
         th = th2; rho = rho2; p = q; horiz = !horiz
       }
     }
@@ -449,7 +449,7 @@ export function createCore(container, getStateName) {
     s.userData = { ph: rnd(0, 6) }; scene.add(s); bokeh.push(s)
   }
   {
-    const n = 800, pos = new Float32Array(n * 3)
+    const n = 450, pos = new Float32Array(n * 3)
     for (let i = 0; i < n; i++) {
       const a = rnd(0, TAU), c = Math.acos(rnd(-1, 1)), r = rnd(0.25, 1.15)
       pos.set([Math.sin(c) * Math.cos(a) * r, Math.cos(c) * r, Math.sin(c) * Math.sin(a) * r], i * 3)

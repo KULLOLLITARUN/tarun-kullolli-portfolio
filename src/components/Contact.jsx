@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { profile } from '../data.js'
 import { scrollToId } from '../hooks.js'
@@ -10,8 +10,12 @@ function spray(btn) {
   const r = btn.getBoundingClientRect()
   const cx = r.left + r.width / 2
   const cy = r.top + r.height / 2
+  const made = []
+  // Safety net: if an animation never finishes (tab hidden mid-flight), still clean everything up.
+  setTimeout(() => made.forEach((n) => n.remove()), 3000)
   for (let i = 0; i < 70; i++) {
     const s = document.createElement('span')
+    made.push(s)
     const size = 1.5 + Math.random() * 2, len = 14 + Math.random() * 34
     s.setAttribute('aria-hidden', 'true')
     s.style.cssText = `position:fixed;left:${cx - size / 2}px;top:${cy}px;width:${size}px;height:${len}px;border-radius:${size}px;pointer-events:none;z-index:39;background:${SPARKS[i % SPARKS.length]};box-shadow:0 0 8px ${SPARKS[i % SPARKS.length]}`
@@ -35,6 +39,7 @@ function spray(btn) {
   const ir = icon.getBoundingClientRect()
   ship.style.cssText = `position:fixed;left:${ir.left}px;top:${ir.top}px;width:${ir.width}px;height:${ir.height}px;overflow:visible;pointer-events:none;z-index:41`
   document.body.appendChild(ship)
+  made.push(ship)
   const flame = ship.querySelector('.rocket-flame')
   if (flame) {
     flame.style.transformBox = 'fill-box'
@@ -56,12 +61,16 @@ function spray(btn) {
 function RocketTop() {
   const [show, setShow] = useState(false)
   const [launch, setLaunch] = useState(false)
+  const launchTimer = useRef(null)
   useEffect(() => {
     const el = document.getElementById('contact')
     if (!el || !('IntersectionObserver' in window)) return undefined
     const io = new IntersectionObserver(([e]) => setShow(e.isIntersecting), { threshold: 0.35 })
     io.observe(el)
-    return () => io.disconnect()
+    return () => {
+      io.disconnect()
+      clearTimeout(launchTimer.current)
+    }
   }, [])
   return createPortal(
     <button
@@ -69,11 +78,13 @@ function RocketTop() {
       className={`rocket-top${show ? ' is-on' : ''}${launch ? ' is-launch' : ''}`}
       data-cursor="launch"
       onClick={(e) => {
+        if (launch) return // already launching: no second rocket
         spray(e.currentTarget)
+        e.currentTarget.blur() // it is about to be hidden; don't leave focus on a hidden button
         setShow(false) // the rocket has left: hide it now so the cursor lets go of it
         setLaunch(true)
         scrollToId('top', 0.9)
-        setTimeout(() => setLaunch(false), 1300)
+        launchTimer.current = setTimeout(() => setLaunch(false), 1300)
       }}
       aria-label="Back to top"
       tabIndex={show ? 0 : -1}

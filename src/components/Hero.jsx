@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { animate, stagger } from 'animejs'
 import { currentJob, profile } from '../data.js'
 import { useReducedMotion } from '../hooks.js'
@@ -85,7 +85,10 @@ export default function Hero({ onTour }) {
   const wide = useWide()
   const fontsReady = useFontsReady()
   // Laptops that can run the particle scene get the AI-core orb as Kairo's hero avatar.
-  const orbOn = particles && wide && !reduce
+  // If the orb fails to load or build, Kairo's own drawing comes back.
+  const [orbFailed, setOrbFailed] = useState(false)
+  const onOrbFail = useCallback(() => setOrbFailed(true), [])
+  const orbOn = particles && wide && !reduce && !orbFailed
   // Phase 1: the name forms. Phase 2 ("split"): name moves aside, face + chat appear.
   const [split, setSplit] = useState(() => reduce || !particles)
   // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
@@ -198,7 +201,7 @@ export default function Hero({ onTour }) {
 
       {orbOn ? (
         <Suspense fallback={null}>
-          <Core visible={split} />
+          <Core visible={split} onFail={onOrbFail} />
         </Suspense>
       ) : null}
       <Mascot visible={split} hideArt={orbOn} />

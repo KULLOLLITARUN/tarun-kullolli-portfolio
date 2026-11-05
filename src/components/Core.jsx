@@ -7,7 +7,7 @@ import { coreStateName } from '../coreState.js'
 // keyboard button sit over it unchanged, so a click still rings the alarm and opens the colour
 // picker. The hero mounts it only on wide screens with a capable GPU and loads this file lazily,
 // so phones never download any of it. It pauses off screen and in hidden tabs.
-export default function Core({ visible }) {
+export default function Core({ visible, onFail }) {
   const box = useRef(null)
   const core = useRef(null)
   const wantAssemble = useRef(false)
@@ -37,7 +37,11 @@ export default function Core({ visible }) {
           if (wantAssemble.current) core.current.assemble()
           sync()
         })
-        .catch(() => {})
+        .catch(() => {
+          // A failed chunk or WebGL setup: tell the hero so Kairo's own art shows instead.
+          core.current = null
+          if (!dead) onFail?.()
+        })
     }
     const idle = window.requestIdleCallback ? window.requestIdleCallback(start, { timeout: 1500 }) : setTimeout(start, 300)
 
@@ -70,7 +74,7 @@ export default function Core({ visible }) {
       core.current?.dispose()
       core.current = null
     }
-  }, [])
+  }, [onFail])
 
   return <div ref={box} className="core-orb" aria-hidden="true" />
 }

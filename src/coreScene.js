@@ -147,7 +147,7 @@ const PART_FRAG = /* glsl */ `
     vec2 p = gl_PointCoord - 0.5; p.y = -p.y;
     float u = dot(p, vDir); float v = dot(p, vec2(-vDir.y, vDir.x));
     float sx = 0.13 + 0.09 * uSmear;
-    float i = exp(-(u * u) / (sx * sx) - (v * v) / (0.05 * 0.05));
+    float i = exp(-(u * u) / (sx * sx) - (v * v) / (0.04 * 0.04));
     float a = vAlpha * i;
     if (a < 0.01) discard;
     gl_FragColor = vec4(themeColor(vColor, uRed) * uBoost, a);
@@ -568,14 +568,14 @@ export function createCore(container, getStateName) {
     orb.rotation.set(-0.05 + mouse.y * 0.06, Math.sin(time * 0.16) * 0.07 + mouse.x * 0.1, -0.04)
     const A = U.uColA.value
     coreGlow.material.color.setRGB(A.x + (1 - A.x) * cur.red, A.y * (1 - cur.red * 0.7), A.z * (1 - cur.red))
-    coreGlow.material.opacity = 0.9 * glowK * (1 - tour) * (1 - 0.5 * sleep) * (1 + ring * 0.5)
+    coreGlow.material.opacity = 0.6 * glowK * (1 - tour) * (1 - 0.5 * sleep) * (1 + ring * 0.5)
     coreGlow.scale.setScalar(0.7 + talk * 0.25 + ring * 0.3)
     haze.material.color.setRGB(U.uColB.value.x, U.uColB.value.y * (1 - cur.red * 0.6), U.uColB.value.z)
     haze.material.opacity = 0.05 * glowK * (1 - tour)
     for (const s of bokeh) s.material.opacity = (0.06 + 0.05 * Math.sin(time * 0.7 + s.userData.ph)) * glowK * (1 - tour)
     sparkMat.opacity = 0.9 * glowK * (1 - tour)
     sparkMat.color.setRGB(A.x, A.y, A.z)
-    bloom.strength = 0.3 + talk * 0.3 + cur.red * 0.15 + ring * 0.5
+    bloom.strength = 0.18 + talk * 0.3 + cur.red * 0.15 + ring * 0.5
     if (scroll < 0.995 && tour < 0.995) composer.render() // scrolled away or flown into Kairo: nothing left to draw
   }
   raf = requestAnimationFrame(frame)

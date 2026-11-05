@@ -715,6 +715,42 @@ html.has-cursor textarea {
 .tour-link:hover {
   color: var(--text);
 }
+/* Laptops and up: the two hero links become real buttons (solid amber + outline). */
+@media (min-width: 900px) {
+  .hero-links {
+    gap: var(--s-3) var(--s-4);
+    margin-top: var(--s-4);
+  }
+  .scroll-cue,
+  .tour-link {
+    padding: 12px 22px;
+    border: 1px solid var(--amber);
+    border-radius: var(--r-pill);
+    font-size: var(--fs-sm, var(--fs-xs));
+    transition: background var(--t-fast), color var(--t-fast), box-shadow var(--t-fast);
+  }
+  .scroll-cue {
+    background: var(--amber);
+    color: var(--on-amber);
+    font-weight: 600;
+  }
+  .scroll-cue .glyph {
+    color: var(--on-amber);
+    text-shadow: none;
+  }
+  .scroll-cue:hover {
+    color: var(--on-amber);
+    box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.55);
+  }
+  .tour-link {
+    background: transparent;
+    color: var(--text);
+  }
+  .tour-link:hover {
+    background: rgba(var(--accent-rgb), 0.12);
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.3);
+  }
+}
 
 /* Right half: the chat sits under the particle face */
 .hero-right {

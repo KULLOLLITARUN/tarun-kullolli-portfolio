@@ -58,7 +58,7 @@ export default function ProjectDemo({ title, demo }) {
         ))}
       </ol>
       <div className="demo-track" aria-hidden="true">
-        <span style={{ width: `${(now / Math.max(1, stages.length - 1)) * 100}%` }} />
+        <span style={{ transform: `scaleX(${now / Math.max(1, stages.length - 1)})` }} />
       </div>
 
       <p className="demo-line" aria-live={playing ? 'off' : 'polite'}>

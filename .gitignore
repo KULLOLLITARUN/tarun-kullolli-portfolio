@@ -8,3 +8,6 @@ dist
 
 # Claude Code skills and local settings (tooling for my editor, not part of the site)
 .claude/
+
+# Hallmark design-gate output
+.hallmark/

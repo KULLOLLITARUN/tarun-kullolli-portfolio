@@ -1,3 +1,5 @@
+/* Hallmark · check · genre: atmospheric · built: the project · redesign: polish · v2.0.0 */
+/* Hallmark · waive 24b · compact chip and label paddings (6px, 3px) · keeps small controls tight and readable */
 /* ── Tokens ─────────────────────────────────────────────── */
 :root {
   --bg: #000;
@@ -33,6 +35,59 @@
   --blue: rgb(var(--kicker-rgb)); /* section labels */
   --focus: var(--amber);
 
+  /* Colour values used by the components, named once here. */
+  --black: #05060a;
+  --black-035: rgba(0, 0, 0, 0.35);
+  --black-045: rgba(0, 0, 0, 0.45);
+  --black-05: rgba(0, 0, 0, 0.5);
+  --black-06: rgba(0, 0, 0, 0.6);
+  --black-07: rgba(0, 0, 0, 0.7);
+  --black-072: rgba(0, 0, 0, 0.72);
+  --black-08: rgba(0, 0, 0, 0.8);
+  --c-050506: #050506;
+  --c-0c0c0e: #0c0c0e;
+  --c-10-10-12-088: rgba(10, 10, 12, 0.88);
+  --c-10-10-12-097: rgba(10, 10, 12, 0.97);
+  --c-10-20-42-092: rgba(10, 20, 42, 0.92);
+  --c-11-21-44-092: rgba(11, 21, 44, 0.92);
+  --c-15-23-42-03: rgba(15, 23, 42, 0.3);
+  --c-16-30-58-096: rgba(16, 30, 58, 0.96);
+  --c-18-32-62-095: rgba(18, 32, 62, 0.95);
+  --c-4ade80: #4ade80;
+  --c-6-6-8-072: rgba(6, 6, 8, 0.72);
+  --c-6-6-8-082: rgba(6, 6, 8, 0.82);
+  --c-6-6-8-086: rgba(6, 6, 8, 0.86);
+  --c-666666: #666;
+  --c-74-222-128-0: rgba(74, 222, 128, 0);
+  --c-74-222-128-06: rgba(74, 222, 128, 0.6);
+  --c-8-12-24-096: rgba(8, 12, 24, 0.96);
+  --c-8-14-28-095: rgba(8, 14, 28, 0.95);
+  --c-8b8b94: #8b8b94;
+  --c-96-165-250: rgb(96, 165, 250);
+  --c-a1a1aa: #a1a1aa;
+  --c-d4d4d8: #d4d4d8;
+  --c-f0f9ff: #f0f9ff;
+  --c-f4f4f5: #f4f4f5;
+  --c-f8fdff: #f8fdff;
+  --white: #fbfcff;
+  --white-004: rgba(255, 255, 255, 0.04);
+  --white-006: rgba(255, 255, 255, 0.06);
+  --white-008: rgba(255, 255, 255, 0.08);
+  --white-01: rgba(255, 255, 255, 0.1);
+  --white-012: rgba(255, 255, 255, 0.12);
+  --white-014: rgba(255, 255, 255, 0.14);
+  --white-024: rgba(255, 255, 255, 0.24);
+  --white-032: rgba(255, 255, 255, 0.32);
+  --white-08: rgba(255, 255, 255, 0.8);
+  --white-085: rgba(255, 255, 255, 0.85);
+  --white-055: rgba(255, 255, 255, 0.55);
+  --white-07: rgba(255, 255, 255, 0.7);
+  --white-022: rgba(255, 255, 255, 0.22);
+  --white-03: rgba(255, 255, 255, 0.3);
+  --white-028: rgba(255, 255, 255, 0.28);
+  --white-1: rgba(255, 255, 255, 1);
+
+  --font-print: Calibri, Carlito, 'Segoe UI', Arial, sans-serif;
   --font: 'Geist', 'Geist Fallback', system-ui, -apple-system, sans-serif;
   --mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
 
@@ -75,6 +130,7 @@
 html {
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
   /* The flash on a tap follows the theme's accent instead of the browser's grey. */
   -webkit-tap-highlight-color: rgba(var(--accent-rgb), 0.18);
 }
@@ -87,7 +143,7 @@ body {
   font-size: var(--fs-md);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 h1,
 h2,
@@ -133,8 +189,6 @@ kbd {
 }
 .mono {
   font-family: var(--mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .amber {
   color: var(--amber);
@@ -205,16 +259,15 @@ html.has-cursor textarea {
   position: absolute;
   width: 8px;
   height: 8px;
-  border: 0 solid rgba(255, 255, 255, 0.85);
-  transition: width var(--t-fast), height var(--t-fast), border-color var(--t-fast);
+  border: 0 solid var(--white-085);
+  transition: transform var(--t-fast), border-color var(--t-fast);
 }
-.cursor-box .tl { left: 0; top: 0; border-top-width: 1.5px; border-left-width: 1.5px; }
-.cursor-box .tr { right: 0; top: 0; border-top-width: 1.5px; border-right-width: 1.5px; }
-.cursor-box .bl { left: 0; bottom: 0; border-bottom-width: 1.5px; border-left-width: 1.5px; }
-.cursor-box .br { right: 0; bottom: 0; border-bottom-width: 1.5px; border-right-width: 1.5px; }
+.cursor-box .tl { transform-origin: 0 0; left: 0; top: 0; border-top-width: 1.5px; border-left-width: 1.5px; }
+.cursor-box .tr { transform-origin: 100% 0; right: 0; top: 0; border-top-width: 1.5px; border-right-width: 1.5px; }
+.cursor-box .bl { transform-origin: 0 100%; left: 0; bottom: 0; border-bottom-width: 1.5px; border-left-width: 1.5px; }
+.cursor-box .br { transform-origin: 100% 100%; right: 0; bottom: 0; border-bottom-width: 1.5px; border-right-width: 1.5px; }
 .cursor-box.is-locked i {
-  width: 12px;
-  height: 12px;
+  transform: scale(1.5);
   border-color: var(--amber);
 }
 .cursor-label {
@@ -225,14 +278,14 @@ html.has-cursor textarea {
   border-radius: 3px;
   background: var(--amber);
   color: var(--on-amber);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font);
+  font-size: var(--fs-xs);
   white-space: nowrap;
+  transition: opacity var(--t-fast), transform var(--t-fast);
+}
+.js .cursor-label {
   opacity: 0;
   transform: translateY(3px);
-  transition: opacity var(--t-fast), transform var(--t-fast);
 }
 .cursor-box.is-locked .cursor-label {
   opacity: 1;
@@ -310,10 +363,8 @@ html.has-cursor textarea {
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
   background: var(--chip-bg);
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: var(--fs-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -478,7 +529,6 @@ html.has-cursor textarea {
   }
   .nav-actions .chip {
     padding: 0 6px;
-    letter-spacing: 0.04em;
   }
 }
 /* Very narrow phones: the switch alone (still named "Recruiter" for screen readers). */
@@ -522,23 +572,22 @@ html.has-cursor textarea {
   align-items: center;
   gap: var(--s-2);
   color: var(--nav-text);
-  letter-spacing: 0.08em;
 }
 .pulse {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6);
+  background: var(--c-4ade80);
+  box-shadow: 0 0 0 0 var(--c-74-222-128-06);
   animation: pulse 2s infinite;
 }
 @keyframes pulse {
   70% {
-    box-shadow: 0 0 0 8px rgba(74, 222, 128, 0);
+    box-shadow: 0 0 0 8px var(--c-74-222-128-0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+    box-shadow: 0 0 0 0 var(--c-74-222-128-0);
   }
 }
 
@@ -562,7 +611,7 @@ html.has-cursor textarea {
   inset: -12% -8% -14% 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse 62% 58% at 34% 52%, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.35) 55%, transparent 78%);
+  background: radial-gradient(ellipse 62% 58% at 34% 52%, var(--black-072), var(--black-035) 55%, transparent 78%);
 }
 /* Same metrics as the particle sampler (Geist 600, 0.04em tracking, 0.98 leading)
    so the particles land exactly on these letters before dissolving. */
@@ -588,8 +637,15 @@ html.has-cursor textarea {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.12));
-  animation: name-shine 7s linear 1s infinite;
+  filter: drop-shadow(0 0 24px var(--white-012));
+  animation: name-shine 9s ease-in-out 1.2s 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-name.is-resolved {
+    background: none;
+    color: var(--name-ink);
+    animation: none;
+  }
 }
 @keyframes name-shine {
   from {
@@ -610,7 +666,6 @@ html.has-cursor textarea {
   text-wrap: balance;
   font-size: var(--fs-xs);
   line-height: 2;
-  letter-spacing: 0.08em;
   color: var(--nav-text);
 }
 .word {
@@ -676,10 +731,10 @@ html.has-cursor textarea {
 }
 
 /* Elements start hidden only when the anime.js intro will run. */
-.intro .hud,
-.intro .hero-role .char,
-.intro .hero-quote .char,
-.intro .reveal {
+.js .intro .hud,
+.js .intro .hero-role .char,
+.js .intro .hero-quote .char,
+.js .intro .reveal {
   opacity: 0;
 }
 
@@ -694,6 +749,8 @@ html.has-cursor textarea {
   transform: translateX(-50%) translateY(6%);
   transform-origin: 50% 100%;
   pointer-events: none;
+}
+.js .mascot {
   opacity: 0;
 }
 .mascot-svg {
@@ -794,9 +851,9 @@ html.has-cursor textarea {
   padding: var(--s-2) var(--s-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
-  background: rgba(6, 6, 8, 0.82);
+  background: var(--c-6-6-8-082);
   backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px var(--black-05);
   font-size: var(--fs-xs);
   line-height: 1.5;
   color: var(--text);
@@ -816,7 +873,7 @@ html.has-cursor textarea {
   height: 10px;
   border-top: 1px solid var(--line-strong);
   border-right: 1px solid var(--line-strong);
-  background: rgba(6, 6, 8, 0.82);
+  background: var(--c-6-6-8-082);
   transform: rotate(45deg);
 }
 .mascot-bubble button {
@@ -851,13 +908,15 @@ html.has-cursor textarea {
   max-height: 100%;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
-  background: rgba(6, 6, 8, 0.72);
+  background: var(--c-6-6-8-072);
   backdrop-filter: blur(10px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 20px 60px var(--black-06);
+  transition: opacity 700ms var(--ease) 900ms, transform 700ms var(--ease) 900ms, visibility 0s 900ms;
+}
+.js .chat {
   opacity: 0;
   visibility: hidden;
   transform: translateY(16px);
-  transition: opacity 700ms var(--ease) 900ms, transform 700ms var(--ease) 900ms, visibility 0s 900ms;
 }
 .chat.is-visible {
   opacity: 1;
@@ -912,7 +971,7 @@ html.has-cursor textarea {
 .msg-user .msg-text {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-md) var(--r-md) 2px var(--r-md);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--white-01);
 }
 .msg-actions {
   display: flex;
@@ -984,7 +1043,7 @@ html.has-cursor textarea {
   padding: 0 var(--s-4) var(--s-3);
   overflow-x: auto;
   scrollbar-width: none;
-  mask-image: linear-gradient(to right, #000 85%, transparent);
+  mask-image: linear-gradient(to right, var(--black) 85%, transparent);
 }
 .chat-chips::-webkit-scrollbar {
   display: none;
@@ -995,11 +1054,11 @@ html.has-cursor textarea {
 .chat-chips button {
   white-space: nowrap;
   padding: 6px var(--s-3);
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid var(--white-032);
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--white-006);
   font-size: var(--fs-xs);
-  color: #d4d4d8;
+  color: var(--c-d4d4d8);
   cursor: pointer;
   transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
 }
@@ -1026,7 +1085,7 @@ html.has-cursor textarea {
   padding: 0 var(--s-3);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--white-004);
   color: var(--text);
   font: inherit;
   font-size: var(--fs-sm);
@@ -1275,7 +1334,7 @@ html.has-cursor textarea {
   -webkit-backdrop-filter: blur(5px) saturate(160%);
   box-shadow:
     /* top highlight + soft glow just inside the edges */
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 1px 0 var(--white-055),
     inset 0 0 24px rgba(var(--sky), 0.2),
     /* slab thickness: stacked offsets extrude a visible side edge to the right and bottom */
     1px 1px 0 rgba(var(--ice), 0.34),
@@ -1287,13 +1346,14 @@ html.has-cursor textarea {
     /* outer glow */
     0 0 22px rgba(var(--sky), 0.24);
   transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transition: transform 450ms var(--ease), border-color var(--t-med), box-shadow var(--t-med);
+  /* Only the tilt is eased: the hover glow and the focus ring appear instantly. */
+  transition: transform 450ms var(--ease);
 }
 .holo:hover,
 .holo:focus-within {
   --edge: 0.95;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 1px 0 var(--white-07),
     inset 0 0 30px rgba(var(--sky), 0.3),
     1px 1px 0 rgba(var(--ice), 0.45),
     2px 2px 0 rgba(var(--ice), 0.34),
@@ -1302,7 +1362,7 @@ html.has-cursor textarea {
     5px 5px 0 rgba(var(--ice), 0.14),
     6px 6px 0 rgba(var(--ice), 0.1),
     0 0 36px rgba(var(--sky), 0.42);
-  transition: transform 120ms linear, border-color var(--t-med), box-shadow var(--t-med);
+  transition: transform 120ms linear;
 }
 /* Light glare that follows the pointer. */
 .holo-glare {
@@ -1310,7 +1370,7 @@ html.has-cursor textarea {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.14), transparent 45%);
+  background: radial-gradient(circle at var(--gx) var(--gy), var(--white-014), transparent 45%);
 }
 /* Card content: near-white title, everything else pale cyan; soft dark shadow keeps it
    readable over bright stars seen through the glass. */
@@ -1326,10 +1386,12 @@ html.has-cursor textarea {
   bottom: var(--s-5);
   font-size: var(--fs-xs);
   color: rgb(var(--glass-hi-rgb));
-  opacity: 0;
-  transform: translateY(4px);
   /* Sequential swap (never both visible): out quickly, in after the stack line has gone. */
   transition: opacity 150ms var(--ease), transform 150ms var(--ease);
+}
+.js .holo-cta {
+  opacity: 0;
+  transform: translateY(4px);
 }
 .holo:hover .holo-cta,
 .holo:focus-within .holo-cta {
@@ -1347,15 +1409,15 @@ html.has-cursor textarea {
   font-size: var(--fs-xl);
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: #f8fdff;
+  color: var(--c-f8fdff);
   text-shadow:
     0 0 18px rgba(var(--sky), 0.5),
-    0 1px 8px rgba(0, 0, 0, 0.6);
+    0 1px 8px var(--black-06);
 }
 .holo .holo-sub,
 .holo-outcome,
 .holo-stack {
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 8px var(--black-07);
 }
 .holo-outcome {
   display: flex;
@@ -1391,7 +1453,7 @@ html.has-cursor textarea {
   border-radius: 6px;
   background: rgba(var(--glass-deep-rgb), 0.32);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 var(--white-008),
     inset 0 0 24px rgba(var(--sky), 0.08);
 }
 .holo-grid {
@@ -1405,7 +1467,7 @@ html.has-cursor textarea {
 }
 .holo-pulse {
   fill: none;
-  stroke: #ffffff;
+  stroke: var(--white);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-dasharray: 6 300;
@@ -1433,7 +1495,6 @@ html.has-cursor textarea {
   fill: rgb(var(--glass-pale-rgb));
   font-family: var(--mono);
   font-size: 7.5px;
-  letter-spacing: 0.04em;
 }
 /* Headline metric + trend */
 .holo-metric {
@@ -1445,7 +1506,7 @@ html.has-cursor textarea {
   border: 1px solid rgba(var(--ice), 0.24);
   border-radius: 6px;
   background: rgba(var(--glass-deep-rgb), 0.22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 var(--white-006);
 }
 .holo-metric p {
   display: grid;
@@ -1456,7 +1517,7 @@ html.has-cursor textarea {
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
-  color: #f0f9ff;
+  color: var(--c-f0f9ff);
   text-shadow: 0 0 22px rgba(var(--sky), 0.55);
 }
 .holo-mlabel {
@@ -1541,10 +1602,10 @@ html.has-cursor textarea {
   font-size: var(--fs-2xl);
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: #f8fdff;
+  color: var(--c-f8fdff);
   text-shadow:
     0 0 22px rgba(var(--sky), 0.5),
-    0 1px 8px rgba(0, 0, 0, 0.6);
+    0 1px 8px var(--black-06);
 }
 .pd-head h3:focus {
   outline: none;
@@ -1590,7 +1651,7 @@ html.has-cursor textarea {
   height: auto;
   border: 1px solid rgba(var(--ice), 0.3);
   border-radius: var(--r-sm);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 40px var(--black-045);
 }
 .pd-shot figcaption {
   margin-top: var(--s-2);
@@ -1613,15 +1674,13 @@ html.has-cursor textarea {
   margin-bottom: var(--s-2);
   font-size: var(--fs-xs);
   font-weight: 400;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: rgba(var(--ice), 0.7);
 }
 .pd-sec p,
 .pd-list {
   line-height: 1.65;
   color: rgba(var(--glass-pale-rgb), 0.9);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 8px var(--black-06);
 }
 .pd-list {
   display: grid;
@@ -1741,9 +1800,9 @@ html.has-cursor textarea {
 }
 @keyframes line-ignite {
   0% {
-    background: #fff;
+    background: var(--white);
     box-shadow:
-      0 0 10px rgba(255, 255, 255, 1),
+      0 0 10px var(--white-1),
       0 0 34px rgba(var(--glass-rgb), 0.9);
   }
 }
@@ -1802,8 +1861,6 @@ html.has-cursor textarea {
   border-radius: var(--r-pill);
   background: rgba(var(--accent-rgb), 0.08);
   font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--amber);
 }
 /* Glass panel: a lighter version of the project cards (Journey milestones, Skills modules). */
@@ -1822,7 +1879,7 @@ html.has-cursor textarea {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 1px 0 var(--white-022),
     inset 0 0 18px rgba(var(--glass-rgb), 0.07),
     0 0 16px rgba(var(--glass-rgb), 0.08);
   transition:
@@ -1837,7 +1894,7 @@ html.has-cursor textarea {
     transform: translateY(-3px);
     border-color: rgba(var(--glass-soft-rgb), 0.55);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 1px 0 var(--white-03),
       inset 0 0 22px rgba(var(--glass-rgb), 0.12),
       0 0 26px rgba(var(--glass-rgb), 0.2);
   }
@@ -1850,6 +1907,7 @@ html.has-cursor textarea {
 }
 /* Big faint outlined numeral behind the content. */
 .act-num {
+  font-variant-numeric: tabular-nums;
   position: absolute;
   top: -10px;
   right: var(--s-3);
@@ -1921,7 +1979,7 @@ html.has-cursor textarea {
   position: absolute;
   inset: -2px;
   border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.8);
+  border: 1px dashed var(--white-08);
 }
 .tl-burst.go {
   animation: tl-burst 700ms ease-out;
@@ -1997,7 +2055,7 @@ html.has-cursor textarea {
   grid-column: 1 / -1;
   border-color: rgba(var(--glass-soft-rgb), 0.42);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 1px 0 var(--white-028),
     inset 0 0 26px rgba(var(--glass-rgb), 0.1),
     0 0 26px rgba(var(--glass-rgb), 0.14);
 }
@@ -2021,7 +2079,7 @@ html.has-cursor textarea {
   background: rgba(var(--glass-rgb), 0.1);
   box-shadow: 0 0 12px rgba(var(--glass-rgb), 0.18);
   font-size: var(--fs-md);
-  color: #f0f9ff;
+  color: var(--c-f0f9ff);
 }
 .system-split {
   display: grid;
@@ -2214,7 +2272,7 @@ html.has-cursor textarea {
   justify-items: center;
   align-items: start;
   padding: 14vh var(--s-4) var(--s-4);
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--black-06);
   backdrop-filter: blur(6px);
 }
 .palette {
@@ -2222,7 +2280,7 @@ html.has-cursor textarea {
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
   background: var(--surface-2);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 24px 80px var(--black-08);
   overflow: hidden;
   animation: pop 160ms var(--ease);
 }
@@ -2266,7 +2324,7 @@ html.has-cursor textarea {
   white-space: nowrap;
 }
 .palette-item[aria-selected='true'] {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--white-008);
   box-shadow: inset 2px 0 0 var(--amber);
 }
 .palette-empty {
@@ -2296,9 +2354,9 @@ html.has-cursor textarea {
   overflow: hidden;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
-  background: rgba(10, 10, 12, 0.88);
+  background: var(--c-10-10-12-088);
   backdrop-filter: blur(12px);
-  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 16px 60px var(--black-07);
 }
 .tour-progress {
   position: absolute;
@@ -2405,7 +2463,7 @@ html.has-cursor textarea {
   }
   html,
   body {
-    background: #fff !important;
+    background: var(--white) !important;
   }
   /* Only the résumé prints: the site (lab or recruiter view) and its overlays are hidden. */
   body > *:not(#root),
@@ -2417,19 +2475,19 @@ html.has-cursor textarea {
   }
   .pr {
     padding: 12mm 15mm;
-    color: #000;
-    font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif;
+    color: var(--black);
+    font-family: var(--font-print);
     font-size: 10pt;
     line-height: 1.3;
   }
   .pr a {
-    color: #000;
+    color: var(--black);
     text-decoration: none;
   }
   .pr-head {
     text-align: center;
     padding-bottom: 6pt;
-    border-bottom: 1.5pt solid #000;
+    border-bottom: 1.5pt solid var(--black);
   }
   .pr-head h1 {
     font-size: 20pt;
@@ -2446,7 +2504,7 @@ html.has-cursor textarea {
     font-size: 9.5pt;
   }
   .pr-sep {
-    color: #666;
+    color: var(--c-666666);
   }
   .pr section {
     margin-top: 9pt;
@@ -2454,7 +2512,7 @@ html.has-cursor textarea {
   .pr h2 {
     margin-bottom: 4pt;
     padding-bottom: 1pt;
-    border-bottom: 0.75pt solid #000;
+    border-bottom: 0.75pt solid var(--black);
     font-size: 11pt;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -2510,9 +2568,9 @@ html.has-cursor textarea {
   padding: var(--s-3) var(--s-4);
   border: 1px solid rgba(var(--glass-rgb), 0.35);
   border-radius: var(--r-md);
-  background: rgba(6, 6, 8, 0.86);
+  background: var(--c-6-6-8-086);
   backdrop-filter: blur(10px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(var(--glass-rgb), 0.15);
+  box-shadow: 0 12px 40px var(--black-06), 0 0 24px rgba(var(--glass-rgb), 0.15);
   animation: picker-in 260ms var(--ease) both;
 }
 @keyframes picker-in {
@@ -2523,8 +2581,6 @@ html.has-cursor textarea {
 }
 .theme-picker-label {
   font-size: var(--fs-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 .theme-picker-row {
@@ -2548,7 +2604,7 @@ html.has-cursor textarea {
   height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--a) 0 50%, var(--b) 50% 100%);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 2px var(--white-012);
   transition: box-shadow var(--t-fast), transform var(--t-fast);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -2560,13 +2616,13 @@ html.has-cursor textarea {
   color: var(--text);
 }
 .theme-swatch[aria-pressed='true'] .theme-swatch-dot {
-  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--text);
+  box-shadow: 0 0 0 2px var(--black), 0 0 0 4px var(--text);
 }
 .theme-swatch:focus-visible {
   outline: none;
 }
 .theme-swatch:focus-visible .theme-swatch-dot {
-  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--focus);
+  box-shadow: 0 0 0 2px var(--black), 0 0 0 4px var(--focus);
 }
 @media (prefers-reduced-motion: reduce) {
   .theme-picker {
@@ -2580,15 +2636,15 @@ html.has-cursor textarea {
    (pale text, glass edges, glows) keeps working unchanged. */
 :root[data-theme='day'] {
   --bg: #f5f6fa;
-  --surface: #fff;
-  --surface-2: #fff;
+  --surface: #fdfdff;
+  --surface-2: #fdfdff;
   --line: rgba(15, 23, 42, 0.12);
   --line-strong: rgba(15, 23, 42, 0.3);
   --text: #0f172a;
   --text-2: #475569; /* ≥ 7:1 on --bg */
   --text-3: #5b6577; /* ≥ 5:1 on --bg */
   --on-text: #f5f6fa;
-  --on-amber: #fff; /* Day's amber is dark enough for white text, not for black */
+  --on-amber: #fffdf8; /* Day's amber is dark enough for white text, not for black */
   --chip-bg: rgba(255, 255, 255, 0.75);
   --wash: rgba(15, 23, 42, 0.06);
   --nav-bg: linear-gradient(to bottom, rgba(245, 246, 250, 0.94), rgba(245, 246, 250, 0.78));
@@ -2602,18 +2658,18 @@ html.has-cursor textarea {
   --sky: 125, 211, 252;
 }
 :root[data-theme='day'] :is(.holo, .act-panel, .glass-panel, .chat, .tour, .palette, .toast span, .theme-picker, .mascot-bubble) {
-  --bg: #000;
-  --surface: #050506;
-  --surface-2: #0c0c0e;
-  --line: rgba(255, 255, 255, 0.1);
-  --line-strong: rgba(255, 255, 255, 0.24);
-  --text: #f4f4f5;
-  --text-2: #a1a1aa;
-  --text-3: #8b8b94;
-  --on-text: #000;
-  --on-amber: #000;
-  --chip-bg: rgba(0, 0, 0, 0.5);
-  --wash: rgba(255, 255, 255, 0.06);
+  --bg: var(--black);
+  --surface: var(--c-050506);
+  --surface-2: var(--c-0c0c0e);
+  --line: var(--white-01);
+  --line-strong: var(--white-024);
+  --text: var(--c-f4f4f5);
+  --text-2: var(--c-a1a1aa);
+  --text-3: var(--c-8b8b94);
+  --on-text: var(--black);
+  --on-amber: var(--black);
+  --chip-bg: var(--black-05);
+  --wash: var(--white-006);
   --accent-rgb: 245, 181, 68;
   --accent-hi-rgb: 255, 200, 97;
   --accent-pale-rgb: 255, 244, 214;
@@ -2623,29 +2679,29 @@ html.has-cursor textarea {
   --glass-pale-rgb: 224, 242, 254;
   --glass-deep-rgb: 30, 58, 110;
   --amber: rgb(var(--accent-rgb));
-  --blue: rgb(96, 165, 250);
+  --blue: var(--c-96-165-250);
   --focus: var(--amber);
   color: var(--text);
   color-scheme: dark;
 }
 /* Dark glass needs an opaque-ish tint: there are no stars behind it to blur on a light page. */
 :root[data-theme='day'] .holo {
-  background: linear-gradient(180deg, rgba(16, 30, 58, 0.96), rgba(10, 20, 42, 0.92));
+  background: linear-gradient(180deg, var(--c-16-30-58-096), var(--c-10-20-42-092));
 }
 :root[data-theme='day'] :is(.act-panel, .glass-panel) {
-  background: linear-gradient(180deg, rgba(18, 32, 62, 0.95), rgba(11, 21, 44, 0.92));
+  background: linear-gradient(180deg, var(--c-18-32-62-095), var(--c-11-21-44-092));
 }
 /* Kairo's speech bubble is a dark island too; on a light page it needs a near-opaque tint. */
 :root[data-theme='day'] .mascot-bubble,
 :root[data-theme='day'] .mascot-bubble::after {
-  background: rgba(8, 12, 24, 0.96);
+  background: var(--c-8-12-24-096);
 }
 :root[data-theme='day'] .tour {
-  background: rgba(10, 10, 12, 0.97);
+  background: var(--c-10-10-12-097);
 }
 :root[data-theme='day'] .chat {
-  background: rgba(8, 14, 28, 0.95);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.3);
+  background: var(--c-8-14-28-095);
+  box-shadow: 0 14px 40px var(--c-15-23-42-03);
 }
 /* The dark scrim behind the name is for the particles and the star field; neither is on a light page. */
 :root[data-theme='day'] .hero-left::before {
@@ -2741,7 +2797,8 @@ html.has-cursor textarea {
   position: absolute;
   top: 100%;
   right: var(--gutter);
-  width: min(300px, calc(100vw - 2 * var(--gutter)));
+  width: 300px;
+  max-width: calc(100% - 2 * var(--gutter));
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -2750,7 +2807,7 @@ html.has-cursor textarea {
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
   background: var(--surface-2);
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 16px 50px var(--black-06);
 }
 .nav-sheet nav {
   display: flex;
@@ -2811,7 +2868,7 @@ html.has-cursor textarea {
   padding: var(--s-4);
   border: 1px solid rgba(var(--ice), 0.25);
   border-radius: var(--r-md);
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--black-035);
 }
 .demo-nodes {
   display: flex;
@@ -2876,8 +2933,10 @@ html.has-cursor textarea {
 .demo-track span {
   display: block;
   height: 100%;
+  width: 100%;
   background: var(--amber);
-  transition: width 700ms var(--ease);
+  transform-origin: left;
+  transition: transform 700ms var(--ease);
 }
 .demo-line {
   min-height: 3.4em;

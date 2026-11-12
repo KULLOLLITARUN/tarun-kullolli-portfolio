@@ -75,7 +75,8 @@ const DASH_VERT = /* glsl */ `
     // Scrolling away: each piece peels off in its own time and drifts down into the star field.
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
-    vec3 drift = vec3(aScatter.y * 1.2, -1.2 - abs(aScatter.x) * 0.9, aScatter.z) * away;
+    // One shared stream (down and a little to the right), like the name dust, with only a small spread.
+    vec3 drift = vec3(0.45 + aScatter.y * 0.35, -1.4 - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
     vec3 e = aStart + (aEnd - aStart) * (1.0 + uSmear * aSmear + (1.0 - arrive) * 3.5 + away * 1.2);
     // Tour: each piece flies to the guide Kairo's position and bunches up there, then fades as the
     // real Kairo appears; at the end of the tour the same thing runs backwards.
@@ -83,6 +84,10 @@ const DASH_VERT = /* glsl */ `
     tour = tour * tour * (3.0 - 2.0 * tour);
     vec3 vsA = (modelViewMatrix * vec4(aStart, 1.0)).xyz + off + drift;
     vec3 vsE = (modelViewMatrix * vec4(e, 1.0)).xyz + off + drift;
+    // Streaks turn to point along the stream as they leave, keeping their length.
+    vec3 flowDir = normalize(vec3(0.45, -1.4, 0.0));
+    vec3 d0 = vsE - vsA;
+    vsE = vsA + mix(d0, flowDir * length(d0), away * 0.85);
     vsA = mix(vsA, uTourPos + (vsA - uOrbC) * 0.1, tour);
     vsE = mix(vsE, uTourPos + (vsE - uOrbC) * 0.1, tour);
     vec4 cs = projectionMatrix * vec4(vsA, 1.0);
@@ -122,7 +127,8 @@ const PART_VERT = /* glsl */ `
     // Scrolling away: each piece peels off in its own time and drifts down into the star field.
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
-    vec3 drift = vec3(aScatter.y * 1.2, -1.2 - abs(aScatter.x) * 0.9, aScatter.z) * away;
+    // One shared stream (down and a little to the right), like the name dust, with only a small spread.
+    vec3 drift = vec3(0.45 + aScatter.y * 0.35, -1.4 - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
     float tour = clamp(uTour * 1.6 - fract(aSeed * 4.13) * 0.6, 0.0, 1.0);
     tour = tour * tour * (3.0 - 2.0 * tour);
     vec3 vsP = (modelViewMatrix * vec4(position, 1.0)).xyz + off + drift;

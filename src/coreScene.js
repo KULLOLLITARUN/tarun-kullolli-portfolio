@@ -20,6 +20,10 @@ const PALE = [1.0, 0.55, 0.06]
 
 // Each piece is authored in warm orange tones; its "heat" (green over red) picks where it sits
 // between the theme's deep, main and pale colours, so the whole orb re-colours with the theme.
+// The direction pieces leave in as the orb scrolls away (down and a little right, like the name dust).
+const STREAM_GLSL = /* glsl */ `
+  const vec2 STREAM = vec2(0.45, -1.4);
+`
 const THEME_GLSL = /* glsl */ `
   uniform vec3 uColA; uniform vec3 uColB; uniform vec3 uColC;
   vec3 themeColor(vec3 c, float red) {
@@ -50,7 +54,8 @@ function themeTones() {
     h /= 6
   }
   const acc = [r, g, b]
-  const warm = h < 0.07 || h > 0.94, cool = h > 0.55 && h < 0.94
+  // A grey (d = 0) has no hue, so it is neither. The band edges are hard on purpose: no theme sits near them.
+  const warm = d > 0 && (h < 0.07 || h > 0.94), cool = d > 0 && h > 0.55 && h < 0.94
   const mixTo = (a, c, t) => a.map((x, i) => x + (c[i] - x) * t)
   return {
     // Near red (rose, coral) the same saturation turns harsh crimson, so ease it off there. Blue, violet and
@@ -62,6 +67,7 @@ function themeTones() {
 }
 
 const DASH_VERT = /* glsl */ `
+  ${STREAM_GLSL}
   attribute vec3 aStart; attribute vec3 aEnd; attribute vec2 aCorner;
   attribute float aSeed; attribute vec3 aColor; attribute float aSmear; attribute float aWidth; attribute vec3 aScatter;
   uniform vec2 uRes; uniform float uTime; uniform float uSmear; uniform float uJitter; uniform float uAssemble;
@@ -76,7 +82,7 @@ const DASH_VERT = /* glsl */ `
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
     // One shared stream (down and a little to the right), like the name dust, with only a small spread.
-    vec3 drift = vec3(0.45 + aScatter.y * 0.35, -1.4 - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
+    vec3 drift = vec3(STREAM.x + aScatter.y * 0.35, STREAM.y - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
     vec3 e = aStart + (aEnd - aStart) * (1.0 + uSmear * aSmear + (1.0 - arrive) * 3.5 + away * 1.2);
     // Tour: each piece flies to the guide Kairo's position and bunches up there, then fades as the
     // real Kairo appears; at the end of the tour the same thing runs backwards.
@@ -85,7 +91,7 @@ const DASH_VERT = /* glsl */ `
     vec3 vsA = (modelViewMatrix * vec4(aStart, 1.0)).xyz + off + drift;
     vec3 vsE = (modelViewMatrix * vec4(e, 1.0)).xyz + off + drift;
     // Streaks turn to point along the stream as they leave, keeping their length.
-    vec3 flowDir = normalize(vec3(0.45, -1.4, 0.0));
+    vec3 flowDir = normalize(vec3(STREAM, 0.0));
     vec3 d0 = vsE - vsA;
     vsE = vsA + mix(d0, flowDir * length(d0), away * 0.85);
     vsA = mix(vsA, uTourPos + (vsA - uOrbC) * 0.1, tour);
@@ -116,6 +122,7 @@ const DASH_FRAG = /* glsl */ `
     gl_FragColor = vec4(themeColor(vColor, uRed) * uBoost, vAlpha);
   }`
 const PART_VERT = /* glsl */ `
+  ${STREAM_GLSL}
   attribute vec3 aTan; attribute vec3 aColor; attribute float aSeed; attribute float aSize; attribute vec3 aScatter;
   uniform vec2 uRes; uniform float uTime; uniform float uJitter; uniform float uPx; uniform float uAssemble;
   uniform float uScroll; uniform float uTour; uniform vec3 uTourPos; uniform vec3 uOrbC;
@@ -128,7 +135,7 @@ const PART_VERT = /* glsl */ `
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
     // One shared stream (down and a little to the right), like the name dust, with only a small spread.
-    vec3 drift = vec3(0.45 + aScatter.y * 0.35, -1.4 - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
+    vec3 drift = vec3(STREAM.x + aScatter.y * 0.35, STREAM.y - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
     float tour = clamp(uTour * 1.6 - fract(aSeed * 4.13) * 0.6, 0.0, 1.0);
     tour = tour * tour * (3.0 - 2.0 * tour);
     vec3 vsP = (modelViewMatrix * vec4(position, 1.0)).xyz + off + drift;

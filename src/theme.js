@@ -171,7 +171,7 @@ export function recruiterTheme() {
 export function applyTheme(id) {
   const t = byId(id)
   const root = document.documentElement
-  for (const k of TOKENS) root.style.setProperty(cssName(k), (t[k] || t.accent).join(', ')) // `orb` is optional: the AI-core orb follows the accent unless a theme sets its own
+  for (const k of TOKENS) root.style.setProperty(cssName(k), (k === 'orb' ? t.orb ?? t.accent : t[k]).join(', ')) // only `orb` is optional (the AI-core orb follows the accent unless a theme sets its own)
   root.dataset.theme = t.id
   // Browser chrome (address bar) follows the page colour; styles.css sets --bg for Day.
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.light ? '#f5f6fa' : '#000000')

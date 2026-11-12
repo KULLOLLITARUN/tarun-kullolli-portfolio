@@ -83,6 +83,13 @@ describe('theme data', () => {
     }
   })
 
+  it('has an optional orb colour that, when set, is three whole numbers from 0 to 255', () => {
+    for (const t of THEMES.filter((t) => t.orb)) {
+      expect(t.orb, `${t.id}.orb`).toHaveLength(3)
+      for (const n of t.orb) expect(Number.isInteger(n) && n >= 0 && n <= 255, `${t.id}.orb`).toBe(true)
+    }
+  })
+
   it('has unique ids, starts with Night, and only Day is light and phone-only', () => {
     const ids = THEMES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
@@ -108,16 +115,25 @@ describe('availableThemes', () => {
 })
 
 describe('applyTheme', () => {
-  it('sets all 12 colour variables as "r, g, b", the theme name and the scene state', () => {
+  it('sets all 13 colour variables (12 plus the orb) as "r, g, b", the theme name and the scene state', () => {
     const p = page()
     applyTheme('dawn')
-    expect(Object.keys(p.props)).toHaveLength(TOKENS.length)
-    expect(p.props['--accent-rgb']).toBe('251, 154, 138')
-    expect(p.props['--accent-hi-rgb']).toBe('253, 186, 170')
+    expect(Object.keys(p.props)).toHaveLength(TOKENS.length + 1)
+    expect(p.props['--accent-rgb']).toBe('252, 176, 128')
+    expect(p.props['--accent-hi-rgb']).toBe('254, 202, 160')
     expect(p.props['--tick-a-rgb']).toBe('167, 139, 250')
     expect(p.root.dataset.theme).toBe('dawn')
     expect(themeState.id).toBe('dawn')
     expect(themeState.colors.id).toBe('dawn')
+  })
+
+  it('gives the orb the theme\'s own colour when it has one, and the accent when it has none', () => {
+    const p = page()
+    applyTheme('dawn')
+    expect(p.props['--orb-rgb']).toBe(p.props['--accent-rgb'])
+    applyTheme('aurora')
+    expect(p.props['--orb-rgb']).toBe('44, 176, 110')
+    expect(p.props['--orb-rgb']).not.toBe(p.props['--accent-rgb'])
   })
 
   it('colours the browser address bar light for Day and black for the rest', () => {

@@ -20,6 +20,10 @@ const PALE = [1.0, 0.55, 0.06]
 
 // Each piece is authored in warm orange tones; its "heat" (green over red) picks where it sits
 // between the theme's deep, main and pale colours, so the whole orb re-colours with the theme.
+// The direction pieces leave in as the orb scrolls away (down and a little right, like the name dust).
+const STREAM_GLSL = /* glsl */ `
+  const vec2 STREAM = vec2(0.45, -1.4);
+`
 const THEME_GLSL = /* glsl */ `
   uniform vec3 uColA; uniform vec3 uColB; uniform vec3 uColC;
   vec3 themeColor(vec3 c, float red) {
@@ -39,7 +43,7 @@ function hslToRgb(h, s, l) {
   return [f(0), f(8), f(4)]
 }
 function themeTones() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').match(/\d+/g)
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--orb-rgb').match(/\d+/g)
   const [r, g, b] = (v && v.length >= 3 ? v.slice(0, 3).map(Number) : [245, 181, 68]).map((x) => x / 255)
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
   let h = 0
@@ -50,15 +54,20 @@ function themeTones() {
     h /= 6
   }
   const acc = [r, g, b]
+  // A grey (d = 0) has no hue, so it is neither. The band edges are hard on purpose: no theme sits near them.
+  const warm = d > 0 && (h < 0.07 || h > 0.94), cool = d > 0 && h > 0.55 && h < 0.94
   const mixTo = (a, c, t) => a.map((x, i) => x + (c[i] - x) * t)
   return {
-    deep: hslToRgb((h + 1 - 0.03) % 1, 0.8, 0.36),
-    main: mixTo(acc, hslToRgb(h, 0.9, 0.5), 0.5),
+    // Near red (rose, coral) the same saturation turns harsh crimson, so ease it off there. Blue, violet and
+    // pink look dark and neon at the warm-hue values, so lift them and mute the saturation.
+    deep: hslToRgb((h + 1 - 0.03) % 1, warm ? 0.72 : cool ? 0.5 : 0.9, cool ? 0.58 : 0.42),
+    main: mixTo(acc, hslToRgb(h, cool ? 0.6 : 0.9, 0.5), 0.5),
     pale: mixTo(acc, [1, 1, 1], 0.3),
   }
 }
 
 const DASH_VERT = /* glsl */ `
+  ${STREAM_GLSL}
   attribute vec3 aStart; attribute vec3 aEnd; attribute vec2 aCorner;
   attribute float aSeed; attribute vec3 aColor; attribute float aSmear; attribute float aWidth; attribute vec3 aScatter;
   uniform vec2 uRes; uniform float uTime; uniform float uSmear; uniform float uJitter; uniform float uAssemble;
@@ -72,14 +81,19 @@ const DASH_VERT = /* glsl */ `
     // Scrolling away: each piece peels off in its own time and drifts down into the star field.
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
-    vec3 drift = vec3(aScatter.y * 1.2, -1.2 - abs(aScatter.x) * 0.9, aScatter.z) * away;
-    vec3 e = aStart + (aEnd - aStart) * (1.0 + uSmear * aSmear + (1.0 - arrive) * 3.5 + away * 4.0);
+    // One shared stream (down and a little to the right), like the name dust, with only a small spread.
+    vec3 drift = vec3(STREAM.x + aScatter.y * 0.35, STREAM.y - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
+    vec3 e = aStart + (aEnd - aStart) * (1.0 + uSmear * aSmear + (1.0 - arrive) * 3.5 + away * 1.2);
     // Tour: each piece flies to the guide Kairo's position and bunches up there, then fades as the
     // real Kairo appears; at the end of the tour the same thing runs backwards.
     float tour = clamp(uTour * 1.6 - fract(aSeed * 4.13) * 0.6, 0.0, 1.0);
     tour = tour * tour * (3.0 - 2.0 * tour);
     vec3 vsA = (modelViewMatrix * vec4(aStart, 1.0)).xyz + off + drift;
     vec3 vsE = (modelViewMatrix * vec4(e, 1.0)).xyz + off + drift;
+    // Streaks turn to point along the stream as they leave, keeping their length.
+    vec3 flowDir = normalize(vec3(STREAM, 0.0));
+    vec3 d0 = vsE - vsA;
+    vsE = vsA + mix(d0, flowDir * length(d0), away * 0.85);
     vsA = mix(vsA, uTourPos + (vsA - uOrbC) * 0.1, tour);
     vsE = mix(vsE, uTourPos + (vsE - uOrbC) * 0.1, tour);
     vec4 cs = projectionMatrix * vec4(vsA, 1.0);
@@ -97,7 +111,7 @@ const DASH_VERT = /* glsl */ `
     gl_Position = vec4(ndc * c.w, c.z, c.w);
     float fl = 0.5 + 0.5 * sin(uTime * (0.5 + fract(aSeed * 7.3) * 2.4) + aSeed * 40.0);
     vAlpha = smoothstep(0.08, 0.6, fl) * (0.4 + 0.6 * fract(aSeed * 3.7));
-    vAlpha *= clamp(1.25 - (c.w - 7.0) * 0.3, 0.35, 1.0) * 0.5 * smoothstep(0.0, 0.3, arrive) * (1.0 - smoothstep(0.45, 1.0, away)) * (1.0 - smoothstep(0.8, 1.0, tour));
+    vAlpha *= clamp(1.25 - (c.w - 7.0) * 0.3, 0.35, 1.0) * 0.7 * smoothstep(0.0, 0.3, arrive) * (1.0 - smoothstep(0.05, 0.55, away)) * (1.0 - smoothstep(0.8, 1.0, tour));
     vColor = aColor;
   }`
 const DASH_FRAG = /* glsl */ `
@@ -108,6 +122,7 @@ const DASH_FRAG = /* glsl */ `
     gl_FragColor = vec4(themeColor(vColor, uRed) * uBoost, vAlpha);
   }`
 const PART_VERT = /* glsl */ `
+  ${STREAM_GLSL}
   attribute vec3 aTan; attribute vec3 aColor; attribute float aSeed; attribute float aSize; attribute vec3 aScatter;
   uniform vec2 uRes; uniform float uTime; uniform float uJitter; uniform float uPx; uniform float uAssemble;
   uniform float uScroll; uniform float uTour; uniform vec3 uTourPos; uniform vec3 uOrbC;
@@ -119,7 +134,8 @@ const PART_VERT = /* glsl */ `
     // Scrolling away: each piece peels off in its own time and drifts down into the star field.
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
-    vec3 drift = vec3(aScatter.y * 1.2, -1.2 - abs(aScatter.x) * 0.9, aScatter.z) * away;
+    // One shared stream (down and a little to the right), like the name dust, with only a small spread.
+    vec3 drift = vec3(STREAM.x + aScatter.y * 0.35, STREAM.y - abs(aScatter.x) * 0.35, aScatter.z * 0.4) * away;
     float tour = clamp(uTour * 1.6 - fract(aSeed * 4.13) * 0.6, 0.0, 1.0);
     tour = tour * tour * (3.0 - 2.0 * tour);
     vec3 vsP = (modelViewMatrix * vec4(position, 1.0)).xyz + off + drift;
@@ -560,7 +576,7 @@ export function createCore(container, getStateName) {
     U.uSmear.value = reducedMotion ? 0 : cur.smear + ring * 1.5
     U.uJitter.value = cur.jitter + ring * 0.8
     U.uRed.value = cur.red
-    U.uBoost.value = 0.19 * (1 + talk * 0.35 + ring * 1.2) * (1 - 0.5 * sleep)
+    U.uBoost.value = 0.4 * (1 + talk * 0.35 + ring * 1.2) * (1 - 0.5 * sleep)
     const breathe = 1 + Math.sin(time * 1.2) * 0.012 + talk * 0.03
     const size = cur.scale * breathe * (1 - 0.06 * sleep)
     orb.scale.set(1.1 * size, size, size)

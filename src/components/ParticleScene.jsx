@@ -444,11 +444,11 @@ void main() {
   gl_Position = projectionMatrix * mv;
   float edge = step(min(min(aUV.x, 1.0 - aUV.x), min(aUV.y, 1.0 - aUV.y)), 0.001);
   gl_PointSize = uSize * uPixelRatio * (0.55 + aRand * 0.6 + edge * cc * 0.35) * (1.0 + scan * 0.6) * (1.0 + 0.3 * flight) / -mv.z;
-  // The name is white; once the particles leave it they turn the cards' glass colour
-  // (cyan in Night), except a few accent (amber) sparks.
+  // The name is white; once the particles leave it they turn mostly the cards' glass colour (cyan in
+  // Night) with 40% accent mixed in, so the stream shares the orb's colour; about 1 in 8 is pure accent.
   float journeyT = uCount > 0.5 ? smoothstep(0.0, 0.2, dd) : 0.0;
-  vec3 col = mix(vec3(0.96), uGlass, journeyT);
-  col = mix(col, uAccent, step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
+  vec3 col = mix(vec3(0.96), mix(uGlass, uAccent, 0.4), journeyT); // part glass, part accent: one colour story with the orb
+  col = mix(col, uAccent, step(0.88, aRand) * smoothstep(0.0, 0.15, dd));
   // Particles forming the finale word turn its accent colour as they settle into it.
   col = mix(col, uAccent, (1.0 - kind) * smoothstep(0.5, 1.0, e4));
   // Card outlines glow icy (a pale glass tint) as they lock into place.

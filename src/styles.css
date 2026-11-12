@@ -20,6 +20,7 @@
   --nav-text: #d4d4d8; /* nav links and the small text at the top: brighter than --text-2 */
   /* Theme colours (Night). theme.js overrides these when Kairo switches the time of day. */
   --accent-rgb: 245, 181, 68;
+  --orb-rgb: 245, 181, 68; /* the AI-core orb: the accent unless a theme sets its own */
   --accent-hi-rgb: 255, 200, 97;
   --accent-pale-rgb: 255, 244, 214;
   --glass-rgb: 125, 211, 252;

@@ -447,8 +447,8 @@ void main() {
   // The name is white; once the particles leave it they turn the cards' glass colour
   // (cyan in Night), except a few accent (amber) sparks.
   float journeyT = uCount > 0.5 ? smoothstep(0.0, 0.2, dd) : 0.0;
-  vec3 col = mix(vec3(0.96), uGlass, journeyT);
-  col = mix(col, uAccent, step(0.97, aRand) * smoothstep(0.0, 0.15, dd));
+  vec3 col = mix(vec3(0.96), mix(uGlass, uAccent, 0.4), journeyT); // part glass, part accent: one colour story with the orb
+  col = mix(col, uAccent, step(0.88, aRand) * smoothstep(0.0, 0.15, dd));
   // Particles forming the finale word turn its accent colour as they settle into it.
   col = mix(col, uAccent, (1.0 - kind) * smoothstep(0.5, 1.0, e4));
   // Card outlines glow icy (a pale glass tint) as they lock into place.

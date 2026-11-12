@@ -39,7 +39,7 @@ function hslToRgb(h, s, l) {
   return [f(0), f(8), f(4)]
 }
 function themeTones() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').match(/\d+/g)
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--orb-rgb').match(/\d+/g)
   const [r, g, b] = (v && v.length >= 3 ? v.slice(0, 3).map(Number) : [245, 181, 68]).map((x) => x / 255)
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
   let h = 0
@@ -50,10 +50,13 @@ function themeTones() {
     h /= 6
   }
   const acc = [r, g, b]
+  const warm = h < 0.07 || h > 0.94, cool = h > 0.55 && h < 0.94
   const mixTo = (a, c, t) => a.map((x, i) => x + (c[i] - x) * t)
   return {
-    deep: hslToRgb((h + 1 - 0.03) % 1, 0.8, 0.36),
-    main: mixTo(acc, hslToRgb(h, 0.9, 0.5), 0.5),
+    // Near red (rose, coral) the same saturation turns harsh crimson, so ease it off there. Blue, violet and
+    // pink look dark and neon at the warm-hue values, so lift them and mute the saturation.
+    deep: hslToRgb((h + 1 - 0.03) % 1, warm ? 0.72 : cool ? 0.5 : 0.9, cool ? 0.58 : 0.42),
+    main: mixTo(acc, hslToRgb(h, cool ? 0.6 : 0.9, 0.5), 0.5),
     pale: mixTo(acc, [1, 1, 1], 0.3),
   }
 }
@@ -73,7 +76,7 @@ const DASH_VERT = /* glsl */ `
     float away = clamp(uScroll * 1.7 - fract(aSeed * 7.71) * 0.7, 0.0, 1.0);
     away = away * away * (3.0 - 2.0 * away);
     vec3 drift = vec3(aScatter.y * 1.2, -1.2 - abs(aScatter.x) * 0.9, aScatter.z) * away;
-    vec3 e = aStart + (aEnd - aStart) * (1.0 + uSmear * aSmear + (1.0 - arrive) * 3.5 + away * 4.0);
+    vec3 e = aStart + (aEnd - aStart) * (1.0 + uSmear * aSmear + (1.0 - arrive) * 3.5 + away * 1.2);
     // Tour: each piece flies to the guide Kairo's position and bunches up there, then fades as the
     // real Kairo appears; at the end of the tour the same thing runs backwards.
     float tour = clamp(uTour * 1.6 - fract(aSeed * 4.13) * 0.6, 0.0, 1.0);
@@ -97,7 +100,7 @@ const DASH_VERT = /* glsl */ `
     gl_Position = vec4(ndc * c.w, c.z, c.w);
     float fl = 0.5 + 0.5 * sin(uTime * (0.5 + fract(aSeed * 7.3) * 2.4) + aSeed * 40.0);
     vAlpha = smoothstep(0.08, 0.6, fl) * (0.4 + 0.6 * fract(aSeed * 3.7));
-    vAlpha *= clamp(1.25 - (c.w - 7.0) * 0.3, 0.35, 1.0) * 0.5 * smoothstep(0.0, 0.3, arrive) * (1.0 - smoothstep(0.45, 1.0, away)) * (1.0 - smoothstep(0.8, 1.0, tour));
+    vAlpha *= clamp(1.25 - (c.w - 7.0) * 0.3, 0.35, 1.0) * 0.7 * smoothstep(0.0, 0.3, arrive) * (1.0 - smoothstep(0.05, 0.55, away)) * (1.0 - smoothstep(0.8, 1.0, tour));
     vColor = aColor;
   }`
 const DASH_FRAG = /* glsl */ `
@@ -560,7 +563,7 @@ export function createCore(container, getStateName) {
     U.uSmear.value = reducedMotion ? 0 : cur.smear + ring * 1.5
     U.uJitter.value = cur.jitter + ring * 0.8
     U.uRed.value = cur.red
-    U.uBoost.value = 0.19 * (1 + talk * 0.35 + ring * 1.2) * (1 - 0.5 * sleep)
+    U.uBoost.value = 0.4 * (1 + talk * 0.35 + ring * 1.2) * (1 - 0.5 * sleep)
     const breathe = 1 + Math.sin(time * 1.2) * 0.012 + talk * 0.03
     const size = cur.scale * breathe * (1 - 0.06 * sleep)
     orb.scale.set(1.1 * size, size, size)

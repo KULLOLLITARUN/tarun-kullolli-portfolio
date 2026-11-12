@@ -23,9 +23,9 @@ export const THEMES = [
   {
     id: 'dawn',
     name: 'Dawn',
-    accent: [251, 154, 138],
-    accentHi: [253, 186, 170],
-    accentPale: [255, 228, 222],
+    accent: [252, 176, 128], // apricot: a warm sunrise peach, not red
+    accentHi: [254, 202, 160],
+    accentPale: [255, 236, 218],
     glass: [196, 181, 253],
     glassSoft: [221, 214, 254],
     glassHi: [216, 180, 254],
@@ -39,18 +39,19 @@ export const THEMES = [
   {
     id: 'aurora',
     name: 'Aurora',
-    accent: [110, 231, 183],
-    accentHi: [167, 243, 208],
-    accentPale: [220, 252, 231],
-    glass: [94, 234, 212],
-    glassSoft: [153, 246, 228],
-    glassHi: [134, 239, 172],
-    glassPale: [204, 251, 241],
-    glassDeep: [17, 80, 74],
-    tickA: [45, 212, 191],
-    tickB: [15, 118, 110],
-    shoe: [163, 230, 53],
-    kicker: [45, 212, 191],
+    accent: [245, 200, 104], // warm gold: buttons, labels, the name highlight
+    accentHi: [252, 222, 146],
+    accentPale: [255, 243, 214],
+    orb: [44, 176, 110], // emerald: the AI-core orb (gold would make it look like Night)
+    glass: [96, 204, 172], // sea green: glass cards and the particle river
+    glassSoft: [152, 228, 202],
+    glassHi: [142, 232, 184],
+    glassPale: [212, 246, 232],
+    glassDeep: [14, 70, 56],
+    tickA: [76, 212, 152], // Kairo: emerald, with gold shoes
+    tickB: [16, 110, 82],
+    shoe: [245, 190, 80],
+    kicker: [76, 212, 152],
   },
   {
     id: 'solar',
@@ -69,21 +70,22 @@ export const THEMES = [
     kicker: [252, 211, 77],
   },
   {
-    // After Tokyo Night: orange accent on a blue-violet glass. Kairo is indigo.
+    // Twilight: a muted steel-blue orb and cool slate glass, a silver accent, and a warm orange touch on Kairo's shoes.
     id: 'dusk',
     name: 'Dusk',
-    accent: [255, 158, 100],
-    accentHi: [255, 184, 140],
-    accentPale: [255, 232, 214],
-    glass: [122, 162, 247],
-    glassSoft: [125, 207, 255],
-    glassHi: [137, 221, 255],
-    glassPale: [192, 202, 245],
-    glassDeep: [28, 34, 100],
-    tickA: [129, 140, 248], // indigo Kairo (Night keeps the sky blue)
-    tickB: [67, 56, 202],
-    shoe: [224, 175, 104],
-    kicker: [187, 154, 247],
+    accent: [214, 224, 240], // silver: buttons, labels, the name highlight
+    accentHi: [236, 242, 250],
+    accentPale: [244, 247, 252],
+    orb: [150, 176, 218], // steel blue: muted on purpose, saturated blues look like neon plastic
+    glass: [124, 154, 196],
+    glassSoft: [164, 188, 218],
+    glassHi: [184, 204, 228],
+    glassPale: [216, 226, 242],
+    glassDeep: [26, 38, 68],
+    tickA: [150, 176, 218], // steel-blue Kairo
+    tickB: [58, 82, 140],
+    shoe: [255, 168, 108],
+    kicker: [140, 168, 210],
   },
   {
     // After Catppuccin Mocha: peach accent on a pink glass with a plum wash. Kairo is mauve-pink.
@@ -92,6 +94,7 @@ export const THEMES = [
     accent: [250, 179, 135],
     accentHi: [252, 205, 174],
     accentPale: [253, 234, 222],
+    orb: [232, 150, 212], // mauve-pink orb to match the pink glass (peach stays on buttons and labels)
     glass: [245, 194, 231],
     glassSoft: [243, 200, 232],
     glassHi: [250, 215, 240],
@@ -128,7 +131,7 @@ export const THEMES = [
 
 const KEY = 'tk-theme'
 const byId = (id) => THEMES.find((t) => t.id === id) || THEMES[0]
-const TOKENS = ['accent', 'accentHi', 'accentPale', 'glass', 'glassSoft', 'glassHi', 'glassPale', 'glassDeep', 'tickA', 'tickB', 'shoe', 'kicker']
+const TOKENS = ['accent', 'orb', 'accentHi', 'accentPale', 'glass', 'glassSoft', 'glassHi', 'glassPale', 'glassDeep', 'tickA', 'tickB', 'shoe', 'kicker']
 const cssName = (k) => `--${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}-rgb`
 
 // Phones: where the particle scene is skipped (Hero.jsx uses the same width) and Day is offered.
@@ -168,7 +171,7 @@ export function recruiterTheme() {
 export function applyTheme(id) {
   const t = byId(id)
   const root = document.documentElement
-  for (const k of TOKENS) root.style.setProperty(cssName(k), t[k].join(', '))
+  for (const k of TOKENS) root.style.setProperty(cssName(k), (t[k] || t.accent).join(', ')) // `orb` is optional: the AI-core orb follows the accent unless a theme sets its own
   root.dataset.theme = t.id
   // Browser chrome (address bar) follows the page colour; styles.css sets --bg for Day.
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.light ? '#f5f6fa' : '#000000')

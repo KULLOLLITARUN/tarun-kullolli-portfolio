@@ -116,9 +116,6 @@ export function ContactLinks({ onCopyEmail }) {
           Copy email
         </button>
       </li>
-      <li>
-        <a href={`tel:${profile.phone.replace(/\s/g, '')}`}>{profile.phone}</a>
-      </li>
       {links.linkedin !== '#' && (
         <li>
           <a href={links.linkedin} target="_blank" rel="noreferrer">

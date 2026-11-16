@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { profile } from '../data.js'
 
+// Ctrl+K on Windows/Linux, ⌘K on Apple devices.
+const IS_APPLE = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+
 const LINKS = [
   ['#experiments', 'Work'],
   ['#acts', 'Journey'],
@@ -10,7 +13,7 @@ const LINKS = [
 
 function Switch({ recruiter, onToggle, className = '', children }) {
   return (
-    <button type="button" className={`chip switch ${className}`} role="switch" aria-checked={recruiter} onClick={onToggle}>
+    <button type="button" className={`chip switch ${className}`} data-cursor="mode" role="switch" aria-checked={recruiter} onClick={onToggle}>
       <span className="switch-track" aria-hidden="true">
         <span className="switch-dot" />
       </span>
@@ -51,6 +54,26 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette, onTour })
 
   const close = () => setOpen(false)
 
+  // Highlight the link of the section that crosses a band near the middle of the screen.
+  const [active, setActive] = useState('')
+  useEffect(() => {
+    if (recruiter || !('IntersectionObserver' in window)) return undefined
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) setActive(`#${e.target.id}`)
+          else setActive((a) => (a === `#${e.target.id}` ? '' : a))
+        })
+      },
+      { rootMargin: '-45% 0px -50% 0px' },
+    )
+    LINKS.forEach(([href]) => {
+      const el = document.querySelector(href)
+      if (el) io.observe(el)
+    })
+    return () => io.disconnect()
+  }, [recruiter])
+
   return (
     <header className="nav" ref={header}>
       <a href="#top" className="wordmark">
@@ -61,7 +84,7 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette, onTour })
       {!recruiter && (
         <nav aria-label="Sections" className="nav-links">
           {LINKS.map(([href, label]) => (
-            <a key={href} href={href}>
+            <a key={href} href={href} data-cursor="section" aria-current={active === href ? 'location' : undefined}>
               {label}
             </a>
           ))}
@@ -76,8 +99,8 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette, onTour })
         <a className="chip chip-cta" href={profile.resume} download="Tarun-Kullolli-Resume.pdf">
           Resume <span aria-hidden="true">↓</span>
         </a>
-        <button type="button" className="icon-btn" onClick={onPalette} aria-label="Open command menu (Ctrl+K)" title="Command menu (Ctrl+K)">
-          <span aria-hidden="true">⌘</span>
+        <button type="button" className="icon-btn kbd-btn" data-cursor="command" onClick={onPalette} aria-label={`Open command menu (${IS_APPLE ? '⌘K' : 'Ctrl+K'})`} title={`Command menu (${IS_APPLE ? '⌘K' : 'Ctrl+K'})`}>
+          <span aria-hidden="true">{IS_APPLE ? '⌘K' : 'Ctrl K'}</span>
         </button>
         <button
           ref={burger}

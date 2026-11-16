@@ -242,7 +242,7 @@ export default function Chat({ visible }) {
         <ul className="chat-chips" aria-label="Suggested questions">
           {chips.map((c) => (
             <li key={c}>
-              <button type="button" onClick={() => ask(c)} disabled={busy}>
+              <button type="button" data-cursor="ask" onClick={() => ask(c)} disabled={busy}>
                 {c}
               </button>
             </li>

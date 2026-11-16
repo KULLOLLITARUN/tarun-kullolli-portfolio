@@ -841,7 +841,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       cardsOff = Math.max(cardsOff, scrollPx + r.bottom - c.height * LEAVE_AT)
       const goal = journey ? Math.min(1, scrollPx / Math.max(1, scrollPx + Math.max(0, remaining))) : 0
       // Momentum: the particles ease toward the scroll position instead of tracking it rigidly.
-      travel.current[i] += (goal - travel.current[i]) * (1 - Math.exp(-dt * 5))
+      travel.current[i] += (goal - travel.current[i]) * (1 - Math.exp(-dt * 8))
       if (Math.abs(goal - travel.current[i]) < 0.0005) travel.current[i] = goal
       u.uTravel.value[i] = travel.current[i]
       u.uRects.value[i].set(
@@ -852,7 +852,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
       )
       // The glass card fades in once its particles have landed, and out as they leave for the
       // timeline (tl from the previous frame).
-      const k = journey ? smoothstepJS(0.93, 1, travel.current[i]) * stay(tl.current) : 1
+      const k = journey ? smoothstepJS(0.7, 0.95, travel.current[i]) * stay(tl.current) : 1
       const o = k.toFixed(3)
       if (card.style.opacity !== o) {
         later.push(() => {
@@ -1096,7 +1096,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
 }
 
 // ── Stars ────────────────────────────────────────────────────────────
-function StarField({ ndc, wide }) {
+function StarField({ ndc, wide, reduce }) {
   const group = useRef()
   const mat = useRef()
   const geometry = useMemo(() => {
@@ -1168,12 +1168,14 @@ function StarField({ ndc, wide }) {
       }
     }
     const scroll = (window.scrollY / window.innerHeight) * viewport.height
-    mat.current.uniforms.uTime.value = state.clock.elapsedTime
+    // Reduced motion: the stars hold still (no drift, no pointer tilt); scroll still moves them 1:1.
+    const t = reduce ? 0 : state.clock.elapsedTime
+    mat.current.uniforms.uTime.value = t
     mat.current.uniforms.uScroll.value = scroll * 0.35
-    orbMat.current.uniforms.uTime.value = state.clock.elapsedTime
+    orbMat.current.uniforms.uTime.value = t
     orbMat.current.uniforms.uScroll.value = scroll * 0.25
-    const px = ndc.current ? ndc.current.x : 0
-    const py = ndc.current ? ndc.current.y : 0
+    const px = !reduce && ndc.current ? ndc.current.x : 0
+    const py = !reduce && ndc.current ? ndc.current.y : 0
     group.current.rotation.y = smooth(group.current.rotation.y, px * 0.06, dt, 2)
     group.current.rotation.x = smooth(group.current.rotation.x, -py * 0.04, dt, 2)
   })
@@ -1261,7 +1263,7 @@ export default function ParticleScene({ active, split, resolved, nameAnchor, red
       gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       frameloop={active ? 'always' : 'never'}
     >
-      <StarField ndc={ndc} wide={wide} />
+      <StarField ndc={ndc} wide={wide} reduce={reduce} />
       {reduce ? null : <ShootingStars />}
       <NameField
         key={`name-${wide}`}

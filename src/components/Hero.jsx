@@ -161,7 +161,7 @@ export default function Hero({ onTour }) {
           <span className="amber">EXP 00</span> <span className="dim">//</span> ORIGIN
         </p>
         <p className="small status">
-          {currentJob ? `${currentJob.title} · ${currentJob.org.replace(/ Pvt\. Ltd$/, '')}` : profile.role} · LLM apps
+          {currentJob ? currentJob.org.replace(/ Pvt\. Ltd$/, '') : profile.role} · LLM apps
         </p>
       </div>
 
@@ -187,13 +187,13 @@ export default function Hero({ onTour }) {
           <SplitText text={`“${profile.tagline}”`} />
         </p>
         <div className="hero-links reveal">
-          <a href="#experiments" className="scroll-cue mono" data-kairo="work">
+          <a href="#experiments" className="scroll-cue mono" data-kairo="work" data-cursor="work">
             <span className="glyph" aria-hidden="true">
               ∇
             </span>
             See my work <span aria-hidden="true">↓</span>
           </a>
-          <button type="button" className="tour-link mono" data-kairo="tour" onClick={onTour}>
+          <button type="button" className="tour-link mono" data-kairo="tour" data-cursor="tour" onClick={onTour}>
             <span aria-hidden="true">▶</span> Take the 60-second tour
           </button>
         </div>

@@ -428,7 +428,8 @@ html.has-cursor textarea {
   text-decoration: none;
   transition: color var(--t-fast), background var(--t-fast);
 }
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a[aria-current] {
   color: var(--text);
   background: var(--wash);
 }
@@ -491,6 +492,11 @@ html.has-cursor textarea {
     color var(--t-fast),
     border-color var(--t-fast),
     transform 160ms var(--ease);
+}
+.icon-btn.kbd-btn {
+  width: auto;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-xs);
 }
 .icon-btn:hover {
   color: var(--text);
@@ -1282,6 +1288,10 @@ html.has-cursor textarea {
   font-size: var(--fs-xs);
   color: var(--blue);
   margin-bottom: var(--s-4);
+  /* A soft halo in the page colour keeps small text legible over dense particles. */
+  text-shadow:
+    0 0 8px var(--bg),
+    0 0 2px var(--bg);
 }
 .section-head h2 {
   font-size: var(--fs-2xl);
@@ -1293,6 +1303,9 @@ html.has-cursor textarea {
   margin-top: var(--s-4);
   color: var(--text-2);
   max-width: 60ch;
+  text-shadow:
+    0 0 10px var(--bg),
+    0 0 3px var(--bg);
 }
 .label {
   font-size: var(--fs-xs);
@@ -1966,6 +1979,9 @@ html.has-cursor textarea {
 }
 .act-period {
   font-size: var(--fs-xs);
+  text-shadow:
+    0 0 8px var(--bg),
+    0 0 2px var(--bg);
 }
 .act-org {
   color: var(--text-2);

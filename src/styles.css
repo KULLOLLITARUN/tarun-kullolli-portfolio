@@ -3062,6 +3062,20 @@ body::before {
   height: 100%;
 }
 
+.kairo-orb-hero {
+  position: absolute;
+  z-index: 0;
+  left: 75%;
+  top: 32%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.kairo-orb-hero.is-visible {
+  opacity: 1;
+}
+
 /* With the orb as the hero avatar, Kairo's drawing is hidden. It stays invisibly in place, so its
    click target, keyboard button, speech bubble and tour all keep working. While the tour runs the
    clock appears again, docked beside whatever it points at. */

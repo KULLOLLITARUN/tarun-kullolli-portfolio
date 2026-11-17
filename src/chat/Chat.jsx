@@ -228,7 +228,10 @@ export default function Chat({ visible }) {
     <section className={`chat${visible ? ' is-visible' : ''}`} aria-label="Resume assistant" inert={!visible}>
       <header className="chat-head mono">
         <span>
-          <KairoOrb size={30} density={0.2} ticks={false} className="chat-orb" /> KAIRO <span className="dim">{'// Assistant'}</span>
+          <span className="chat-orb-slot">
+            <KairoOrb size={30} density={0.2} ticks={false} className="chat-orb" />
+          </span>{' '}
+          KAIRO <span className="dim">{'// Assistant'}</span>
         </span>
         <span className="dim small">{mode === 'offline' ? 'Offline mode' : 'Ask about my resume'}</span>
       </header>

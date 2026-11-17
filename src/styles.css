@@ -977,8 +977,21 @@ html.has-cursor textarea {
   border-bottom: 1px solid var(--line);
   font-size: var(--fs-xs);
 }
-.chat-head .pulse {
-  margin-right: var(--s-1);
+/* The avatar is 30px but the header line is about 19px tall: the slot takes only the line's height and
+   the canvas hangs out of it, so the header keeps its height (44px) and the log gets no scrollbar. */
+.chat-head .chat-orb-slot {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 19px;
+  margin: 0 8px 0 -4px;
+  vertical-align: top;
+}
+.chat-head .chat-orb {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 .chat-log {
   flex: 0 1 auto;

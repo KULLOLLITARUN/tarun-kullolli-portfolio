@@ -15,8 +15,26 @@ const rnd = (a, b) => a + Math.random() * (b - a)
 const TAU = Math.PI * 2
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
-const PAL = [[1.0, 0.2, 0.0], [1.0, 0.3, 0.0], [1.0, 0.38, 0.0], [1.0, 0.42, 0.01], [1.0, 0.5, 0.02], [1.0, 0.6, 0.06]]
+const PAL = [[1.0, 0.3, 0.0], [1.0, 0.54, 0.02], [1.0, 0.74, 0.04]] // deeper, main and lighter tones
 const PALE = [1.0, 0.55, 0.06]
+const WHITE_HOT = [1.0, 1.0, 1.0] // lands on the theme's palest tone: the oversized sparks
+
+// Tweak the look here. Colours come from the page theme (the --orb token), so only the authored
+// heat palette above lives in code: its "heat" picks where a piece sits between the theme's tones.
+export const ORB_CONFIG = {
+  segmentCount: 22000, // candidate fragments over all shells; ~45% are culled by noise (60% of this on small screens)
+  segmentLength: [0.012, 0.035], // fragment length as a fraction of the sphere's radius
+  voidEdge: [0.42, 0.54], // noise range where pieces fade from culled to kept: raise it for more voids
+  shellCount: 7, // nested spherical shells, plus a share of traces inside the ball
+  innerShare: 0.07, // fraction of segmentCount placed inside the volume instead of on a shell
+  dustCount: 2400, // faint veil particles
+  sparkCount: 14, // oversized white-hot sparks in total
+  ribbonCount: 4, // Lissajous ribbons swirling around the core
+  rotationSpeed: 1, // multiplies the spin of every shell (0 = still)
+  bloomStrength: 0.18, // resting glow; talking, alarm and anger add to it
+}
+// Fewer pieces on small windows and 4-thread CPUs (the hero already skips the orb on weaker ones).
+const lowEnd = innerWidth < 1100 || (navigator.hardwareConcurrency || 8) <= 4
 
 // Each piece is authored in warm orange tones; its "heat" (green over red) picks where it sits
 // between the theme's deep, main and pale colours, so the whole orb re-colours with the theme.
@@ -111,7 +129,10 @@ const DASH_VERT = /* glsl */ `
     gl_Position = vec4(ndc * c.w, c.z, c.w);
     float fl = 0.5 + 0.5 * sin(uTime * (0.5 + fract(aSeed * 7.3) * 2.4) + aSeed * 40.0);
     vAlpha = smoothstep(0.08, 0.6, fl) * (0.4 + 0.6 * fract(aSeed * 3.7));
-    vAlpha *= clamp(1.25 - (c.w - 7.0) * 0.3, 0.35, 1.0) * 0.7 * smoothstep(0.0, 0.3, arrive) * (1.0 - smoothstep(0.05, 0.55, away)) * (1.0 - smoothstep(0.8, 1.0, tour));
+    // Depth: pieces on the far side are dimmer; pieces seen edge-on (the sphere's limb) glow brighter.
+    float facing = normalize(mat3(modelViewMatrix) * aStart + vec3(0.0001)).z;
+    float limb = pow(1.0 - abs(facing), 2.0);
+    vAlpha *= clamp(1.25 - (c.w - 7.0) * 0.3, 0.35, 1.0) * (0.3 + 0.7 * smoothstep(-0.8, 0.6, facing)) * (1.0 + 0.8 * limb) * 0.5 * smoothstep(0.0, 0.3, arrive) * (1.0 - smoothstep(0.05, 0.55, away)) * (1.0 - smoothstep(0.8, 1.0, tour));
     vColor = aColor;
   }`
 const DASH_FRAG = /* glsl */ `
@@ -171,7 +192,8 @@ const PART_FRAG = /* glsl */ `
 
 // The canvas covers the whole hero. The orb is drawn around this point of it (fractions of the
 // hero's width and height), where Kairo used to stand, and the camera sits back so it keeps its size.
-const ANCHOR = { x: 0.75, y: 0.3 }
+const ANCHOR = { x: 0.75, y: 0.34 }
+const ORB_SCALE = 0.82 // the whole sphere is drawn this much smaller, so it clears the nav and the chat panel
 const CAM_Z = 8.2
 
 export function createCore(container, getStateName) {
@@ -210,7 +232,7 @@ export function createCore(container, getStateName) {
   composer.addPass(new ShaderPass({
     uniforms: { tDiffuse: { value: null } },
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main() { vec4 c = texture2D(tDiffuse, vUv); float a = clamp(max(c.r, max(c.g, c.b)), 0.0, 1.0); gl_FragColor = vec4(min(c.rgb, vec3(1.0)), a); }',
+    fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main() { vec4 c = texture2D(tDiffuse, vUv); vec3 t = 1.0 - exp(-1.0 * max(c.rgb, vec3(0.0))); float a = clamp(max(t.r, max(t.g, t.b)), 0.0, 1.0); gl_FragColor = vec4(t, a); }', // soft tone-map: overlaps roll off toward white instead of clipping to flat colour
   }))
 
   function resize() {
@@ -275,8 +297,8 @@ export function createCore(container, getStateName) {
   function particles() {
     const P = [], T = [], C = [], Sd = [], Z = [], Sc = []
     return {
-      add(p, t, bright = 1, size = 14) {
-        const c = pick(PAL)
+      add(p, t, bright = 1, size = 14, color) {
+        const c = color || pick(PAL)
         P.push(p[0], p[1], p[2]); T.push(t[0], t[1], t[2])
         C.push(c[0] * bright, c[1] * bright, c[2] * bright); Sd.push(Math.random() * 100); Z.push(size * rnd(0.7, 1.3)); Sc.push(...scatter())
       },
@@ -293,155 +315,136 @@ export function createCore(container, getStateName) {
   }
 
   const orb = new THREE.Group()
-  orb.scale.set(1.1, 1, 1)
   scene.add(orb)
   const spinners = []
 
-  // Patchy density around a ring: some sectors packed with circuitry, some almost empty.
-  const dens = (th, p1, p2) => Math.pow(0.5 + 0.5 * Math.sin(3 * th + p1) * Math.sin(5 * th + p2), 1.2)
+  // ---- the data sphere: tangent circuit traces on nested shells, thinned by noise ----
+  // Cheap smooth 3D value noise (no library): its peaks become dense clusters, its troughs dark voids.
+  const noiseOff = [rnd(0, 100), rnd(0, 100), rnd(0, 100)]
+  const hash3 = (x, y, z) => {
+    const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453
+    return s - Math.floor(s)
+  }
+  const noise3 = (x, y, z) => {
+    const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z)
+    const u = (t) => t * t * (3 - 2 * t)
+    const fx = u(x - xi), fy = u(y - yi), fz = u(z - zi)
+    const l = (a, b, t) => a + (b - a) * t
+    const c = (dx, dy, dz) => hash3(xi + dx, yi + dy, zi + dz)
+    return l(
+      l(l(c(0, 0, 0), c(1, 0, 0), fx), l(c(0, 1, 0), c(1, 1, 0), fx), fy),
+      l(l(c(0, 0, 1), c(1, 0, 1), fx), l(c(0, 1, 1), c(1, 1, 1), fx), fy),
+      fz,
+    )
+  }
+  // 0..1: the chance a piece at this spot survives. About 45% of candidates are culled, in patches, so
+  // the voids are real gaps; a small floor keeps them from being perfectly empty.
+  const density = (p) => {
+    const n = 0.6 * noise3(p.x * 2.4 + noiseOff[0], p.y * 2.4 + noiseOff[1], p.z * 2.4 + noiseOff[2]) +
+      0.4 * noise3(p.x * 5.1 + noiseOff[1], p.y * 5.1 + noiseOff[2], p.z * 5.1 + noiseOff[0])
+    const t = Math.min(1, Math.max(0, (n - ORB_CONFIG.voidEdge[0]) / (ORB_CONFIG.voidEdge[1] - ORB_CONFIG.voidEdge[0])))
+    return 0.03 + 0.97 * t * t * (3 - 2 * t)
+  }
+  const unit = () => {
+    const a = rnd(0, TAU), c = rnd(-1, 1), s = Math.sqrt(1 - c * c)
+    return new THREE.Vector3(s * Math.cos(a), c, s * Math.sin(a))
+  }
+  const arr = (v) => [v.x, v.y, v.z]
+  const budget = ORB_CONFIG.segmentCount * (lowEnd ? 0.6 : 1)
+  const SPHERE_R = 1.1
 
-  // A band made of circuit traces (right-angle paths with bright nodes) plus fine dust.
-  function ringBand({ r, bw, tilt, spin, traces, dust }) {
-    traces = Math.round(traces * 0.75)
-    dust = Math.round(dust * 0.4)
-    const b = dashes(), pb = particles(), p1 = rnd(0, 6), p2 = rnd(0, 6)
-    const xy = (th, rho) => [Math.cos(th) * rho, Math.sin(th) * rho, 0]
-    for (let k = 0; k < traces; k++) {
-      const th0 = rnd(0, TAU)
-      if (Math.random() > dens(th0, p1, p2) + 0.1) { k--; continue }
-      let th = th0, rho = r + rnd(-bw / 2, bw / 2), horiz = Math.random() < 0.6
-      let p = xy(th, rho)
-      const hot = Math.random() < 0.16
-      const steps = 3 + Math.floor(Math.random() * 4)
-      for (let s = 0; s < steps; s++) {
-        const len = rnd(0.015, 0.08)
-        let th2 = th, rho2 = rho
-        if (horiz) th2 = th + (len / rho) * (Math.random() < 0.75 ? 1 : -1)
-        else rho2 = Math.min(r + bw / 2, Math.max(r - bw / 2, rho + len * (Math.random() < 0.5 ? 1 : -1)))
-        const q = xy(th2, rho2)
-        b.add(p, q, hot ? rnd(2.4, 3.6) : rnd(1.2, 2.2), 0.4, hot ? 1.35 : rnd(0.7, 1.1), hot ? PALE : undefined)
-        if (Math.random() < 0.5) pb.add(q, [q[0] - p[0], q[1] - p[1], 0], hot ? 1.5 : 0.9, hot ? 34 : 18)
-        th = th2; rho = rho2; p = q; horiz = !horiz
+  // A random heading in the tangent plane at n: no dominant direction anywhere.
+  const heading = (n) => new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).cross(n).normalize()
+  // Per-piece colour: mostly the theme's orb colour, some deeper, some lighter (the heat picks the tone).
+  const heat = () => {
+    const t = Math.random()
+    return [1.0, t < 0.25 ? rnd(0.26, 0.36) : t < 0.75 ? rnd(0.5, 0.58) : rnd(0.68, 0.8), 0.02]
+  }
+
+  // One shell of short fragments (radius r), each at its own random orientation; about a fifth turn
+  // through a right angle, like a circuit trace. `volume` scatters them through the ball instead.
+  function traces({ r, count, volume = false, spin }) {
+    const b = dashes(), pb = particles()
+    for (let k = 0; k < count; k++) {
+      const n0 = unit()
+      const rr = volume ? r * Math.cbrt(Math.random()) : r * (1 + rnd(-0.02, 0.02))
+      const p = n0.clone().multiplyScalar(rr)
+      if (Math.random() > density(p)) continue
+      const white = Math.random() < 0.01 // ~1% white-hot sparks
+      const len = SPHERE_R * rnd(ORB_CONFIG.segmentLength[0], ORB_CONFIG.segmentLength[1])
+      const dir = heading(n0)
+      const q = p.clone().addScaledVector(dir, len).setLength(rr)
+      const smear = Math.random() < 0.05 ? rnd(2, 5) : 0.3 // a few motion-blurred streaks
+      const width = white ? rnd(2.2, 3.2) : rnd(1.0, 1.8)
+      b.add(arr(p), arr(q), width, smear, white ? 1.5 : rnd(0.7, 1.1), white ? WHITE_HOT : heat())
+      if (Math.random() < 0.2) {
+        // Right-angle bend: turn 90 degrees in the tangent plane at the new end.
+        const nrm = q.clone().normalize()
+        const along = q.clone().sub(p).normalize()
+        along.addScaledVector(nrm, -along.dot(nrm)).normalize()
+        const turn = nrm.clone().cross(along).multiplyScalar(Math.random() < 0.5 ? 1 : -1)
+        const q2 = q.clone().addScaledVector(turn, len * rnd(0.8, 1.6)).setLength(rr)
+        b.add(arr(q), arr(q2), width, 0.3, rnd(0.7, 1.1), heat())
+        if (Math.random() < 0.4) pb.add(arr(q), arr(turn), 0.8, 14) // a bright node at the corner
       }
     }
-    for (let k = 0; k < dust; k++) {
-      const th = rnd(0, TAU)
-      if (Math.random() > dens(th, p1, p2) + 0.2) { k--; continue }
-      pb.add(xy(th, r + rnd(-bw / 2, bw / 2)), [-Math.sin(th), Math.cos(th), 0], rnd(0.4, 1), 12)
-    }
-    const a0 = rnd(0, TAU), span = rnd(2.4, 5)
-    for (let k = 0; k < 90; k++) {
-      const t0 = a0 + (k / 90) * span, t1 = a0 + ((k + 1) / 90) * span
-      b.add(xy(t0, r), xy(t1, r), 1.6, 0.3, 1.1)
+    // The odd oversized white-hot spark riding on the shell.
+    for (let k = 0; k < ORB_CONFIG.sparkCount / ORB_CONFIG.shellCount; k++) {
+      const q = unit().multiplyScalar(volume ? r * rnd(0.3, 1) : r)
+      if (Math.random() < density(q) + 0.2) pb.add(arr(q), arr(unit()), 1.8, rnd(30, 44), WHITE_HOT)
     }
     const wrap = new THREE.Group()
-    wrap.rotation.set(...tilt)
+    wrap.rotation.set(rnd(-1.2, 1.2), rnd(-1.2, 1.2), rnd(-1.2, 1.2))
     const m1 = b.mesh(), m2 = pb.mesh()
-    wrap.add(m1, m2); orb.add(wrap)
+    wrap.add(m1, m2)
+    orb.add(wrap)
     spinners.push({ m: m1, spin }, { m: m2, spin })
   }
-  ringBand({ r: 1.02, bw: 0.17, tilt: [0.08, 0.03, 0.0], spin: 0.05, traces: 977, dust: 900 })
-  ringBand({ r: 0.88, bw: 0.05, tilt: [0.1, -0.05, 0.0], spin: -0.09, traces: 299, dust: 400 })
-  ringBand({ r: 0.74, bw: 0.14, tilt: [0.12, 0.06, 0.0], spin: 0.12, traces: 713, dust: 700 })
-  ringBand({ r: 0.57, bw: 0.06, tilt: [-0.1, 0.1, 0.0], spin: -0.18, traces: 299, dust: 400 })
-  ringBand({ r: 0.96, bw: 0.08, tilt: [1.0, 0.2, 0.4], spin: 0.1, traces: 379, dust: 520 })
-  ringBand({ r: 0.82, bw: 0.09, tilt: [-0.9, -0.3, 0.8], spin: -0.07, traces: 379, dust: 520 })
-  ringBand({ r: 0.4, bw: 0.1, tilt: [0.4, -0.3, -0.2], spin: 0.2, traces: 299, dust: 360 })
 
-  // A fan of long straight spokes from the bright hub out to the rim, as broken lines.
   {
-    const b = dashes()
-    for (let k = 0; k < 46; k++) {
-      const a = rnd(0, TAU), r0 = rnd(0.07, 0.2), r1 = rnd(0.82, 1.08), z = rnd(-0.25, 0.25)
-      const w = Math.random() < 0.2 ? rnd(3.2, 4.4) : rnd(1.8, 2.8)
-      let r = r0
-      while (r < r1) {
-        const r2 = Math.min(r1, r + rnd(0.08, 0.35))
-        b.add([Math.cos(a) * r, Math.sin(a) * r, z], [Math.cos(a) * r2, Math.sin(a) * r2, z], w, 0.15, rnd(2.6, 3.4))
-        r = r2 + rnd(0.01, 0.06)
-      }
-    }
-    const wrap = new THREE.Group(); wrap.rotation.set(0.12, -0.1, 0)
-    const m = b.mesh(); wrap.add(m); orb.add(wrap); spinners.push({ m, spin: 0.03 })
+    // Shells from a thin inner one out to the rim; each gets traces in proportion to its surface area.
+    const radii = Array.from({ length: ORB_CONFIG.shellCount }, (_, i) => 0.32 + (i / (ORB_CONFIG.shellCount - 1)) * 0.78)
+    const area = radii.reduce((a, r) => a + r * r, 0)
+    const shellBudget = budget * (1 - ORB_CONFIG.innerShare)
+    radii.forEach((r, i) => {
+      const spin = (i % 2 ? 1 : -1) * (0.035 + 0.03 * i) // each shell turns at its own speed, for parallax
+      traces({ r, count: Math.round((shellBudget * r * r) / area), spin })
+    })
+    traces({ r: 0.7, count: Math.round(budget * ORB_CONFIG.innerShare), volume: true, spin: 0.11 })
   }
-  // The rim: three parallel segmented lines with fine hatch marks.
-  {
-    const b = dashes()
-    for (let line = 0; line < 3; line++) {
-      const r = 1.05 + line * 0.022
-      let th = rnd(0, 1)
-      while (th < TAU) {
-        const t2 = Math.min(TAU, th + rnd(0.12, 0.7))
-        const n = Math.ceil((t2 - th) / 0.05)
-        for (let k = 0; k < n; k++) {
-          const a0 = th + ((t2 - th) * k) / n, a1 = th + ((t2 - th) * (k + 1)) / n
-          b.add([Math.cos(a0) * r, Math.sin(a0) * r, 0], [Math.cos(a1) * r, Math.sin(a1) * r, 0], line === 1 ? 3.6 : 2.2, 0.2, 2.6)
-        }
-        th = t2 + rnd(0.02, 0.14)
-      }
-    }
-    for (let k = 0; k < 520; k++) {
-      const a = rnd(0, TAU), r = 1.05, l = rnd(0.012, 0.05), c = Math.cos(a), sn = Math.sin(a)
-      b.add([c * r, sn * r, 0], [c * (r + l), sn * (r + l), 0], 1, 0.2, rnd(0.6, 1))
-    }
-    const wrap = new THREE.Group(); wrap.rotation.set(0.12, -0.1, 0)
-    const m = b.mesh(); wrap.add(m); orb.add(wrap); spinners.push({ m, spin: -0.04 })
-  }
-  // Dial rings of tick marks, near-vertical.
-  for (let i = 0; i < 3; i++) {
-    const b = dashes(), r = 1.02 + i * 0.035
-    for (let k = 0; k < 140; k++) {
-      const th = (k / 140) * TAU, c = Math.cos(th), s = Math.sin(th), long = k % 5 === 0
-      b.add([c * r, s * r, 0], [c * (r + (long ? 0.05 : 0.022)), s * (r + (long ? 0.05 : 0.022)), 0], long ? 1.8 : 1, 0, 1)
-    }
-    for (let a = 0; a < 5; a++) {
-      const a0 = rnd(0, TAU), span = rnd(0.6, 1.6)
-      for (let k = 0; k < 30; k++) {
-        const t0 = a0 + (k / 30) * span, t1 = a0 + ((k + 1) / 30) * span
-        b.add([Math.cos(t0) * r, Math.sin(t0) * r, 0], [Math.cos(t1) * r, Math.sin(t1) * r, 0], 2, 0.2, 1)
-      }
-    }
-    const wrap = new THREE.Group()
-    wrap.rotation.set(rnd(-0.3, 0.3), rnd(-0.3, 0.3), Math.PI / 2 + rnd(-0.3, 0.3))
-    const m = b.mesh(); wrap.add(m); orb.add(wrap)
-    spinners.push({ m, spin: rnd(0.04, 0.1) * (i % 2 ? 1 : -1) })
-  }
-  // A faint hollow shell of dust: the see-through volume.
+  // A faint hollow veil of dust: thinned by the same noise, it adds depth without filling the voids.
   {
     const ps = particles()
-    for (let k = 0; k < 2200; k++) {
-      const a = rnd(0, TAU), c = Math.acos(rnd(-1, 1)), r = rnd(0.72, 1.08)
-      const n = [Math.sin(c) * Math.cos(a), Math.cos(c), Math.sin(c) * Math.sin(a)]
-      const t = new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).cross(new THREE.Vector3(...n)).normalize()
-      ps.add([n[0] * r, n[1] * r, n[2] * r], [t.x, t.y, t.z], rnd(0.25, 0.7), 12)
+    const dust = Math.round(ORB_CONFIG.dustCount * (lowEnd ? 0.6 : 1))
+    for (let k = 0, made = 0; made < dust && k < dust * 20; k++) {
+      const n = unit(), r = rnd(0.6, 1.12)
+      if (Math.random() > density(n.clone().multiplyScalar(r))) continue
+      const t = new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).cross(n).normalize()
+      ps.add(arr(n.clone().multiplyScalar(r)), arr(t), rnd(0.25, 0.7), 12)
+      made++
     }
     const m = ps.mesh(); orb.add(m); spinners.push({ m, spin: 0.05, axis: 'y' })
   }
-  // The swirl: one thick bright arc curling inside the sphere.
-  {
-    const b = dashes(), pale = [1.0, 0.58, 0.1], gold = [1.0, 0.4, 0.03]
-    for (let layer = 0; layer < 4; layer++) {
-      const off = layer * 0.012
-      const pt = (f) => {
-        const th = f * 4.4 + 0.4, r = 0.15 + f * 0.5 + off
-        return [Math.cos(th) * r, Math.sin(th) * r * 0.82, Math.sin(f * 3) * 0.08]
-      }
-      for (let k = 0; k < 140; k++) b.add(pt(k / 140), pt((k + 1) / 140), layer === 0 ? 4.5 : 2.2, 0.4, layer === 0 ? 1.1 : 0.7, layer === 0 ? pale : gold)
-    }
-    const wrap = new THREE.Group(); wrap.rotation.set(0.4, 0.5, 0.2)
-    const m = b.mesh(); wrap.add(m); orb.add(wrap); spinners.push({ m, spin: -0.22 })
-  }
-  // The hub: small off-centre target rings.
+
+  // The hub: a bright core with a few Lissajous ribbons swirling around it (no bullseye rings).
   const core = new THREE.Group()
   core.position.set(0, 0, 0.05)
   orb.add(core)
-  for (const [r, w, span] of [[0.06, 3.2, TAU], [0.092, 2, 4.4], [0.13, 1.6, 3.6], [0.19, 1.2, 5]]) {
-    const b = dashes(), a0 = rnd(0, TAU)
-    for (let k = 0; k < 48; k++) {
-      const t0 = a0 + (k / 48) * span, t1 = a0 + ((k + 1) / 48) * span
-      b.add([Math.cos(t0) * r, Math.sin(t0) * r, 0], [Math.cos(t1) * r, Math.sin(t1) * r, 0], w, 0, 1.9, [1.0, 0.7, 0.2])
+  for (let i = 0; i < ORB_CONFIG.ribbonCount; i++) {
+    const [fa, fb, fc] = [[3, 2, 5], [2, 3, 4], [3, 4, 2], [5, 3, 2]][i % 4]
+    const rad = 0.06 + i * 0.03, ph = [rnd(0, TAU), rnd(0, TAU), rnd(0, TAU)]
+    const pt = (f) => {
+      const t = f * TAU
+      return [Math.sin(fa * t + ph[0]) * rad, Math.sin(fb * t + ph[1]) * rad * 0.9, Math.sin(fc * t + ph[2]) * rad]
     }
-    const m = b.mesh(); core.add(m); spinners.push({ m, spin: rnd(0.5, 1.4) * (Math.random() < 0.5 ? 1 : -1) })
+    const b = dashes()
+    for (const [width, bright, col] of [[1.8, 1.1, PALE], [0.9, 0.8, undefined]]) {
+      for (let k = 0; k < 150; k++) b.add(pt(k / 150), pt((k + 1) / 150), width, 0.3, bright, col)
+    }
+    const wrap = new THREE.Group()
+    wrap.rotation.set(rnd(0, TAU), rnd(0, TAU), 0)
+    const m = b.mesh(); wrap.add(m); core.add(wrap)
+    spinners.push({ m, spin: (i % 2 ? 1 : -1) * rnd(0.35, 0.7) })
   }
 
   // Soft glow sprites: the hub glow, a haze behind, and a few out-of-focus blobs.
@@ -456,7 +459,7 @@ export function createCore(container, getStateName) {
     s.scale.setScalar(scale); s.position.set(...pos)
     return s
   }
-  const coreGlow = sprite(0xff7a10, 0.7, 0.7, [0, 0, 0]); core.add(coreGlow)
+  const coreGlow = sprite(0xff7a10, 0.5, 0.3, [0, 0, 0]); core.add(coreGlow)
   const haze = sprite(0xff8a1c, 0.05, 3.4, [0, 0, -0.5]); scene.add(haze)
   const bokeh = []
   let sparkMat = null
@@ -565,13 +568,13 @@ export function createCore(container, getStateName) {
     }
     const target = CORE_STATES[getStateName()] || CORE_STATES.idle
     for (const k of ['speed', 'scale', 'pulse', 'red', 'jitter', 'smear']) cur[k] += (target[k] - cur[k]) * Math.min(1, dt * 3)
-    const sp = (reducedMotion ? 0.15 : cur.speed) * (1 - 0.65 * sleep)
+    const sp = (reducedMotion ? 0 : cur.speed * ORB_CONFIG.rotationSpeed) * (1 - 0.65 * sleep)
     time += dt * sp
     for (const s of spinners) {
       if (s.axis === 'y') s.m.rotation.y += dt * sp * s.spin
       else s.m.rotation.z += dt * sp * s.spin
     }
-    const talk = cur.pulse * (0.5 + 0.5 * Math.sin(now / 95)) * (0.5 + 0.5 * Math.sin(now / 410))
+    const talk = reducedMotion ? 0 : cur.pulse * (0.5 + 0.5 * Math.sin(now / 95)) * (0.5 + 0.5 * Math.sin(now / 410))
     U.uTime.value = time
     U.uSmear.value = reducedMotion ? 0 : cur.smear + ring * 1.5
     U.uJitter.value = cur.jitter + ring * 0.8
@@ -579,19 +582,20 @@ export function createCore(container, getStateName) {
     U.uBoost.value = 0.4 * (1 + talk * 0.35 + ring * 1.2) * (1 - 0.5 * sleep)
     const breathe = 1 + Math.sin(time * 1.2) * 0.012 + talk * 0.03
     const size = cur.scale * breathe * (1 - 0.06 * sleep)
-    orb.scale.set(1.1 * size, size, size)
+    orb.scale.setScalar(size * ORB_SCALE)
     orb.position.x = Math.sin(now / 18) * 0.02 * ring
-    orb.rotation.set(-0.05 + mouse.y * 0.06, Math.sin(time * 0.16) * 0.07 + mouse.x * 0.1, -0.04)
+    const tiltK = reducedMotion ? 0 : 1 // mouse parallax off under reduced motion
+    orb.rotation.set(-0.05 + mouse.y * 0.06 * tiltK, Math.sin(time * 0.16) * 0.07 + mouse.x * 0.1 * tiltK, -0.04)
     const A = U.uColA.value
     coreGlow.material.color.setRGB(A.x + (1 - A.x) * cur.red, A.y * (1 - cur.red * 0.7), A.z * (1 - cur.red))
-    coreGlow.material.opacity = 0.6 * glowK * (1 - tour) * (1 - 0.5 * sleep) * (1 + ring * 0.5)
-    coreGlow.scale.setScalar(0.7 + talk * 0.25 + ring * 0.3)
+    coreGlow.material.opacity = 0.45 * glowK * (1 - tour) * (1 - 0.5 * sleep) * (1 + ring * 0.5)
+    coreGlow.scale.setScalar(0.3 + talk * 0.1 + ring * 0.15) // the core is ~15% of the sphere's radius
     haze.material.color.setRGB(U.uColB.value.x, U.uColB.value.y * (1 - cur.red * 0.6), U.uColB.value.z)
     haze.material.opacity = 0.05 * glowK * (1 - tour)
     for (const s of bokeh) s.material.opacity = (0.06 + 0.05 * Math.sin(time * 0.7 + s.userData.ph)) * glowK * (1 - tour)
     sparkMat.opacity = 0.9 * glowK * (1 - tour)
     sparkMat.color.setRGB(A.x, A.y, A.z)
-    bloom.strength = 0.18 + talk * 0.3 + cur.red * 0.15 + ring * 0.5
+    bloom.strength = ORB_CONFIG.bloomStrength + talk * 0.3 + cur.red * 0.15 + ring * 0.5
     if (scroll < 0.995 && tour < 0.995) composer.render() // scrolled away or flown into Kairo: nothing left to draw
   }
   raf = requestAnimationFrame(frame)

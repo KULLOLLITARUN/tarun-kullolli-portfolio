@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import KairoOrb from '../components/KairoOrb.jsx'
+import { orbController } from '../orb/orbController.js'
 import { answer, GREETING, STARTER_CHIPS } from './engine.js'
 import { faceState, noteAnswer } from './faceState.js'
 import { createLiveGate } from './liveGate.js'
@@ -98,6 +100,11 @@ export default function Chat({ visible }) {
   const askRef = useRef(null)
   const reduce = useReducedMotion()
 
+  // Each time the chat opens, the orbs wake up from a dim point.
+  useEffect(() => {
+    if (visible) orbController.wake()
+  }, [visible])
+
   // The anonymous-log notice is shown only when the server really logs questions.
   useEffect(() => {
     fetch('/api/chat')
@@ -130,6 +137,7 @@ export default function Chat({ visible }) {
     setChips([])
     setMessages((ms) => [...ms, { id: nextId++, from: 'user', text: q }])
     faceState.thinking = true
+    orbController.contract() // the orbs squeeze, then release into thinking
 
     // The offline engine always runs: it supplies follow-up chips and action links,
     // and its text is used whenever the live model is unavailable.
@@ -160,18 +168,23 @@ export default function Chat({ visible }) {
       later(() => {
         faceState.thinking = false
         faceState.talking = true
+        orbController.flash() // the first token: one bright flash through the shell
         // Off-topic: the live model's tag when it answered, otherwise the offline engine's miss.
         noteAnswer(live ? OFF_TOPIC.test(streamed) : !!offline.miss)
         setMode(live ? 'live' : 'offline')
         setMessages((ms) => [...ms, { id, from: 'bot', text: '', shown: '' }])
         let i = 0
         let last = ''
+        let sentences = 0
         const step = () => {
           const full = target()
           i = reduce ? full.length : Math.min(full.length, i + 3)
           const shown = full.slice(0, i)
           if (shown !== last) {
             last = shown
+            const done = (shown.match(/[.!?](\s|$)/g) || []).length
+            if (done > sentences) orbController.bump(0.8) // a sentence of the answer landed
+            sentences = done
             setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, text: full, shown } : m)))
           }
           if (!ended || i < full.length) return later(step, 16)
@@ -188,6 +201,7 @@ export default function Chat({ visible }) {
     }
 
     const result = await askLive(history, (text) => {
+      orbController.bump(Math.min(1, 0.35 + (text.length - streamed.length) / 60)) // a chunk arrived
       streamed = text
       // Wait for enough text to know whether it starts with the off-topic tag.
       if (text.trimStart().length >= 12) startTyping()
@@ -212,9 +226,13 @@ export default function Chat({ visible }) {
 
   return (
     <section className={`chat${visible ? ' is-visible' : ''}`} aria-label="Resume assistant" inert={!visible}>
+      <div className="chat-light" aria-hidden="true" />
       <header className="chat-head mono">
         <span>
-          <span className="pulse" aria-hidden="true" /> KAIRO <span className="dim">{'// Assistant'}</span>
+          <span className="chat-orb-slot">
+            <KairoOrb size={30} density={0.2} ticks={false} className="chat-orb" />
+          </span>{' '}
+          KAIRO <span className="dim">{'// Assistant'}</span>
         </span>
         <span className="dim small">{mode === 'offline' ? 'Offline mode' : 'Ask about my resume'}</span>
       </header>
@@ -264,7 +282,10 @@ export default function Chat({ visible }) {
           id="chat-input"
           data-kairo="chat"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value)
+            orbController.type() // the heart brightens, a soft ring goes out
+          }}
           placeholder="Ask about Tarun’s experience…"
           maxLength={200}
           name="question"

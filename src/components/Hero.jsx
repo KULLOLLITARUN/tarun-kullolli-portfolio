@@ -3,12 +3,13 @@ import { animate, stagger } from 'animejs'
 import { currentJob, profile } from '../data.js'
 import { useReducedMotion } from '../hooks.js'
 import Chat from '../chat/Chat.jsx'
+import { LIGHT } from '../orb/orbTheme.js'
+import KairoOrb from './KairoOrb.jsx'
 import Mascot from './Mascot.jsx'
+import TourParticles from './TourParticles.jsx'
 
 // Three.js loads after the text has painted, so recruiters see content first.
 const ParticleScene = lazy(() => import('./ParticleScene.jsx'))
-// The AI-core orb: laptops and desktops that can run the particle scene only. Phones keep Kairo.
-const Core = lazy(() => import('./Core.jsx'))
 
 function hasWebGL() {
   try {
@@ -77,6 +78,76 @@ function SplitText({ text }) {
   )
 }
 
+// The hero's golden orb, where Kairo stands (75% across, 32% down), about 0.475 of the hero's height
+// wide so its rim matches the click target in Mascot.jsx. The size moves in 20px steps so a window
+// resize does not rebuild the canvas every frame. It fades out while the tour shows the clock.
+function HeroOrb({ visible, heroRef, onFail }) {
+  const [size, setSize] = useState(300)
+  const [touring, setTouring] = useState(false)
+  // For the first few seconds after the reveal the orb has no fade (its pieces build it).
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    if (!visible) return
+    const t = setTimeout(() => setIntro(false), 4000)
+    return () => clearTimeout(t)
+  }, [visible])
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el) return
+    const measure = () => setSize(Math.max(200, Math.round((el.clientHeight * 0.475) / 20) * 20))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    const on = () => setTouring(true)
+    const off = () => setTouring(false)
+    window.addEventListener('kairo-tour', on)
+    window.addEventListener('kairo-tour-end', off)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('kairo-tour', on)
+      window.removeEventListener('kairo-tour-end', off)
+    }
+  }, [heroRef])
+  const tail = Math.round(size * 0.75)
+  // The orb lights the hero behind it and the top of the chat panel, in its inner colour. The
+  // strength goes straight to the two elements' opacity each frame (cheap); the tint is rewritten
+  // only when the colour has moved.
+  const lightEl = useRef(null)
+  const tint = useRef('')
+  const onLight = useCallback(
+    (strength, inner) => {
+      const glow = lightEl.current
+      if (!glow) return
+      const on = visible && !touring
+      glow.style.opacity = on ? strength : 0
+      const chat = heroRef.current?.querySelector('.chat-light')
+      if (chat) chat.style.opacity = on ? strength * LIGHT.chat : 0
+      const step = LIGHT.colourStep
+      const key = inner.map((x) => Math.round(x / step)).join(',')
+      if (key === tint.current) return
+      tint.current = key
+      const rgb = inner.map((x) => Math.round(x)).join(',')
+      glow.style.background = `radial-gradient(closest-side, rgba(${rgb},0.3), rgba(${rgb},0.1) 45%, rgba(${rgb},0) 100%)`
+      if (chat) chat.style.background = `linear-gradient(to bottom, rgba(${rgb},0.3), rgba(${rgb},0) 45%)`
+    },
+    [visible, touring, heroRef],
+  )
+  return (
+    <>
+      <div ref={lightEl} className="kairo-orb-light" aria-hidden="true" />
+      {/* The canvas has extra room below the orb for its pieces to drift into as the page scrolls; the
+          wrapper is nudged down by half of it so the orb itself stays where it was. */}
+      <div
+        className={`kairo-orb-hero${visible && !touring ? ' is-visible' : ''}${intro ? ' is-intro' : ''}`}
+        style={{ marginTop: tail / 2 }}
+        aria-hidden="true"
+      >
+        <KairoOrb size={size} tail={tail} scrollApart onFail={onFail} onLight={onLight} />
+      </div>
+    </>
+  )
+}
+
 export default function Hero({ onTour }) {
   const ref = useRef(null)
   const nameRef = useRef(null)
@@ -84,11 +155,12 @@ export default function Hero({ onTour }) {
   const reduce = useReducedMotion()
   const wide = useWide()
   const fontsReady = useFontsReady()
-  // Laptops that can run the particle scene get the AI-core orb as Kairo's hero avatar.
-  // If the orb fails to load or build, Kairo's own drawing comes back.
+  // Wide screens with motion get the golden canvas orb as Kairo's hero avatar; phones, narrow
+  // windows and reduced motion keep Kairo's own drawing.
+  // If the canvas cannot draw, Kairo's own drawing comes back.
   const [orbFailed, setOrbFailed] = useState(false)
   const onOrbFail = useCallback(() => setOrbFailed(true), [])
-  const orbOn = particles && wide && !reduce && !orbFailed
+  const orbOn = wide && !reduce && !orbFailed
   // Phase 1: the name forms. Phase 2 ("split"): name moves aside, face + chat appear.
   const [split, setSplit] = useState(() => reduce || !particles)
   // Phase 3 ("resolved"): the particles hand over to the crisp, solid name.
@@ -199,11 +271,8 @@ export default function Hero({ onTour }) {
         </div>
       </div>
 
-      {orbOn ? (
-        <Suspense fallback={null}>
-          <Core visible={split} onFail={onOrbFail} />
-        </Suspense>
-      ) : null}
+      {orbOn ? <HeroOrb visible={split} heroRef={ref} onFail={onOrbFail} /> : null}
+      {orbOn ? <TourParticles /> : null}
       <Mascot visible={split} hideArt={orbOn} />
 
       <div className="hero-right">

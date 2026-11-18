@@ -220,7 +220,7 @@ try {
     await page.mouse.move(5, 400) // off any target
     await page.waitForFunction(() => !document.querySelector('.cursor-box.is-locked'))
     const link = await hoverLabel('.nav-links a')
-    check(link === 'link', `cursor: a nav link is labelled "link" with no number ("${link}")`)
+    check(link === 'section', `cursor: a nav link is labelled "section" with no number ("${link}")`)
     await ctx.close()
   }
 

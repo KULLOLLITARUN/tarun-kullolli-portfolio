@@ -82,6 +82,7 @@ const mix = (c, w, a) =>
 const deep = (c, f, a) => `rgba(${Math.round(c[0] * f)},${Math.round(c[1] * f)},${Math.round(c[2] * f)},${a})`
 const DASHES = [9, 24]
 const NO_DASH = []
+const NONE = [] // an empty list to loop over when a layer is skipped
 
 const SCROLL_RES = 0.5 // canvas resolution while the page is scrolling (1 = full)
 const SCROLL_RES_HOLD = 150 // ms after the last scroll before it goes back to full
@@ -419,6 +420,8 @@ export default function KairoOrb({
         return
       }
       blank = false
+      // While scrolling, the fine layers (clouds, glitter, dust, scratches, the small glass sheets) are skipped.
+      const lite = scrolling
       const outerFade = 1 - sm(0.05, 0.6, sa) // arcs, rings and glow go first
       const innerFade = 1 - sm(0.1, 0.7, sa) // then the glass mass and the heart
       const innerA = Math.min(1, C.wakeInner) * innerFade
@@ -607,7 +610,7 @@ export default function KairoOrb({
         ctx.fill()
 
         // soft drifting clouds
-        for (const c of clouds) {
+        for (const c of lite ? NONE : clouds) {
           const an = c.ph + t * c.sp
           const q = pi(
             rotC([
@@ -629,7 +632,7 @@ export default function KairoOrb({
         // translucent glass sheets: shaded skin (brighter toward the rim), fine ribbing, a soft glow,
         // a thin bright edge and, on the hero, dashes flowing along the edge. On wake-up they grow in
         // one after another.
-        const sheetN = sheets.length
+        const sheetN = lite ? Math.min(6, sheets.length) : sheets.length
         for (let si = 0; si < sheetN; si++) {
           const sh = sheets[si]
           const gro = clamp01(C.wakeInner * (1 + MASS.stagger) - (si / sheetN) * MASS.stagger)
@@ -737,7 +740,7 @@ export default function KairoOrb({
         ctx.globalAlpha = innerA
 
         // fine light scratches, flickering with the state's act
-        for (const sc2 of scratches) {
+        for (const sc2 of lite ? NONE : scratches) {
           const fl = Math.pow(Math.max(0, Math.sin(t * sc2.sp + sc2.ph)), 2.5)
           const hh = sc2.h * (1 + 0.3 * fl)
           const p0 = rotC([sc2.c[0] - sc2.dir[0] * hh, sc2.c[1] - sc2.dir[1] * hh, sc2.c[2] - sc2.dir[2] * hh])
@@ -858,7 +861,7 @@ export default function KairoOrb({
           }
 
           // cyan glitter drifting around the mass
-          for (const spl of sparklets) {
+          for (const spl of lite ? NONE : sparklets) {
             const tw = Math.pow(Math.max(0, Math.sin(t * spl.sp + spl.ph)), 2)
             const base = [spl.d[0] * spl.r, spl.d[1] * spl.r, spl.d[2] * spl.r]
             const p0 = rotC(base)
@@ -874,7 +877,7 @@ export default function KairoOrb({
           }
 
           // glittering dust
-          for (const d of dust) {
+          for (const d of lite ? NONE : dust) {
             const tw = Math.pow(Math.max(0, Math.sin(t * d.sp + d.ph)), 2)
             const p = rotC([d.p[0] + 0.02 * Math.sin(t * 0.8 + d.ph), d.p[1] + 0.02 * Math.cos(t * 0.7 + d.ph), d.p[2]])
             const q = pi(p)

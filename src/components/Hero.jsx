@@ -3,8 +3,10 @@ import { animate, stagger } from 'animejs'
 import { currentJob, profile } from '../data.js'
 import { useReducedMotion } from '../hooks.js'
 import Chat from '../chat/Chat.jsx'
+import { LIGHT } from '../orb/orbTheme.js'
 import KairoOrb from './KairoOrb.jsx'
 import Mascot from './Mascot.jsx'
+import TourParticles from './TourParticles.jsx'
 
 // Three.js loads after the text has painted, so recruiters see content first.
 const ParticleScene = lazy(() => import('./ParticleScene.jsx'))
@@ -82,6 +84,13 @@ function SplitText({ text }) {
 function HeroOrb({ visible, heroRef, onFail }) {
   const [size, setSize] = useState(300)
   const [touring, setTouring] = useState(false)
+  // For the first few seconds after the reveal the orb has no fade (its pieces build it).
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    if (!visible) return
+    const t = setTimeout(() => setIntro(false), 4000)
+    return () => clearTimeout(t)
+  }, [visible])
   useEffect(() => {
     const el = heroRef.current
     if (!el) return
@@ -99,10 +108,36 @@ function HeroOrb({ visible, heroRef, onFail }) {
       window.removeEventListener('kairo-tour-end', off)
     }
   }, [heroRef])
+  // The orb lights the hero behind it and the top of the chat panel, in its inner colour. The
+  // strength goes straight to the two elements' opacity each frame (cheap); the tint is rewritten
+  // only when the colour has moved.
+  const lightEl = useRef(null)
+  const tint = useRef('')
+  const onLight = useCallback(
+    (strength, inner) => {
+      const glow = lightEl.current
+      if (!glow) return
+      const on = visible && !touring
+      glow.style.opacity = on ? strength : 0
+      const chat = heroRef.current?.querySelector('.chat-light')
+      if (chat) chat.style.opacity = on ? strength * LIGHT.chat : 0
+      const step = LIGHT.colourStep
+      const key = inner.map((x) => Math.round(x / step)).join(',')
+      if (key === tint.current) return
+      tint.current = key
+      const rgb = inner.map((x) => Math.round(x)).join(',')
+      glow.style.background = `radial-gradient(closest-side, rgba(${rgb},0.3), rgba(${rgb},0.1) 45%, rgba(${rgb},0) 100%)`
+      if (chat) chat.style.background = `linear-gradient(to bottom, rgba(${rgb},0.3), rgba(${rgb},0) 45%)`
+    },
+    [visible, touring, heroRef],
+  )
   return (
-    <div className={`kairo-orb-hero${visible && !touring ? ' is-visible' : ''}`} aria-hidden="true">
-      <KairoOrb size={size} onFail={onFail} />
-    </div>
+    <>
+      <div ref={lightEl} className="kairo-orb-light" aria-hidden="true" />
+      <div className={`kairo-orb-hero${visible && !touring ? ' is-visible' : ''}${intro ? ' is-intro' : ''}`} aria-hidden="true">
+        <KairoOrb size={size} onFail={onFail} onLight={onLight} />
+      </div>
+    </>
   )
 }
 
@@ -230,6 +265,7 @@ export default function Hero({ onTour }) {
       </div>
 
       {orbOn ? <HeroOrb visible={split} heroRef={ref} onFail={onOrbFail} /> : null}
+      {orbOn ? <TourParticles /> : null}
       <Mascot visible={split} hideArt={orbOn} />
 
       <div className="hero-right">

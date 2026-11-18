@@ -1,19 +1,34 @@
 import { useEffect, useRef } from 'react'
 import { orbController } from '../orb/orbController.js'
-import { CONTRACT, FLASH, SMALL_MAX, THINK, TYPING, WAKE } from '../orb/orbTheme.js'
+import {
+  ASSEMBLE,
+  CONTRACT,
+  EASE,
+  FLASH,
+  HEART,
+  MASS,
+  SHELL_FADE,
+  SMALL_MAX,
+  THINK,
+  TYPING,
+  WAKE,
+} from '../orb/orbTheme.js'
 
-// Kairo's holographic orb. The outer layers (shell streaks, arcs, tick rings, outer glow) take the
-// site's accent colour (--accent-rgb) in every state; only the inner parts (spiral core, nucleus,
-// swoosh, inner glow) change colour with the state, through one eased RGB value.
-// It is made of additive light streaks, circuit arcs, clockwork tick rings, a
-// spiral-galaxy core, a bright nucleus, a swoosh ribbon and the odd cyan spark, all on a
-// transparent Canvas 2D. Decorative only (aria-hidden); the chat announces its own status.
-// Its state, clock and event animations (wake-up, typing, send, thinking, flash, speaking) come from
-// the shared orb/orbController.js, with every timing in orb/orbTheme.js, so the hero orb and the
-// header avatar move together. Canvases of SMALL_MAX px or less get the simplified versions.
+// Kairo's holographic orb: a gold shell and, inside it, an electric glass mass.
+// Outer layers (shell streaks, circuit arcs, tick rings, outer glow): the site's accent colour
+// (--accent-rgb) in every state. Inner layers (translucent glass sheets, scratches, rim loops,
+// the white-hot heart with its rays, bolts, clouds, glitter and dust): one eased inner colour that
+// changes with the state (orb/orbTheme.js INNER). Ported from docs/kairo-orb/kairo-orb-reference.html.
+// Plain Canvas 2D on a transparent canvas, additive light. Decorative only (aria-hidden); the chat
+// announces its own status.
+// State, clock and event animations (wake-up, typing, send, thinking, flash, speaking) come from the
+// shared orb/orbController.js, with every number in orb/orbTheme.js, so the hero orb and the header
+// avatar move together. Canvases of SMALL_MAX px or less get the simplified version (a few sheets and
+// scratches and the heart; no edge dashes, ribbing, glitter, dust, rim loops, clouds or bolts).
 
 const TAU = Math.PI * 2
 const rnd = (a, b) => a + Math.random() * (b - a)
+const clamp01 = (x) => Math.max(0, Math.min(1, x))
 const norm = (v) => {
   const l = Math.hypot(v[0], v[1], v[2]) || 1
   return [v[0] / l, v[1] / l, v[2] / l]
@@ -60,13 +75,22 @@ function readAccent() {
 }
 
 const SPARK_GOLD = 'rgba(255,200,90,'
-// An inner element's colour: the inner colour mixed toward white by w (0 = inner, 1 = white).
+// An inner element's colour: the inner colour mixed toward white by w (0 = inner, 1 = white), or
+// scaled darker by f (a deep tone of the same colour).
 const mix = (c, w, a) =>
   `rgba(${Math.round(c[0] * (1 - w) + 255 * w)},${Math.round(c[1] * (1 - w) + 255 * w)},${Math.round(c[2] * (1 - w) + 255 * w)},${a})`
+const deep = (c, f, a) => `rgba(${Math.round(c[0] * f)},${Math.round(c[1] * f)},${Math.round(c[2] * f)},${a})`
+const DASHES = [9, 24]
+const NO_DASH = []
 
 // onFail is called if the canvas cannot draw, so the caller can bring Kairo's own art back.
-export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail, className, style }) {
+export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail, onLight, className, style }) {
   const canvasRef = useRef(null)
+  // The hero orb calls onLight(strength, innerRgb) every frame, so the page can be lit by it.
+  const lightRef = useRef(onLight)
+  useEffect(() => {
+    lightRef.current = onLight
+  })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -84,7 +108,8 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     const c0 = size / 2
     const R = size * 0.4
     const k = Math.max(0.4, Math.min(1.3, R / 170))
-    const small = size <= SMALL_MAX // the avatar: no rings or travelling pulses
+    const small = size <= SMALL_MAX // the avatar: the simplified version
+    const ki = small ? 0.8 : k // line widths of the glass mass
 
     // ---- colour: re-read when the theme changes -------------------------
     let pal = readAccent()
@@ -94,13 +119,18 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     window.addEventListener('theme-change', onTheme)
     const mo = new MutationObserver(onTheme)
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'data-theme', 'class'] })
-    // dh is the hue offset from the accent (the old gold spread was about +-7 degrees)
+    // dh is the hue offset from the accent (the gold spread is about +-7 degrees)
     const tint = (dh, l, a) => `hsla(${pal.h + dh},${pal.s}%,${l}%,${a})`
 
-    // ---- geometry ----------------------------------------------------
+    // ---- outer geometry: the gold shell ------------------------------------
     const shell = Array.from({ length: Math.round(1700 * density) }, () => {
       const p = randUnit()
+      const sa = rnd(0, TAU)
+      const sd = rnd(ASSEMBLE.from[0], ASSEMBLE.from[1])
       return {
+        sx: Math.cos(sa) * sd, // where it starts when it flies in on wake-up (radius units from the centre)
+        sy: Math.sin(sa) * sd,
+        d: Math.random(), // its start delay, 0 to 1 of the spread
         p,
         t: tangentAt(p),
         len: rnd(0.012, 0.075),
@@ -112,6 +142,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       }
     })
 
+    // arcs stay out near the shell (from 0.8 of the radius) so they do not tangle the glass inside
     const arcs = Array.from({ length: Math.max(10, Math.round(80 * density)) }, () => {
       const n = randUnit()
       const a = tangentAt(n)
@@ -126,7 +157,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       return {
         a,
         b,
-        r: rnd(0.5, 1.03),
+        r: rnd(0.8, 1.03),
         segs,
         spin: rnd(-0.25, 0.25),
         w: rnd(0.6, 1.7),
@@ -143,24 +174,86 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         })
       : []
 
-    const cN = norm([0.35, 1, 0.25])
-    const cA = tangentAt(cN)
-    const cB = cross(cN, cA)
-    const coreCount = Math.max(60, Math.round(520 * density))
-    const core = Array.from({ length: coreCount }, (_, i) => {
-      const kk = i / coreCount
+    // ---- inner geometry: the glass mass ------------------------------------
+    // overlapping translucent sheets (angular polygons, drawn with softened corners)
+    const sheetCount = small ? MASS.sheetsSmall : MASS.sheets
+    const sheets = Array.from({ length: sheetCount }, (_, idx) => {
+      const big = idx < 6
+      const c = randUnit()
+      const r = Math.cbrt(Math.random()) * (big ? 0.3 : 0.26)
+      const n = randUnit()
+      const u = tangentAt(n)
+      const nv = Math.floor(rnd(5, 8))
       return {
-        th: kk * 11 + (i % 2) * Math.PI,
-        r: 0.02 + Math.pow(kk, 0.85) * 0.5,
-        y: rnd(-0.015, 0.015),
-        s: rnd(0.8, 2),
-        a: 1 - kk * 0.7,
+        c: [c[0] * r, c[1] * r, c[2] * r],
+        n,
+        u,
+        v: cross(n, u),
+        s: big ? rnd(0.46, 0.64) : rnd(0.28, 0.46),
+        poly: Array.from({ length: nv }, (_, i) => ({ a: (i / nv) * TAU + rnd(-0.3, 0.3), r: rnd(0.5, 1.18) })),
+        sp: rnd(0.05, 0.22) * (Math.random() < 0.5 ? -1 : 1),
+        ph: rnd(0, TAU),
+        fold: rnd(0.03, 0.08),
+        al: big ? rnd(0.7, 1) : rnd(0.45, 0.9),
+        big,
       }
     })
-
-    const swN = norm([0.5, 0.6, 1])
-    const swA = tangentAt(swN)
-    const sw = { r: 0.46, a: swA, b: cross(swN, swA) }
+    // fine light scratches through the volume, denser toward the centre
+    const scratches = Array.from({ length: small ? MASS.scratchesSmall : MASS.scratches }, () => {
+      const d = randUnit()
+      const r = Math.pow(Math.random(), 1.35) * 0.74
+      return {
+        c: [d[0] * r, d[1] * r, d[2] * r],
+        dir: randUnit(),
+        h: rnd(0.03, 0.2),
+        ph: rnd(0, TAU),
+        sp: rnd(1, 6),
+        al: rnd(0.15, 0.55),
+        w: rnd(0.4, 0.9),
+      }
+    })
+    const sparklets = small
+      ? []
+      : Array.from({ length: MASS.sparklets }, () => {
+          const d = randUnit()
+          return { d, t: tangentAt(d), r: rnd(0.8, 1.02), h: rnd(0.015, 0.06), ph: rnd(0, TAU), sp: rnd(1, 5) }
+        })
+    const rays = small
+      ? []
+      : Array.from({ length: MASS.rays }, () => ({
+          dir: randUnit(),
+          len: rnd(0.18, 0.6),
+          ph: rnd(0, TAU),
+          sp: rnd(2, 6),
+        }))
+    // thin wobbly rim loops (billboards, so the outline always reads)
+    const rims = small
+      ? []
+      : Array.from({ length: 2 }, () => ({
+          r: rnd(0.7, 0.75),
+          m: Math.round(rnd(3, 7)),
+          m2: Math.round(rnd(8, 14)),
+          ph: rnd(0, TAU),
+          ph2: rnd(0, TAU),
+          w: rnd(1.6, 2.6),
+          off: [rnd(-0.04, 0.04), rnd(-0.04, 0.04)],
+        }))
+    const clouds = small
+      ? []
+      : Array.from({ length: MASS.clouds }, () => ({
+          p: randUnit(),
+          s: rnd(0.15, 0.5),
+          r: rnd(0.25, 0.5),
+          ph: rnd(0, TAU),
+          sp: rnd(0.2, 0.6),
+        }))
+    const dust = small
+      ? []
+      : Array.from({ length: MASS.dust }, () => {
+          const d = randUnit()
+          const r = Math.cbrt(Math.random()) * 0.76
+          return { p: [d[0] * r, d[1] * r, d[2] * r], ph: rnd(0, TAU), sp: rnd(1, 4), s: rnd(0.5, 1.6) }
+        })
 
     const sparks = []
 
@@ -168,18 +261,28 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     let cy_ = 1
     let sy_ = 0
     let cp_ = 1
-    let sp_ = 0
+    let sp_ = 0 // the shell's rotation
+    let cyC = 1
+    let syC = 0
+    let cpC = 1
+    let spC = 0 // the glass mass turns the other way, a little slower
     let sc = 1
     const rot = (v) => {
       const x = v[0] * cy_ + v[2] * sy_
       const z = -v[0] * sy_ + v[2] * cy_
       return [x, v[1] * cp_ - z * sp_, v[1] * sp_ + z * cp_]
     }
+    const rotC = (v) => {
+      const x = v[0] * cyC + v[2] * syC
+      const z = -v[0] * syC + v[2] * cyC
+      return [x, v[1] * cpC - z * spC, v[1] * spC + z * cpC]
+    }
     const pr = (v, m = 1) => {
       const f = (1 / (1 - v[2] * 0.12)) * sc * m
       return [c0 + v[0] * R * f, c0 + v[1] * R * f]
     }
     const dA = (z) => 0.3 + (0.7 * (z + 1)) / 2
+    const lp = (p, q, f) => [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]
 
     // ---- loop state --------------------------------------------------
     const C = orbController // the shared clock, state and events (orb/orbController.js)
@@ -196,7 +299,9 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     window.addEventListener('pointermove', onMove, { passive: true })
 
     const draw = (dt) => {
-      const { cur, inner, t, mode, env } = C
+      const { cur, inner, t, mode, env, act } = C
+      const ic = (a) => mix(inner, 0, a)
+      const iw = (w, a) => mix(inner, w, a)
       tilt[0] += (my * 0.7 - tilt[0]) * 0.05
       tilt[1] += (mx * 0.9 - tilt[1]) * 0.05
       cy_ = Math.cos(C.yaw + tilt[1])
@@ -204,6 +309,11 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       const pit = -0.28 + tilt[0]
       cp_ = Math.cos(pit)
       sp_ = Math.sin(pit)
+      const yc = -C.yaw * 0.6 + tilt[1] + 0.5
+      cyC = Math.cos(yc)
+      syC = Math.sin(yc)
+      cpC = Math.cos(pit + 0.12)
+      spC = Math.sin(pit + 0.12)
 
       // wake-up sizes and fades, the typing heart and the send squeeze
       const wS = C.wakeShell
@@ -216,10 +326,12 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         (1 + cur.breathe * Math.sin(t * (mode === 'thinking' ? 3.2 : 1.2)) + (mode === 'speaking' ? 0.03 * env : 0)) *
         (1 - CONTRACT.amount * C.squeeze)
       const useWaves = !small && C.waves.length > 0
+      const pi = (v, m = innerM) => pr(v, m)
 
       ctx.clearRect(0, 0, size, size)
       ctx.globalCompositeOperation = 'lighter'
       ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
 
       // ambient glow (outer: the accent colour)
       ctx.globalAlpha = wS
@@ -235,18 +347,6 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       ctx.arc(c0, c0, gr, 0, TAU)
       ctx.fill()
 
-      // soft inner glow behind the core, in the inner colour
-      ctx.globalAlpha = innerA
-      const igr = R * 0.55 * sc * innerM
-      const ig = ctx.createRadialGradient(c0, c0, 0, c0, c0, igr)
-      ig.addColorStop(0, mix(inner, 0, 0.22 + 0.1 * env + TYPING.glow * C.heart))
-      ig.addColorStop(1, mix(inner, 0, 0))
-      ctx.fillStyle = ig
-      ctx.beginPath()
-      ctx.arc(c0, c0, igr, 0, TAU)
-      ctx.fill()
-
-      ctx.globalAlpha = wS
       // rings travelling out through the shell (typing, and the flash): a faint circle each
       if (useWaves) {
         ctx.lineWidth = 1.2 * k
@@ -258,7 +358,9 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         }
       }
 
-      // shell streaks
+      // gold shell: streaks (those in front of the glass mass are dimmed so the inside reads)
+      const fadeR = R * sc * shellM * SHELL_FADE.inside
+      const asm = !small && C.wakeT < 1
       for (const s of shell) {
         const sh = 0.6 + 0.4 * Math.sin(t * 2 + s.ph)
         const len = s.len * (1 + cur.stream * 1.8 * sh) * (1 + 0.5 * env)
@@ -267,13 +369,27 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         const p1 = rot(norm([s.p[0] + s.t[0] * len, s.p[1] + s.t[1] * len, s.p[2] + s.t[2] * len]))
         const a = pr([p0[0] * rr, p0[1] * rr, p0[2] * rr], shellM)
         const b = pr([p1[0] * rr, p1[1] * rr, p1[2] * rr], shellM)
+        // wake-up: the streak flies in from its scattered spot and settles (hero only)
+        let fly = 1
+        if (asm) {
+          const q = EASE.outCubic(clamp01((C.wakeT - s.d * ASSEMBLE.spread) / (1 - ASSEMBLE.spread)))
+          const off = 1 - q
+          const dx = (c0 + s.sx * R - a[0]) * off
+          const dy = (c0 + s.sy * R - a[1]) * off
+          a[0] += dx
+          a[1] += dy
+          b[0] += dx
+          b[1] += dy
+          fly = ASSEMBLE.fadeFrom + (1 - ASSEMBLE.fadeFrom) * q
+        }
+        const fade = (p0[2] > 0 && Math.hypot(a[0] - c0, a[1] - c0) < fadeR ? SHELL_FADE.alpha : 1) * fly
         // rings and the flash light the streaks they cross; the flash also holds the whole shell brighter
         let boost = C.uni
         if (useWaves) {
           const d = Math.hypot(a[0] - c0, a[1] - c0) / (R * sc)
           for (const w of C.waves) boost += w.a * Math.exp(-(((d - w.r) / w.w) ** 2))
         }
-        ctx.strokeStyle = tint(s.h, s.l, Math.min(1, s.a * dA(p0[2]) * (0.55 + 0.45 * sh) * (1 + 2 * boost)))
+        ctx.strokeStyle = tint(s.h, s.l, Math.min(1, s.a * dA(p0[2]) * (0.55 + 0.45 * sh) * fade * (1 + 2 * boost)))
         ctx.lineWidth = (0.7 + dA(p0[2]) * 0.9) * k * (1 + 0.6 * boost)
         ctx.beginPath()
         ctx.moveTo(a[0], a[1])
@@ -281,7 +397,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         ctx.stroke()
       }
 
-      // circuit arcs
+      // gold shell: circuit arcs
       for (const c of arcs) {
         for (const [s0, sp] of c.segs) {
           const st = s0 + t * c.spin
@@ -308,7 +424,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         }
       }
 
-      // tick rings
+      // gold shell: tick rings
       for (const rg of rings) {
         for (let i = 0; i < rg.ticks; i++) {
           const th = (i / rg.ticks) * TAU + t * rg.spin
@@ -329,89 +445,306 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         }
       }
 
-      // spiral core
+      // =============== the glass mass (inner colour) ===============
       ctx.globalAlpha = innerA
-      const cs_ = t * (0.5 + cur.spin * 0.8)
-      for (const c of core) {
-        const th = c.th + cs_ * (1.2 - c.r)
-        const cs = Math.cos(th)
-        const sn = Math.sin(th)
-        const q = pr(
-          rot([
-            (cA[0] * cs + cB[0] * sn) * c.r + cN[0] * c.y,
-            (cA[1] * cs + cB[1] * sn) * c.r + cN[1] * c.y,
-            (cA[2] * cs + cB[2] * sn) * c.r + cN[2] * c.y,
-          ]),
-          innerM,
+      const O = pi(rotC(HEART), innerM) // the heart, off-centre
+
+      // deep body and a soft inner glow
+      const bodyR = R * 0.95 * sc * innerM
+      const gb = ctx.createRadialGradient(c0, c0, 0, c0, c0, bodyR)
+      gb.addColorStop(0, ic(0.34 + 0.08 * env + 0.08 * act))
+      gb.addColorStop(0.6, deep(inner, 0.6, 0.16))
+      gb.addColorStop(1, deep(inner, 0.45, 0))
+      ctx.fillStyle = gb
+      ctx.beginPath()
+      ctx.arc(c0, c0, bodyR, 0, TAU)
+      ctx.fill()
+      const glowR = R * 0.75 * sc * innerM
+      const gi = ctx.createRadialGradient(c0, c0, 0, c0, c0, glowR)
+      gi.addColorStop(0, ic(0.12 + 0.08 * env + 0.06 * cur.stream + TYPING.glow * C.heart))
+      gi.addColorStop(0.6, ic(0.05))
+      gi.addColorStop(1, ic(0))
+      ctx.fillStyle = gi
+      ctx.beginPath()
+      ctx.arc(c0, c0, glowR, 0, TAU)
+      ctx.fill()
+
+      // soft drifting clouds
+      for (const c of clouds) {
+        const an = c.ph + t * c.sp
+        const q = pi(
+          rotC([c.p[0] * c.s * (1 + 0.3 * Math.sin(an)), c.p[1] * c.s * (1 + 0.3 * Math.cos(an * 1.3)), c.p[2] * c.s]),
         )
-        ctx.fillStyle = mix(inner, (10 + (1 - c.r) * 25) / 50, c.a * 0.9)
+        const rr = c.r * R * 1.25 * sc * innerM
+        const cg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], rr)
+        cg.addColorStop(0, deep(inner, 0.7, 0.16 + 0.06 * act))
+        cg.addColorStop(1, deep(inner, 0.5, 0))
+        ctx.fillStyle = cg
         ctx.beginPath()
-        ctx.arc(q[0], q[1], c.s * k * (1 + (1 - c.r) * 0.8), 0, TAU)
+        ctx.arc(q[0], q[1], rr, 0, TAU)
         ctx.fill()
       }
 
-      // nucleus
-      ctx.globalAlpha = 1
-      const nr = R * 0.17 * innerM * (1 + 0.3 * env) * heartK
-      const ng = ctx.createRadialGradient(c0, c0, 0, c0, c0, nr)
-      ng.addColorStop(0, mix(inner, 0.7, 0.95 * heartA)) // the inner colour, about 70% toward white
-      ng.addColorStop(0.3, mix(inner, 0.34, 0.5 * heartA))
-      ng.addColorStop(1, mix(inner, 0.12, 0))
+      // translucent glass sheets: shaded skin (brighter toward the rim), fine ribbing, a soft glow,
+      // a thin bright edge and, on the hero, dashes flowing along the edge. On wake-up they grow in
+      // one after another.
+      const sheetN = sheets.length
+      for (let si = 0; si < sheetN; si++) {
+        const sh = sheets[si]
+        const gro = clamp01(C.wakeInner * (1 + MASS.stagger) - (si / sheetN) * MASS.stagger)
+        if (gro <= 0) continue
+        const sm = innerM * (0.55 + 0.45 * gro)
+        ctx.globalAlpha = innerA * gro
+        const ang = sh.ph + t * sh.sp * (0.6 + cur.spin)
+        const ca = Math.cos(ang)
+        const sa = Math.sin(ang)
+        const foldAt = (xr, yr) =>
+          sh.fold * (Math.sin(xr * 7 + C.mt * 0.8 + sh.ph) + Math.cos(yr * 6 - C.mt * 0.6)) * (1 + 0.3 * act)
+        const at = (x, y) => {
+          const xr = x * ca - y * sa
+          const yr = x * sa + y * ca
+          const f = foldAt(xr, yr)
+          return pi(
+            rotC([
+              sh.c[0] + sh.u[0] * xr + sh.v[0] * yr + sh.n[0] * f,
+              sh.c[1] + sh.u[1] * xr + sh.v[1] * yr + sh.n[1] * f,
+              sh.c[2] + sh.u[2] * xr + sh.v[2] * yr + sh.n[2] * f,
+            ]),
+            sm,
+          )
+        }
+        const P = []
+        let zs = 0
+        for (const q of sh.poly) {
+          const rr = sh.s * q.r * (1 + 0.08 * Math.sin(C.mt * 0.9 + q.a * 3 + sh.ph))
+          const p = at(Math.cos(q.a) * rr, Math.sin(q.a) * rr)
+          P.push(p)
+        }
+        // depth of the sheet from its centre point
+        zs = rotC(sh.c)[2]
+        const dz = dA(zs)
+        const n = P.length
+        const path = () => {
+          ctx.beginPath()
+          for (let i = 0; i < n; i++) {
+            const a0 = lp(P[(i + n - 1) % n], P[i], 0.78)
+            const b0 = lp(P[i], P[(i + 1) % n], 0.22)
+            if (i) ctx.lineTo(a0[0], a0[1])
+            else ctx.moveTo(a0[0], a0[1])
+            ctx.quadraticCurveTo(P[i][0], P[i][1], b0[0], b0[1])
+          }
+          ctx.closePath()
+        }
+        // thin translucent skin, clipped to the sheet
+        let cxs = 0
+        let cys = 0
+        for (const p of P) {
+          cxs += p[0]
+          cys += p[1]
+        }
+        cxs /= n
+        cys /= n
+        let ext = 1
+        for (const p of P) ext = Math.max(ext, Math.hypot(p[0] - cxs, p[1] - cys))
+        ctx.save()
+        path()
+        ctx.clip()
+        const sg = ctx.createRadialGradient(cxs, cys, 0, cxs, cys, ext)
+        sg.addColorStop(0, ic(0.035 * sh.al * dz))
+        sg.addColorStop(0.6, ic(0.1 * sh.al * dz))
+        sg.addColorStop(1, iw(0.3, 0.3 * sh.al * dz))
+        ctx.fillStyle = sg
+        ctx.fillRect(cxs - ext, cys - ext, ext * 2, ext * 2)
+        if (!small) {
+          ctx.beginPath()
+          for (let j = -3; j <= 3; j++) {
+            const y0 = j * sh.s * 0.3
+            for (let i = 0; i <= 8; i++) {
+              const q = at(((i / 8) * 2 - 1) * sh.s * 1.35, y0)
+              if (i) ctx.lineTo(q[0], q[1])
+              else ctx.moveTo(q[0], q[1])
+            }
+          }
+          ctx.strokeStyle = iw(0.45, (0.14 + 0.1 * act) * dz)
+          ctx.lineWidth = 0.6 * ki
+          ctx.stroke()
+        }
+        ctx.restore()
+        // glow, then the thin bright edge
+        path()
+        ctx.strokeStyle = ic(0.09 * dz)
+        ctx.lineWidth = 7 * ki
+        ctx.stroke()
+        path()
+        ctx.strokeStyle = iw(
+          0.25 + 0.4 * act * sh.al,
+          Math.min(1, (0.45 + 0.4 * sh.al + 0.2 * act + (sh.big ? 0.15 : 0)) * dz),
+        )
+        ctx.lineWidth = ((sh.big ? 1.5 : 1) + 0.5 * sh.al) * ki
+        ctx.stroke()
+        // dashes flowing along the edge (hero only)
+        if (!small) {
+          path()
+          ctx.setLineDash(DASHES.map((d) => d * k))
+          ctx.lineDashOffset = -C.dash * k * (sh.sp > 0 ? 1 : -1)
+          ctx.strokeStyle = iw(0.8, Math.min(1, (0.55 + 0.3 * act) * dz))
+          ctx.lineWidth = 1.7 * ki
+          ctx.stroke()
+          ctx.setLineDash(NO_DASH)
+        }
+      }
+      ctx.globalAlpha = innerA
+
+      // fine light scratches, flickering with the state's act
+      for (const sc2 of scratches) {
+        const fl = Math.pow(Math.max(0, Math.sin(t * sc2.sp + sc2.ph)), 2.5)
+        const hh = sc2.h * (1 + 0.3 * fl)
+        const p0 = rotC([sc2.c[0] - sc2.dir[0] * hh, sc2.c[1] - sc2.dir[1] * hh, sc2.c[2] - sc2.dir[2] * hh])
+        const p1 = rotC([sc2.c[0] + sc2.dir[0] * hh, sc2.c[1] + sc2.dir[1] * hh, sc2.c[2] + sc2.dir[2] * hh])
+        const a = pi(p0)
+        const b = pi(p1)
+        const al = (sc2.al * (0.3 + 0.5 * act) + fl * 0.4) * dA((p0[2] + p1[2]) / 2)
+        ctx.strokeStyle = iw(0.4 + fl * 0.45, Math.min(1, al))
+        ctx.lineWidth = sc2.w * ki * (1 + fl * 0.8)
+        ctx.beginPath()
+        ctx.moveTo(a[0], a[1])
+        ctx.lineTo(b[0], b[1])
+        ctx.stroke()
+      }
+
+      // two thin wobbling rim loops, bright where the membrane folds (hero only)
+      for (const rm of rims) {
+        let prev = null
+        for (let i = 0; i <= 96; i++) {
+          const ph = (i / 96) * TAU
+          const rr =
+            R *
+            sc *
+            innerM *
+            rm.r *
+            (1 +
+              0.1 * Math.sin(rm.m * ph + rm.ph + C.mt * 0.6) +
+              0.05 * Math.sin(rm.m2 * ph + rm.ph2 - C.mt * 0.8) +
+              0.04 * env)
+          const pt = [c0 + rm.off[0] * R + Math.cos(ph) * rr, c0 + rm.off[1] * R + Math.sin(ph) * rr * 0.96]
+          if (prev) {
+            const b0 = Math.pow(0.5 + 0.5 * Math.sin(3 * ph + rm.ph * 2 + C.mt * 0.7), 2)
+            ctx.strokeStyle = iw(0.15 + 0.4 * b0, 0.14 + 0.55 * b0 * (0.7 + 0.3 * act))
+            ctx.lineWidth = rm.w * k * (0.35 + 0.5 * b0)
+            ctx.beginPath()
+            ctx.moveTo(prev[0], prev[1])
+            ctx.lineTo(pt[0], pt[1])
+            ctx.stroke()
+          }
+          prev = pt
+        }
+      }
+
+      // the heart: streaks, a halo and the white-hot centre. It is dim but already there on wake-up.
+      ctx.globalAlpha = heartA
+      for (const ry of rays) {
+        const fl = Math.pow(Math.max(0, Math.sin(t * ry.sp + ry.ph)), 2)
+        const l2 = ry.len * (0.7 + 0.5 * fl + 0.3 * act)
+        const q = pi(rotC([HEART[0] + ry.dir[0] * l2, HEART[1] + ry.dir[1] * l2, HEART[2] + ry.dir[2] * l2]))
+        ctx.strokeStyle = iw(0.6, (0.15 + 0.5 * fl) * (0.5 + 0.5 * act))
+        ctx.lineWidth = (0.8 + fl) * ki
+        ctx.beginPath()
+        ctx.moveTo(O[0], O[1])
+        ctx.lineTo(q[0], q[1])
+        ctx.stroke()
+      }
+      const haloR = R * 0.6 * sc * innerM
+      const mg = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], haloR)
+      mg.addColorStop(0, iw(0.45, 0.3 + 0.1 * act + TYPING.glow * C.heart))
+      mg.addColorStop(1, ic(0))
+      ctx.fillStyle = mg
+      ctx.beginPath()
+      ctx.arc(O[0], O[1], haloR, 0, TAU)
+      ctx.fill()
+      const nr = R * 0.34 * sc * innerM * (1 + 0.3 * env + 0.12 * cur.stream * Math.sin(t * 9)) * heartK
+      const ng = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], nr)
+      ng.addColorStop(0, 'rgba(255,255,255,1)')
+      ng.addColorStop(0.2, iw(0.65, 0.8))
+      ng.addColorStop(0.55, ic(0.25))
+      ng.addColorStop(1, ic(0))
       ctx.fillStyle = ng
       ctx.beginPath()
-      ctx.arc(c0, c0, nr, 0, TAU)
+      ctx.arc(O[0], O[1], nr, 0, TAU)
       ctx.fill()
-
-      // thinking: a few pulses of light travel from the heart out to the shell
       ctx.globalAlpha = innerA
+
+      // energy bolts from the heart, and the thinking pulses (longer bolts that travel to the shell)
       if (!small) {
-        for (const q of C.pulses) {
-          const r1 = 0.04 + 0.97 * q.p
-          const r0 = Math.max(0.04, r1 - THINK.trail)
-          const al = Math.min(q.p / 0.1, 1) * (1 - Math.max(0, (q.p - 0.75) / 0.25))
-          const a = pr(rot([q.dir[0] * r0, q.dir[1] * r0, q.dir[2] * r0]))
-          const b = pr(rot([q.dir[0] * r1, q.dir[1] * r1, q.dir[2] * r1]))
-          ctx.strokeStyle = mix(inner, 0.55, al * 0.9)
-          ctx.lineWidth = THINK.width * k
+        for (const bo of C.bolts) {
+          const q = bo.pts.map((p) => pi(rotC(p)))
+          for (const [w, col] of [
+            [5, iw(0, 0.2 * bo.k)],
+            [1.5, iw(0.7, 0.9 * bo.k)],
+          ]) {
+            ctx.strokeStyle = col
+            ctx.lineWidth = w * ki
+            ctx.beginPath()
+            q.forEach((p, j) => {
+              if (j) ctx.lineTo(p[0], p[1])
+              else ctx.moveTo(p[0], p[1])
+            })
+            ctx.stroke()
+          }
+        }
+        for (const pu of C.pulses) {
+          const u1 = 0.04 + 0.97 * pu.p
+          const u0 = Math.max(0.04, u1 - THINK.trail)
+          const al = Math.min(pu.p / 0.1, 1) * (1 - Math.max(0, (pu.p - 0.75) / 0.25))
+          const q = []
+          for (let i = 0; i < 7; i++) {
+            const u = u0 + ((u1 - u0) * i) / 6
+            const j = i === 0 || i === 6 ? 0 : 0.045
+            q.push(pi(rotC(HEART.map((h, a) => h + (pu.dir[a] * 0.98 - h) * u + pu.jit[i][a] * j))))
+          }
+          for (const [w, col] of [
+            [5, iw(0, 0.18 * al)],
+            [THINK.width, iw(0.7, 0.9 * al)],
+          ]) {
+            ctx.strokeStyle = col
+            ctx.lineWidth = w * ki
+            ctx.beginPath()
+            q.forEach((p, j) => {
+              if (j) ctx.lineTo(p[0], p[1])
+              else ctx.moveTo(p[0], p[1])
+            })
+            ctx.stroke()
+          }
+        }
+
+        // cyan glitter drifting around the mass
+        for (const spl of sparklets) {
+          const tw = Math.pow(Math.max(0, Math.sin(t * spl.sp + spl.ph)), 2)
+          const base = [spl.d[0] * spl.r, spl.d[1] * spl.r, spl.d[2] * spl.r]
+          const p0 = rotC(base)
+          const p1 = rotC([base[0] + spl.t[0] * spl.h, base[1] + spl.t[1] * spl.h, base[2] + spl.t[2] * spl.h])
+          const a = pi(p0)
+          const b = pi(p1)
+          ctx.strokeStyle = iw(0.3 + tw * 0.6, (0.12 + tw * 0.75) * dA(p0[2]) * (0.55 + act * 0.45))
+          ctx.lineWidth = (0.7 + tw * 0.9) * ki
           ctx.beginPath()
           ctx.moveTo(a[0], a[1])
           ctx.lineTo(b[0], b[1])
           ctx.stroke()
-          ctx.fillStyle = mix(inner, 0.8, al)
+        }
+
+        // glittering dust
+        for (const d of dust) {
+          const tw = Math.pow(Math.max(0, Math.sin(t * d.sp + d.ph)), 2)
+          const p = rotC([d.p[0] + 0.02 * Math.sin(t * 0.8 + d.ph), d.p[1] + 0.02 * Math.cos(t * 0.7 + d.ph), d.p[2]])
+          const q = pi(p)
+          ctx.fillStyle = iw(0.4 + tw * 0.5, (0.12 + tw * 0.7) * dA(p[2]) * (0.5 + act * 0.5))
           ctx.beginPath()
-          ctx.arc(b[0], b[1], 1.7 * k, 0, TAU)
+          ctx.arc(q[0], q[1], d.s * k * (0.7 + tw * 0.8), 0, TAU)
           ctx.fill()
         }
       }
 
-      // swoosh ribbon: wide and soft, then thin and crisp
-      for (const [w, al] of [
-        [7, 0.12],
-        [2.4, 0.75],
-      ]) {
-        ctx.lineWidth = w * k
-        ctx.strokeStyle = mix(inner, 0.3, al)
-        ctx.beginPath()
-        for (let i = 0; i <= 60; i++) {
-          const th = 0.5 + (3.3 * i) / 60 - t * 0.25
-          const cs = Math.cos(th)
-          const sn = Math.sin(th)
-          const rr = sw.r * (0.75 + (0.25 * i) / 60)
-          const q = pr(
-            rot([
-              (sw.a[0] * cs + sw.b[0] * sn) * rr,
-              (sw.a[1] * cs + sw.b[1] * sn) * rr,
-              (sw.a[2] * cs + sw.b[2] * sn) * rr,
-            ]),
-            innerM,
-          )
-          if (i) ctx.lineTo(q[0], q[1])
-          else ctx.moveTo(q[0], q[1])
-        }
-        ctx.stroke()
-      }
-
-      // electric sparks (the cyan accent)
+      // electric sparks off the rim (the contrasting accent; gold while thinking so they read)
       ctx.globalAlpha = wS
       if (Math.random() < cur.spark * dt * 2.2) {
         const o = randUnit()
@@ -449,6 +782,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       }
       ctx.globalAlpha = 1
       ctx.globalCompositeOperation = 'source-over'
+      if (!small) lightRef.current?.(C.light, inner)
     }
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches

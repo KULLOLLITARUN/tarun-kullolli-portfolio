@@ -746,7 +746,7 @@ function NameField({ split, resolved, anchor, reduce, ndc, wide, onFormed, onSwe
     u.uGlass.value.lerp(tmpColor.setRGB(...themeRGB('glass')), ck)
     u.uIce.value.lerp(tmpColor.setRGB(...themeRGB('glassSoft')), ck)
 
-    if (!reduce && t0.current > 0.5) progress.current = Math.min(1, progress.current + dt / 3.0)
+    if (!reduce && t0.current > 0.2) progress.current = Math.min(1, progress.current + dt / 3.0)
     u.uProgress.value = progress.current
     if (!formed.current && progress.current >= 1) {
       formed.current = true

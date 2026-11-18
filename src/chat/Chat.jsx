@@ -226,6 +226,7 @@ export default function Chat({ visible }) {
 
   return (
     <section className={`chat${visible ? ' is-visible' : ''}`} aria-label="Resume assistant" inert={!visible}>
+      <div className="chat-light" aria-hidden="true" />
       <header className="chat-head mono">
         <span>
           <span className="chat-orb-slot">

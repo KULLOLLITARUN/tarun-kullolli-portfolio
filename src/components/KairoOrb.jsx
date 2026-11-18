@@ -86,7 +86,17 @@ const NO_DASH = []
 // How the shell's streaks drift when the page scrolls (all in radii of the orb): down, a little right,
 // a small spread, barely stretched (they read as sparks, not sticks); overChat is how much of their
 // brightness is left while they pass in front of the chat panel, so its text stays readable.
-const DRIFT = { down: 3.2, right: 0.15, spread: 0.3, stretch: 0.5, trail: 0.04, glow: 1.4, thick: 0.5, lift: 22, overChat: 0.18 }
+const DRIFT = {
+  down: 3.2,
+  right: 0.15,
+  spread: 0.3,
+  stretch: 0.5,
+  trail: 0.04,
+  glow: 1.4,
+  thick: 0.5,
+  lift: 22,
+  overChat: 0.18,
+}
 
 // onFail is called if the canvas cannot draw, so the caller can bring Kairo's own art back.
 // scrollApart (the hero orb): as the page scrolls the orb's pieces peel off, one after another, and
@@ -312,6 +322,23 @@ export default function KairoOrb({
     let raf = 0
     let visible = true
     let inFront = false
+    let blank = false // the canvas has been cleared because the orb has scrolled fully away
+    // The hero's height and where the chat panel sits in this canvas. Reading them forces layout, and
+    // scrolling doesn't move them relative to the canvas, so they are read at most every 400 ms.
+    const layout = { heroH: 0, chatBox: null, at: -1e9 }
+    const refreshLayout = () => {
+      const now = performance.now()
+      if (now - layout.at < 400) return
+      layout.at = now
+      const hero = canvas.closest('.hero')
+      layout.heroH = hero?.clientHeight ?? 0
+      const ch = hero?.querySelector('.chat')
+      if (ch) {
+        const cr = ch.getBoundingClientRect()
+        const kr = canvas.getBoundingClientRect()
+        layout.chatBox = [cr.left - kr.left, cr.top - kr.top, cr.right - kr.left, cr.bottom - kr.top]
+      } else layout.chatBox = null
+    }
     let sa = 0 // 0 at the top of the page, 1 once the hero has scrolled away (eased)
     const sm = (a, b, x) => {
       const q = clamp01((x - a) / (b - a))
@@ -346,8 +373,8 @@ export default function KairoOrb({
       const shellM = WAKE.shellFrom + (1 - WAKE.shellFrom) * wS
       const innerM = WAKE.innerFrom + (1 - WAKE.innerFrom) * C.wakeInner
       if (scrollApart) {
-        const hero = canvas.closest('.hero')
-        const away = clamp01(window.scrollY / Math.max((hero?.clientHeight ?? window.innerHeight) * 0.7, 1))
+        refreshLayout()
+        const away = clamp01(window.scrollY / Math.max((layout.heroH || window.innerHeight) * 0.7, 1))
         sa += (away - sa) * Math.min(1, dt * 6)
         if (sa < 0.001) sa = 0
         // While the pieces fall they pass in front of the chat panel instead of dimming behind it
@@ -357,10 +384,20 @@ export default function KairoOrb({
           canvas.parentElement.style.zIndex = front ? '3' : ''
         }
       }
+      // Fully scrolled away: every piece has faded out, so draw nothing until it comes back.
+      if (scrollApart && sa > 0.995) {
+        if (!blank) {
+          ctx.clearRect(0, 0, size, size + tail)
+          lightRef.current?.(0, inner)
+          blank = true
+        }
+        return
+      }
+      blank = false
       const outerFade = 1 - sm(0.05, 0.6, sa) // arcs, rings and glow go first
       const innerFade = 1 - sm(0.1, 0.7, sa) // then the glass mass and the heart
       const innerA = Math.min(1, C.wakeInner) * innerFade
-      const heartA = WAKE.heartDim + (1 - WAKE.heartDim) * innerA
+      const heartA = (WAKE.heartDim + (1 - WAKE.heartDim) * innerA) * innerFade
       const heartK = 1 + TYPING.heartSwell * C.heart + FLASH.heartSwell * C.flashGlow
       sc =
         (1 + cur.breathe * Math.sin(t * (mode === 'thinking' ? 3.2 : 1.2)) + (mode === 'speaking' ? 0.03 * env : 0)) *
@@ -401,15 +438,7 @@ export default function KairoOrb({
       // gold shell: streaks (those in front of the glass mass are dimmed so the inside reads)
       const fadeR = R * sc * shellM * SHELL_FADE.inside
       // where the chat panel is, in this canvas (only while the page is scrolling apart)
-      let chatBox = null
-      if (sa > 0) {
-        const ch = canvas.closest('.hero')?.querySelector('.chat')
-        if (ch) {
-          const cr = ch.getBoundingClientRect()
-          const kr = canvas.getBoundingClientRect()
-          chatBox = [cr.left - kr.left, cr.top - kr.top, cr.right - kr.left, cr.bottom - kr.top]
-        }
-      }
+      const chatBox = sa > 0 ? layout.chatBox : null
       const asm = !small && C.wakeT < 1
       for (const s of shell) {
         const sh = 0.6 + 0.4 * Math.sin(t * 2 + s.ph)
@@ -451,14 +480,20 @@ export default function KairoOrb({
           (p0[2] > 0 && Math.hypot(a[0] - c0, a[1] - c0) < fadeR ? SHELL_FADE.alpha : 1) *
           fly *
           (1 - sm(0.55, 1, aw)) *
-          (chatBox && a[0] > chatBox[0] && a[0] < chatBox[2] && a[1] > chatBox[1] && a[1] < chatBox[3] ? DRIFT.overChat : 1)
+          (chatBox && a[0] > chatBox[0] && a[0] < chatBox[2] && a[1] > chatBox[1] && a[1] < chatBox[3]
+            ? DRIFT.overChat
+            : 1)
         // rings and the flash light the streaks they cross; the flash also holds the whole shell brighter
         let boost = C.uni + DRIFT.glow * aw // falling pieces burn brighter, so they read against the dark
         if (useWaves) {
           const d = Math.hypot(a[0] - c0, a[1] - c0) / (R * sc)
           for (const w of C.waves) boost += w.a * Math.exp(-(((d - w.r) / w.w) ** 2))
         }
-        ctx.strokeStyle = tint(s.h, Math.min(92, s.l + DRIFT.lift * aw), Math.min(1, s.a * dA(p0[2]) * (0.55 + 0.45 * sh) * fade * (1 + 2 * boost)))
+        ctx.strokeStyle = tint(
+          s.h,
+          Math.min(92, s.l + DRIFT.lift * aw),
+          Math.min(1, s.a * dA(p0[2]) * (0.55 + 0.45 * sh) * fade * (1 + 2 * boost)),
+        )
         ctx.lineWidth = (0.7 + dA(p0[2]) * 0.9) * k * (1 + 0.6 * boost) * (1 + DRIFT.thick * aw)
         ctx.beginPath()
         ctx.moveTo(a[0], a[1])
@@ -468,353 +503,361 @@ export default function KairoOrb({
 
       // gold shell: circuit arcs (and the tick rings below) sink and fade as the page scrolls
       ctx.globalAlpha = wS * outerFade
-      ctx.save()
-      ctx.translate(0, sa * sa * R * 0.9)
-      for (const c of arcs) {
-        for (const [s0, sp] of c.segs) {
-          const st = s0 + t * c.spin
-          const n = Math.max(6, Math.round(sp * 14))
-          ctx.lineWidth = c.w * k
-          ctx.beginPath()
-          let zs = 0
-          for (let i = 0; i <= n; i++) {
-            const th = st + (sp * i) / n
-            const cs = Math.cos(th)
-            const sn = Math.sin(th)
-            const p = rot([
-              (c.a[0] * cs + c.b[0] * sn) * c.r,
-              (c.a[1] * cs + c.b[1] * sn) * c.r,
-              (c.a[2] * cs + c.b[2] * sn) * c.r,
-            ])
-            const q = pr(p, shellM)
-            zs += p[2]
-            if (i) ctx.lineTo(q[0], q[1])
-            else ctx.moveTo(q[0], q[1])
-          }
-          ctx.strokeStyle = tint(c.h, 62, c.al * dA(zs / (n + 1)) * (0.8 + 0.2 * env))
-          ctx.stroke()
-        }
-      }
-
-      // gold shell: tick rings
-      for (const rg of rings) {
-        for (let i = 0; i < rg.ticks; i++) {
-          const th = (i / rg.ticks) * TAU + t * rg.spin
-          const cs = Math.cos(th)
-          const sn = Math.sin(th)
-          const d = [rg.a[0] * cs + rg.b[0] * sn, rg.a[1] * cs + rg.b[1] * sn, rg.a[2] * cs + rg.b[2] * sn]
-          const L = (i % 5 === 0 ? 0.045 : 0.02) * (1 + 0.5 * env)
-          const p0 = rot([d[0] * rg.r, d[1] * rg.r, d[2] * rg.r])
-          const p1 = rot([d[0] * (rg.r + L), d[1] * (rg.r + L), d[2] * (rg.r + L)])
-          const a = pr(p0, shellM)
-          const b = pr(p1, shellM)
-          ctx.strokeStyle = tint(0, 66, 0.75 * dA(p0[2]))
-          ctx.lineWidth = (i % 5 === 0 ? 1.4 : 0.7) * k
-          ctx.beginPath()
-          ctx.moveTo(a[0], a[1])
-          ctx.lineTo(b[0], b[1])
-          ctx.stroke()
-        }
-      }
-
-      ctx.restore()
-
-      // =============== the glass mass (inner colour) ===============
-      ctx.globalAlpha = innerA
-      const O = pi(rotC(HEART), innerM) // the heart, off-centre
-
-      // deep body and a soft inner glow
-      const bodyR = R * 0.95 * sc * innerM
-      const gb = ctx.createRadialGradient(c0, c0, 0, c0, c0, bodyR)
-      gb.addColorStop(0, ic(0.34 + 0.08 * env + 0.08 * act))
-      gb.addColorStop(0.6, deep(inner, 0.6, 0.16))
-      gb.addColorStop(1, deep(inner, 0.45, 0))
-      ctx.fillStyle = gb
-      ctx.beginPath()
-      ctx.arc(c0, c0, bodyR, 0, TAU)
-      ctx.fill()
-      const glowR = R * 0.75 * sc * innerM
-      const gi = ctx.createRadialGradient(c0, c0, 0, c0, c0, glowR)
-      gi.addColorStop(0, ic(0.12 + 0.08 * env + 0.06 * cur.stream + TYPING.glow * C.heart))
-      gi.addColorStop(0.6, ic(0.05))
-      gi.addColorStop(1, ic(0))
-      ctx.fillStyle = gi
-      ctx.beginPath()
-      ctx.arc(c0, c0, glowR, 0, TAU)
-      ctx.fill()
-
-      // soft drifting clouds
-      for (const c of clouds) {
-        const an = c.ph + t * c.sp
-        const q = pi(
-          rotC([c.p[0] * c.s * (1 + 0.3 * Math.sin(an)), c.p[1] * c.s * (1 + 0.3 * Math.cos(an * 1.3)), c.p[2] * c.s]),
-        )
-        const rr = c.r * R * 1.25 * sc * innerM
-        const cg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], rr)
-        cg.addColorStop(0, deep(inner, 0.7, 0.16 + 0.06 * act))
-        cg.addColorStop(1, deep(inner, 0.5, 0))
-        ctx.fillStyle = cg
-        ctx.beginPath()
-        ctx.arc(q[0], q[1], rr, 0, TAU)
-        ctx.fill()
-      }
-
-      // translucent glass sheets: shaded skin (brighter toward the rim), fine ribbing, a soft glow,
-      // a thin bright edge and, on the hero, dashes flowing along the edge. On wake-up they grow in
-      // one after another.
-      const sheetN = sheets.length
-      for (let si = 0; si < sheetN; si++) {
-        const sh = sheets[si]
-        const gro = clamp01(C.wakeInner * (1 + MASS.stagger) - (si / sheetN) * MASS.stagger)
-        if (gro <= 0) continue
-        const sm = innerM * (0.55 + 0.45 * gro)
-        ctx.globalAlpha = innerA * gro
-        const ang = sh.ph + t * sh.sp * (0.6 + cur.spin)
-        const ca = Math.cos(ang)
-        const sa = Math.sin(ang)
-        const foldAt = (xr, yr) =>
-          sh.fold * (Math.sin(xr * 7 + C.mt * 0.8 + sh.ph) + Math.cos(yr * 6 - C.mt * 0.6)) * (1 + 0.3 * act)
-        const at = (x, y) => {
-          const xr = x * ca - y * sa
-          const yr = x * sa + y * ca
-          const f = foldAt(xr, yr)
-          return pi(
-            rotC([
-              sh.c[0] + sh.u[0] * xr + sh.v[0] * yr + sh.n[0] * f,
-              sh.c[1] + sh.u[1] * xr + sh.v[1] * yr + sh.n[1] * f,
-              sh.c[2] + sh.u[2] * xr + sh.v[2] * yr + sh.n[2] * f,
-            ]),
-            sm,
-          )
-        }
-        const P = []
-        let zs = 0
-        for (const q of sh.poly) {
-          const rr = sh.s * q.r * (1 + 0.08 * Math.sin(C.mt * 0.9 + q.a * 3 + sh.ph))
-          const p = at(Math.cos(q.a) * rr, Math.sin(q.a) * rr)
-          P.push(p)
-        }
-        // depth of the sheet from its centre point
-        zs = rotC(sh.c)[2]
-        const dz = dA(zs)
-        const n = P.length
-        const path = () => {
-          ctx.beginPath()
-          for (let i = 0; i < n; i++) {
-            const a0 = lp(P[(i + n - 1) % n], P[i], 0.78)
-            const b0 = lp(P[i], P[(i + 1) % n], 0.22)
-            if (i) ctx.lineTo(a0[0], a0[1])
-            else ctx.moveTo(a0[0], a0[1])
-            ctx.quadraticCurveTo(P[i][0], P[i][1], b0[0], b0[1])
-          }
-          ctx.closePath()
-        }
-        // thin translucent skin, clipped to the sheet
-        let cxs = 0
-        let cys = 0
-        for (const p of P) {
-          cxs += p[0]
-          cys += p[1]
-        }
-        cxs /= n
-        cys /= n
-        let ext = 1
-        for (const p of P) ext = Math.max(ext, Math.hypot(p[0] - cxs, p[1] - cys))
+      if (!scrollApart || wS * outerFade > 0.01) {
         ctx.save()
-        path()
-        ctx.clip()
-        const sg = ctx.createRadialGradient(cxs, cys, 0, cxs, cys, ext)
-        sg.addColorStop(0, ic(0.035 * sh.al * dz))
-        sg.addColorStop(0.6, ic(0.1 * sh.al * dz))
-        sg.addColorStop(1, iw(0.3, 0.3 * sh.al * dz))
-        ctx.fillStyle = sg
-        ctx.fillRect(cxs - ext, cys - ext, ext * 2, ext * 2)
-        if (!small) {
-          ctx.beginPath()
-          for (let j = -3; j <= 3; j++) {
-            const y0 = j * sh.s * 0.3
-            for (let i = 0; i <= 8; i++) {
-              const q = at(((i / 8) * 2 - 1) * sh.s * 1.35, y0)
+        ctx.translate(0, sa * sa * R * 0.9)
+        for (const c of arcs) {
+          for (const [s0, sp] of c.segs) {
+            const st = s0 + t * c.spin
+            const n = Math.max(6, Math.round(sp * 14))
+            ctx.lineWidth = c.w * k
+            ctx.beginPath()
+            let zs = 0
+            for (let i = 0; i <= n; i++) {
+              const th = st + (sp * i) / n
+              const cs = Math.cos(th)
+              const sn = Math.sin(th)
+              const p = rot([
+                (c.a[0] * cs + c.b[0] * sn) * c.r,
+                (c.a[1] * cs + c.b[1] * sn) * c.r,
+                (c.a[2] * cs + c.b[2] * sn) * c.r,
+              ])
+              const q = pr(p, shellM)
+              zs += p[2]
               if (i) ctx.lineTo(q[0], q[1])
               else ctx.moveTo(q[0], q[1])
             }
+            ctx.strokeStyle = tint(c.h, 62, c.al * dA(zs / (n + 1)) * (0.8 + 0.2 * env))
+            ctx.stroke()
           }
-          ctx.strokeStyle = iw(0.45, (0.14 + 0.1 * act) * dz)
-          ctx.lineWidth = 0.6 * ki
-          ctx.stroke()
         }
+
+        // gold shell: tick rings
+        for (const rg of rings) {
+          for (let i = 0; i < rg.ticks; i++) {
+            const th = (i / rg.ticks) * TAU + t * rg.spin
+            const cs = Math.cos(th)
+            const sn = Math.sin(th)
+            const d = [rg.a[0] * cs + rg.b[0] * sn, rg.a[1] * cs + rg.b[1] * sn, rg.a[2] * cs + rg.b[2] * sn]
+            const L = (i % 5 === 0 ? 0.045 : 0.02) * (1 + 0.5 * env)
+            const p0 = rot([d[0] * rg.r, d[1] * rg.r, d[2] * rg.r])
+            const p1 = rot([d[0] * (rg.r + L), d[1] * (rg.r + L), d[2] * (rg.r + L)])
+            const a = pr(p0, shellM)
+            const b = pr(p1, shellM)
+            ctx.strokeStyle = tint(0, 66, 0.75 * dA(p0[2]))
+            ctx.lineWidth = (i % 5 === 0 ? 1.4 : 0.7) * k
+            ctx.beginPath()
+            ctx.moveTo(a[0], a[1])
+            ctx.lineTo(b[0], b[1])
+            ctx.stroke()
+          }
+        }
+
         ctx.restore()
-        // glow, then the thin bright edge
-        path()
-        ctx.strokeStyle = ic(0.09 * dz)
-        ctx.lineWidth = 7 * ki
-        ctx.stroke()
-        path()
-        ctx.strokeStyle = iw(
-          0.25 + 0.4 * act * sh.al,
-          Math.min(1, (0.45 + 0.4 * sh.al + 0.2 * act + (sh.big ? 0.15 : 0)) * dz),
-        )
-        ctx.lineWidth = ((sh.big ? 1.5 : 1) + 0.5 * sh.al) * ki
-        ctx.stroke()
-        // dashes flowing along the edge (hero only)
-        if (!small) {
+      }
+
+      if (!scrollApart || innerFade > 0.01) {
+        // =============== the glass mass (inner colour) ===============
+        ctx.globalAlpha = innerA
+        const O = pi(rotC(HEART), innerM) // the heart, off-centre
+
+        // deep body and a soft inner glow
+        const bodyR = R * 0.95 * sc * innerM
+        const gb = ctx.createRadialGradient(c0, c0, 0, c0, c0, bodyR)
+        gb.addColorStop(0, ic(0.34 + 0.08 * env + 0.08 * act))
+        gb.addColorStop(0.6, deep(inner, 0.6, 0.16))
+        gb.addColorStop(1, deep(inner, 0.45, 0))
+        ctx.fillStyle = gb
+        ctx.beginPath()
+        ctx.arc(c0, c0, bodyR, 0, TAU)
+        ctx.fill()
+        const glowR = R * 0.75 * sc * innerM
+        const gi = ctx.createRadialGradient(c0, c0, 0, c0, c0, glowR)
+        gi.addColorStop(0, ic(0.12 + 0.08 * env + 0.06 * cur.stream + TYPING.glow * C.heart))
+        gi.addColorStop(0.6, ic(0.05))
+        gi.addColorStop(1, ic(0))
+        ctx.fillStyle = gi
+        ctx.beginPath()
+        ctx.arc(c0, c0, glowR, 0, TAU)
+        ctx.fill()
+
+        // soft drifting clouds
+        for (const c of clouds) {
+          const an = c.ph + t * c.sp
+          const q = pi(
+            rotC([
+              c.p[0] * c.s * (1 + 0.3 * Math.sin(an)),
+              c.p[1] * c.s * (1 + 0.3 * Math.cos(an * 1.3)),
+              c.p[2] * c.s,
+            ]),
+          )
+          const rr = c.r * R * 1.25 * sc * innerM
+          const cg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], rr)
+          cg.addColorStop(0, deep(inner, 0.7, 0.16 + 0.06 * act))
+          cg.addColorStop(1, deep(inner, 0.5, 0))
+          ctx.fillStyle = cg
+          ctx.beginPath()
+          ctx.arc(q[0], q[1], rr, 0, TAU)
+          ctx.fill()
+        }
+
+        // translucent glass sheets: shaded skin (brighter toward the rim), fine ribbing, a soft glow,
+        // a thin bright edge and, on the hero, dashes flowing along the edge. On wake-up they grow in
+        // one after another.
+        const sheetN = sheets.length
+        for (let si = 0; si < sheetN; si++) {
+          const sh = sheets[si]
+          const gro = clamp01(C.wakeInner * (1 + MASS.stagger) - (si / sheetN) * MASS.stagger)
+          if (gro <= 0) continue
+          const sm = innerM * (0.55 + 0.45 * gro)
+          ctx.globalAlpha = innerA * gro
+          const ang = sh.ph + t * sh.sp * (0.6 + cur.spin)
+          const ca = Math.cos(ang)
+          const sa = Math.sin(ang)
+          const foldAt = (xr, yr) =>
+            sh.fold * (Math.sin(xr * 7 + C.mt * 0.8 + sh.ph) + Math.cos(yr * 6 - C.mt * 0.6)) * (1 + 0.3 * act)
+          const at = (x, y) => {
+            const xr = x * ca - y * sa
+            const yr = x * sa + y * ca
+            const f = foldAt(xr, yr)
+            return pi(
+              rotC([
+                sh.c[0] + sh.u[0] * xr + sh.v[0] * yr + sh.n[0] * f,
+                sh.c[1] + sh.u[1] * xr + sh.v[1] * yr + sh.n[1] * f,
+                sh.c[2] + sh.u[2] * xr + sh.v[2] * yr + sh.n[2] * f,
+              ]),
+              sm,
+            )
+          }
+          const P = []
+          let zs = 0
+          for (const q of sh.poly) {
+            const rr = sh.s * q.r * (1 + 0.08 * Math.sin(C.mt * 0.9 + q.a * 3 + sh.ph))
+            const p = at(Math.cos(q.a) * rr, Math.sin(q.a) * rr)
+            P.push(p)
+          }
+          // depth of the sheet from its centre point
+          zs = rotC(sh.c)[2]
+          const dz = dA(zs)
+          const n = P.length
+          const path = () => {
+            ctx.beginPath()
+            for (let i = 0; i < n; i++) {
+              const a0 = lp(P[(i + n - 1) % n], P[i], 0.78)
+              const b0 = lp(P[i], P[(i + 1) % n], 0.22)
+              if (i) ctx.lineTo(a0[0], a0[1])
+              else ctx.moveTo(a0[0], a0[1])
+              ctx.quadraticCurveTo(P[i][0], P[i][1], b0[0], b0[1])
+            }
+            ctx.closePath()
+          }
+          // thin translucent skin, clipped to the sheet
+          let cxs = 0
+          let cys = 0
+          for (const p of P) {
+            cxs += p[0]
+            cys += p[1]
+          }
+          cxs /= n
+          cys /= n
+          let ext = 1
+          for (const p of P) ext = Math.max(ext, Math.hypot(p[0] - cxs, p[1] - cys))
+          ctx.save()
           path()
-          ctx.setLineDash(DASHES.map((d) => d * k))
-          ctx.lineDashOffset = -C.dash * k * (sh.sp > 0 ? 1 : -1)
-          ctx.strokeStyle = iw(0.8, Math.min(1, (0.55 + 0.3 * act) * dz))
-          ctx.lineWidth = 1.7 * ki
+          ctx.clip()
+          const sg = ctx.createRadialGradient(cxs, cys, 0, cxs, cys, ext)
+          sg.addColorStop(0, ic(0.035 * sh.al * dz))
+          sg.addColorStop(0.6, ic(0.1 * sh.al * dz))
+          sg.addColorStop(1, iw(0.3, 0.3 * sh.al * dz))
+          ctx.fillStyle = sg
+          ctx.fillRect(cxs - ext, cys - ext, ext * 2, ext * 2)
+          if (!small) {
+            ctx.beginPath()
+            for (let j = -3; j <= 3; j++) {
+              const y0 = j * sh.s * 0.3
+              for (let i = 0; i <= 8; i++) {
+                const q = at(((i / 8) * 2 - 1) * sh.s * 1.35, y0)
+                if (i) ctx.lineTo(q[0], q[1])
+                else ctx.moveTo(q[0], q[1])
+              }
+            }
+            ctx.strokeStyle = iw(0.45, (0.14 + 0.1 * act) * dz)
+            ctx.lineWidth = 0.6 * ki
+            ctx.stroke()
+          }
+          ctx.restore()
+          // glow, then the thin bright edge
+          path()
+          ctx.strokeStyle = ic(0.09 * dz)
+          ctx.lineWidth = 7 * ki
           ctx.stroke()
-          ctx.setLineDash(NO_DASH)
-        }
-      }
-      ctx.globalAlpha = innerA
-
-      // fine light scratches, flickering with the state's act
-      for (const sc2 of scratches) {
-        const fl = Math.pow(Math.max(0, Math.sin(t * sc2.sp + sc2.ph)), 2.5)
-        const hh = sc2.h * (1 + 0.3 * fl)
-        const p0 = rotC([sc2.c[0] - sc2.dir[0] * hh, sc2.c[1] - sc2.dir[1] * hh, sc2.c[2] - sc2.dir[2] * hh])
-        const p1 = rotC([sc2.c[0] + sc2.dir[0] * hh, sc2.c[1] + sc2.dir[1] * hh, sc2.c[2] + sc2.dir[2] * hh])
-        const a = pi(p0)
-        const b = pi(p1)
-        const al = (sc2.al * (0.3 + 0.5 * act) + fl * 0.4) * dA((p0[2] + p1[2]) / 2)
-        ctx.strokeStyle = iw(0.4 + fl * 0.45, Math.min(1, al))
-        ctx.lineWidth = sc2.w * ki * (1 + fl * 0.8)
-        ctx.beginPath()
-        ctx.moveTo(a[0], a[1])
-        ctx.lineTo(b[0], b[1])
-        ctx.stroke()
-      }
-
-      // two thin wobbling rim loops, bright where the membrane folds (hero only)
-      for (const rm of rims) {
-        let prev = null
-        for (let i = 0; i <= 96; i++) {
-          const ph = (i / 96) * TAU
-          const rr =
-            R *
-            sc *
-            innerM *
-            rm.r *
-            (1 +
-              0.1 * Math.sin(rm.m * ph + rm.ph + C.mt * 0.6) +
-              0.05 * Math.sin(rm.m2 * ph + rm.ph2 - C.mt * 0.8) +
-              0.04 * env)
-          const pt = [c0 + rm.off[0] * R + Math.cos(ph) * rr, c0 + rm.off[1] * R + Math.sin(ph) * rr * 0.96]
-          if (prev) {
-            const b0 = Math.pow(0.5 + 0.5 * Math.sin(3 * ph + rm.ph * 2 + C.mt * 0.7), 2)
-            ctx.strokeStyle = iw(0.15 + 0.4 * b0, 0.14 + 0.55 * b0 * (0.7 + 0.3 * act))
-            ctx.lineWidth = rm.w * k * (0.35 + 0.5 * b0)
-            ctx.beginPath()
-            ctx.moveTo(prev[0], prev[1])
-            ctx.lineTo(pt[0], pt[1])
+          path()
+          ctx.strokeStyle = iw(
+            0.25 + 0.4 * act * sh.al,
+            Math.min(1, (0.45 + 0.4 * sh.al + 0.2 * act + (sh.big ? 0.15 : 0)) * dz),
+          )
+          ctx.lineWidth = ((sh.big ? 1.5 : 1) + 0.5 * sh.al) * ki
+          ctx.stroke()
+          // dashes flowing along the edge (hero only)
+          if (!small) {
+            path()
+            ctx.setLineDash(DASHES.map((d) => d * k))
+            ctx.lineDashOffset = -C.dash * k * (sh.sp > 0 ? 1 : -1)
+            ctx.strokeStyle = iw(0.8, Math.min(1, (0.55 + 0.3 * act) * dz))
+            ctx.lineWidth = 1.7 * ki
             ctx.stroke()
-          }
-          prev = pt
-        }
-      }
-
-      // the heart: streaks, a halo and the white-hot centre. It is dim but already there on wake-up.
-      ctx.globalAlpha = heartA
-      for (const ry of rays) {
-        const fl = Math.pow(Math.max(0, Math.sin(t * ry.sp + ry.ph)), 2)
-        const l2 = ry.len * (0.7 + 0.5 * fl + 0.3 * act)
-        const q = pi(rotC([HEART[0] + ry.dir[0] * l2, HEART[1] + ry.dir[1] * l2, HEART[2] + ry.dir[2] * l2]))
-        ctx.strokeStyle = iw(0.6, (0.15 + 0.5 * fl) * (0.5 + 0.5 * act))
-        ctx.lineWidth = (0.8 + fl) * ki
-        ctx.beginPath()
-        ctx.moveTo(O[0], O[1])
-        ctx.lineTo(q[0], q[1])
-        ctx.stroke()
-      }
-      const haloR = R * 0.6 * sc * innerM
-      const mg = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], haloR)
-      mg.addColorStop(0, iw(0.45, 0.3 + 0.1 * act + TYPING.glow * C.heart))
-      mg.addColorStop(1, ic(0))
-      ctx.fillStyle = mg
-      ctx.beginPath()
-      ctx.arc(O[0], O[1], haloR, 0, TAU)
-      ctx.fill()
-      const nr = R * 0.34 * sc * innerM * (1 + 0.3 * env + 0.12 * cur.stream * Math.sin(t * 9)) * heartK
-      const ng = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], nr)
-      ng.addColorStop(0, 'rgba(255,255,255,1)')
-      ng.addColorStop(0.2, iw(0.65, 0.8))
-      ng.addColorStop(0.55, ic(0.25))
-      ng.addColorStop(1, ic(0))
-      ctx.fillStyle = ng
-      ctx.beginPath()
-      ctx.arc(O[0], O[1], nr, 0, TAU)
-      ctx.fill()
-      ctx.globalAlpha = innerA
-
-      // energy bolts from the heart, and the thinking pulses (longer bolts that travel to the shell)
-      if (!small) {
-        for (const bo of C.bolts) {
-          const q = bo.pts.map((p) => pi(rotC(p)))
-          for (const [w, col] of [
-            [5, iw(0, 0.2 * bo.k)],
-            [1.5, iw(0.7, 0.9 * bo.k)],
-          ]) {
-            ctx.strokeStyle = col
-            ctx.lineWidth = w * ki
-            ctx.beginPath()
-            q.forEach((p, j) => {
-              if (j) ctx.lineTo(p[0], p[1])
-              else ctx.moveTo(p[0], p[1])
-            })
-            ctx.stroke()
+            ctx.setLineDash(NO_DASH)
           }
         }
-        for (const pu of C.pulses) {
-          const u1 = 0.04 + 0.97 * pu.p
-          const u0 = Math.max(0.04, u1 - THINK.trail)
-          const al = Math.min(pu.p / 0.1, 1) * (1 - Math.max(0, (pu.p - 0.75) / 0.25))
-          const q = []
-          for (let i = 0; i < 7; i++) {
-            const u = u0 + ((u1 - u0) * i) / 6
-            const j = i === 0 || i === 6 ? 0 : 0.045
-            q.push(pi(rotC(HEART.map((h, a) => h + (pu.dir[a] * 0.98 - h) * u + pu.jit[i][a] * j))))
-          }
-          for (const [w, col] of [
-            [5, iw(0, 0.18 * al)],
-            [THINK.width, iw(0.7, 0.9 * al)],
-          ]) {
-            ctx.strokeStyle = col
-            ctx.lineWidth = w * ki
-            ctx.beginPath()
-            q.forEach((p, j) => {
-              if (j) ctx.lineTo(p[0], p[1])
-              else ctx.moveTo(p[0], p[1])
-            })
-            ctx.stroke()
-          }
-        }
+        ctx.globalAlpha = innerA
 
-        // cyan glitter drifting around the mass
-        for (const spl of sparklets) {
-          const tw = Math.pow(Math.max(0, Math.sin(t * spl.sp + spl.ph)), 2)
-          const base = [spl.d[0] * spl.r, spl.d[1] * spl.r, spl.d[2] * spl.r]
-          const p0 = rotC(base)
-          const p1 = rotC([base[0] + spl.t[0] * spl.h, base[1] + spl.t[1] * spl.h, base[2] + spl.t[2] * spl.h])
+        // fine light scratches, flickering with the state's act
+        for (const sc2 of scratches) {
+          const fl = Math.pow(Math.max(0, Math.sin(t * sc2.sp + sc2.ph)), 2.5)
+          const hh = sc2.h * (1 + 0.3 * fl)
+          const p0 = rotC([sc2.c[0] - sc2.dir[0] * hh, sc2.c[1] - sc2.dir[1] * hh, sc2.c[2] - sc2.dir[2] * hh])
+          const p1 = rotC([sc2.c[0] + sc2.dir[0] * hh, sc2.c[1] + sc2.dir[1] * hh, sc2.c[2] + sc2.dir[2] * hh])
           const a = pi(p0)
           const b = pi(p1)
-          ctx.strokeStyle = iw(0.3 + tw * 0.6, (0.12 + tw * 0.75) * dA(p0[2]) * (0.55 + act * 0.45))
-          ctx.lineWidth = (0.7 + tw * 0.9) * ki
+          const al = (sc2.al * (0.3 + 0.5 * act) + fl * 0.4) * dA((p0[2] + p1[2]) / 2)
+          ctx.strokeStyle = iw(0.4 + fl * 0.45, Math.min(1, al))
+          ctx.lineWidth = sc2.w * ki * (1 + fl * 0.8)
           ctx.beginPath()
           ctx.moveTo(a[0], a[1])
           ctx.lineTo(b[0], b[1])
           ctx.stroke()
         }
 
-        // glittering dust
-        for (const d of dust) {
-          const tw = Math.pow(Math.max(0, Math.sin(t * d.sp + d.ph)), 2)
-          const p = rotC([d.p[0] + 0.02 * Math.sin(t * 0.8 + d.ph), d.p[1] + 0.02 * Math.cos(t * 0.7 + d.ph), d.p[2]])
-          const q = pi(p)
-          ctx.fillStyle = iw(0.4 + tw * 0.5, (0.12 + tw * 0.7) * dA(p[2]) * (0.5 + act * 0.5))
+        // two thin wobbling rim loops, bright where the membrane folds (hero only)
+        for (const rm of rims) {
+          let prev = null
+          for (let i = 0; i <= 96; i++) {
+            const ph = (i / 96) * TAU
+            const rr =
+              R *
+              sc *
+              innerM *
+              rm.r *
+              (1 +
+                0.1 * Math.sin(rm.m * ph + rm.ph + C.mt * 0.6) +
+                0.05 * Math.sin(rm.m2 * ph + rm.ph2 - C.mt * 0.8) +
+                0.04 * env)
+            const pt = [c0 + rm.off[0] * R + Math.cos(ph) * rr, c0 + rm.off[1] * R + Math.sin(ph) * rr * 0.96]
+            if (prev) {
+              const b0 = Math.pow(0.5 + 0.5 * Math.sin(3 * ph + rm.ph * 2 + C.mt * 0.7), 2)
+              ctx.strokeStyle = iw(0.15 + 0.4 * b0, 0.14 + 0.55 * b0 * (0.7 + 0.3 * act))
+              ctx.lineWidth = rm.w * k * (0.35 + 0.5 * b0)
+              ctx.beginPath()
+              ctx.moveTo(prev[0], prev[1])
+              ctx.lineTo(pt[0], pt[1])
+              ctx.stroke()
+            }
+            prev = pt
+          }
+        }
+
+        // the heart: streaks, a halo and the white-hot centre. It is dim but already there on wake-up.
+        ctx.globalAlpha = heartA
+        for (const ry of rays) {
+          const fl = Math.pow(Math.max(0, Math.sin(t * ry.sp + ry.ph)), 2)
+          const l2 = ry.len * (0.7 + 0.5 * fl + 0.3 * act)
+          const q = pi(rotC([HEART[0] + ry.dir[0] * l2, HEART[1] + ry.dir[1] * l2, HEART[2] + ry.dir[2] * l2]))
+          ctx.strokeStyle = iw(0.6, (0.15 + 0.5 * fl) * (0.5 + 0.5 * act))
+          ctx.lineWidth = (0.8 + fl) * ki
           ctx.beginPath()
-          ctx.arc(q[0], q[1], d.s * k * (0.7 + tw * 0.8), 0, TAU)
-          ctx.fill()
+          ctx.moveTo(O[0], O[1])
+          ctx.lineTo(q[0], q[1])
+          ctx.stroke()
+        }
+        const haloR = R * 0.6 * sc * innerM
+        const mg = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], haloR)
+        mg.addColorStop(0, iw(0.45, 0.3 + 0.1 * act + TYPING.glow * C.heart))
+        mg.addColorStop(1, ic(0))
+        ctx.fillStyle = mg
+        ctx.beginPath()
+        ctx.arc(O[0], O[1], haloR, 0, TAU)
+        ctx.fill()
+        const nr = R * 0.34 * sc * innerM * (1 + 0.3 * env + 0.12 * cur.stream * Math.sin(t * 9)) * heartK
+        const ng = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], nr)
+        ng.addColorStop(0, 'rgba(255,255,255,1)')
+        ng.addColorStop(0.2, iw(0.65, 0.8))
+        ng.addColorStop(0.55, ic(0.25))
+        ng.addColorStop(1, ic(0))
+        ctx.fillStyle = ng
+        ctx.beginPath()
+        ctx.arc(O[0], O[1], nr, 0, TAU)
+        ctx.fill()
+        ctx.globalAlpha = innerA
+
+        // energy bolts from the heart, and the thinking pulses (longer bolts that travel to the shell)
+        if (!small) {
+          for (const bo of C.bolts) {
+            const q = bo.pts.map((p) => pi(rotC(p)))
+            for (const [w, col] of [
+              [5, iw(0, 0.2 * bo.k)],
+              [1.5, iw(0.7, 0.9 * bo.k)],
+            ]) {
+              ctx.strokeStyle = col
+              ctx.lineWidth = w * ki
+              ctx.beginPath()
+              q.forEach((p, j) => {
+                if (j) ctx.lineTo(p[0], p[1])
+                else ctx.moveTo(p[0], p[1])
+              })
+              ctx.stroke()
+            }
+          }
+          for (const pu of C.pulses) {
+            const u1 = 0.04 + 0.97 * pu.p
+            const u0 = Math.max(0.04, u1 - THINK.trail)
+            const al = Math.min(pu.p / 0.1, 1) * (1 - Math.max(0, (pu.p - 0.75) / 0.25))
+            const q = []
+            for (let i = 0; i < 7; i++) {
+              const u = u0 + ((u1 - u0) * i) / 6
+              const j = i === 0 || i === 6 ? 0 : 0.045
+              q.push(pi(rotC(HEART.map((h, a) => h + (pu.dir[a] * 0.98 - h) * u + pu.jit[i][a] * j))))
+            }
+            for (const [w, col] of [
+              [5, iw(0, 0.18 * al)],
+              [THINK.width, iw(0.7, 0.9 * al)],
+            ]) {
+              ctx.strokeStyle = col
+              ctx.lineWidth = w * ki
+              ctx.beginPath()
+              q.forEach((p, j) => {
+                if (j) ctx.lineTo(p[0], p[1])
+                else ctx.moveTo(p[0], p[1])
+              })
+              ctx.stroke()
+            }
+          }
+
+          // cyan glitter drifting around the mass
+          for (const spl of sparklets) {
+            const tw = Math.pow(Math.max(0, Math.sin(t * spl.sp + spl.ph)), 2)
+            const base = [spl.d[0] * spl.r, spl.d[1] * spl.r, spl.d[2] * spl.r]
+            const p0 = rotC(base)
+            const p1 = rotC([base[0] + spl.t[0] * spl.h, base[1] + spl.t[1] * spl.h, base[2] + spl.t[2] * spl.h])
+            const a = pi(p0)
+            const b = pi(p1)
+            ctx.strokeStyle = iw(0.3 + tw * 0.6, (0.12 + tw * 0.75) * dA(p0[2]) * (0.55 + act * 0.45))
+            ctx.lineWidth = (0.7 + tw * 0.9) * ki
+            ctx.beginPath()
+            ctx.moveTo(a[0], a[1])
+            ctx.lineTo(b[0], b[1])
+            ctx.stroke()
+          }
+
+          // glittering dust
+          for (const d of dust) {
+            const tw = Math.pow(Math.max(0, Math.sin(t * d.sp + d.ph)), 2)
+            const p = rotC([d.p[0] + 0.02 * Math.sin(t * 0.8 + d.ph), d.p[1] + 0.02 * Math.cos(t * 0.7 + d.ph), d.p[2]])
+            const q = pi(p)
+            ctx.fillStyle = iw(0.4 + tw * 0.5, (0.12 + tw * 0.7) * dA(p[2]) * (0.5 + act * 0.5))
+            ctx.beginPath()
+            ctx.arc(q[0], q[1], d.s * k * (0.7 + tw * 0.8), 0, TAU)
+            ctx.fill()
+          }
         }
       }
 
@@ -878,7 +921,7 @@ export default function KairoOrb({
     io.observe(canvas)
 
     return () => {
-      if (inFront && canvas.parentElement) canvas.parentElement.style.zIndex = ""
+      if (inFront && canvas.parentElement) canvas.parentElement.style.zIndex = ''
       cancelAnimationFrame(raf)
       io.disconnect()
       mo.disconnect()

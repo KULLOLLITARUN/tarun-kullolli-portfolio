@@ -841,7 +841,7 @@ export default function KairoOrb({
           continue
         }
         const kk = s.life / s.max
-        ctx.strokeStyle = s.gold ? `${SPARK_GOLD}${kk})` : `hsla(${pal.h + 180},100%,72%,${kk})`
+        ctx.strokeStyle = s.gold ? `${SPARK_GOLD}${kk})` : mix(inner, 0.35, kk)
         ctx.lineWidth = 1.4 * k
         ctx.beginPath()
         s.pts.forEach((v, j) => {

@@ -14,7 +14,8 @@ export const PRESETS = {
 
 // The inner colour per state (the glass mass, heart and bolts). It is eased in RGB, so a change
 // passes through a pale glow and never through other hues. The gold outer layer never changes.
-export const INNER = { idle: [30, 140, 255], thinking: [90, 220, 255], speaking: [60, 170, 255] }
+// Trial teal (fallback: idle [30, 140, 255], thinking [90, 220, 255], speaking [60, 170, 255]).
+export const INNER = { idle: [20, 195, 220], thinking: [110, 232, 248], speaking: [45, 210, 230] }
 
 // The glass mass: how many of each part. Fewer reads cleaner; the avatar gets the small set.
 export const MASS = {

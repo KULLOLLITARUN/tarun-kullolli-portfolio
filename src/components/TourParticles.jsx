@@ -136,7 +136,7 @@ export default function TourParticles() {
     const drawGather = (o) => {
       const R = o.width * 0.4
       const cx = o.left + o.width / 2
-      const cy = o.top + o.height / 2
+      const cy = o.top + o.width / 2 // the canvas is taller than the orb (room to drift), so use its width
       ctx.globalCompositeOperation = 'lighter'
       ctx.lineCap = 'round'
       for (const q of gather) {
@@ -189,7 +189,7 @@ export default function TourParticles() {
       if (o && kairo) {
         const R = o.width * 0.4
         const cx = o.left + o.width / 2
-        const cy = o.top + o.height / 2
+        const cy = o.top + o.width / 2 // the canvas is taller than the orb (room to drift), so use its width
         ctx.globalCompositeOperation = 'lighter'
         ctx.lineCap = 'round'
         const [r0, g0, b0] = rgb

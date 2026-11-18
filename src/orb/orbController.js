@@ -66,7 +66,7 @@ export const orbController = {
   env: 0, // the speaking pulse, 0 to 1
 
   // ---- internal event stamps (in shared time) ------------------------------------------
-  _wakeAt: -Infinity,
+  _wakeAt: Infinity, // asleep (a dim point) until wake() runs; otherwise the orb would show fully built for one frame at the reveal
   _contractAt: -Infinity,
   _flashAt: -Infinity,
   _rings: [],
@@ -213,8 +213,15 @@ export const orbController = {
   // ---- hooks for the chat (all no-ops with reduced motion) -----------------------------
   /** The chat opened: the orb starts as a dim point and wakes up. */
   wake() {
-    if (reduced()) return
+    if (reduced()) {
+      this._wakeAt = -Infinity // no animation: awake straight away
+      return
+    }
     this._wakeAt = this.t
+    // Before this the orb counts as fully awake, so the light it casts had already settled at its
+    // resting strength while the orb was still hidden. Start it from nothing, or the page shows a
+    // blue haze at the reveal that fades down before the orb's core ignites.
+    this.light = 0
     window.dispatchEvent(new Event('orb-wake')) // TourParticles gathers the name's particles into the orb
   },
   /** One soft ring from the heart through the shell, at most TYPING.maxPerSec per second. */

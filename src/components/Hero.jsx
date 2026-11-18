@@ -108,6 +108,7 @@ function HeroOrb({ visible, heroRef, onFail }) {
       window.removeEventListener('kairo-tour-end', off)
     }
   }, [heroRef])
+  const tail = Math.round(size * 0.75)
   // The orb lights the hero behind it and the top of the chat panel, in its inner colour. The
   // strength goes straight to the two elements' opacity each frame (cheap); the tint is rewritten
   // only when the colour has moved.
@@ -134,8 +135,14 @@ function HeroOrb({ visible, heroRef, onFail }) {
   return (
     <>
       <div ref={lightEl} className="kairo-orb-light" aria-hidden="true" />
-      <div className={`kairo-orb-hero${visible && !touring ? ' is-visible' : ''}${intro ? ' is-intro' : ''}`} aria-hidden="true">
-        <KairoOrb size={size} onFail={onFail} onLight={onLight} />
+      {/* The canvas has extra room below the orb for its pieces to drift into as the page scrolls; the
+          wrapper is nudged down by half of it so the orb itself stays where it was. */}
+      <div
+        className={`kairo-orb-hero${visible && !touring ? ' is-visible' : ''}${intro ? ' is-intro' : ''}`}
+        style={{ marginTop: tail / 2 }}
+        aria-hidden="true"
+      >
+        <KairoOrb size={size} tail={tail} scrollApart onFail={onFail} onLight={onLight} />
       </div>
     </>
   )

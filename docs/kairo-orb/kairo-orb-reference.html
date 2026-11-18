@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kairo — Gold Shell + Electric Glass Mass</title>
+<style>
+  :root{--gold:#ffb52e}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;background:radial-gradient(ellipse at 50% 45%,#0b0d18 0%,#05060b 70%);color:#f4e6c8;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden}
+  canvas{position:fixed;inset:0}
+  .hud{position:fixed;left:0;right:0;bottom:28px;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none}
+  .name{letter-spacing:.42em;font-size:13px;color:var(--gold);text-transform:uppercase}
+  .name i{font-style:normal;opacity:.5}
+  .status{font-size:11px;letter-spacing:.2em;opacity:.55;text-transform:uppercase}
+  .btns{display:flex;gap:8px;pointer-events:auto}
+  button{font:inherit;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#f4e6c8;background:rgba(255,181,46,.06);border:1px solid rgba(255,181,46,.28);padding:8px 14px;border-radius:999px;cursor:pointer;transition:.2s}
+  button:hover{background:rgba(255,181,46,.16)}
+  button.on{background:var(--gold);color:#1a1100;border-color:var(--gold)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">
+  <div class="name">Kairo <i>//</i> assistant</div>
+  <div class="status" id="status">idle — listening</div>
+  <div class="btns">
+    <button data-s="idle" class="on">Idle</button>
+    <button data-s="thinking">Thinking</button>
+    <button data-s="speaking">Speaking</button>
+  </div>
+</div>
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  let W, H, cx, cy, R;
+  const TAU = Math.PI * 2, rnd = (a, b) => a + Math.random() * (b - a);
+  function resize() {
+    const DPR = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    cx = W / 2; cy = H * .45; R = Math.min(W * .46, H * .36);
+  }
+  addEventListener('resize', resize); resize();
+
+  const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; };
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const dot = (a, b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const sub = (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+  const randUnit = () => { const u = rnd(-1,1), t = rnd(0,TAU), s = Math.sqrt(1-u*u); return [s*Math.cos(t), u, s*Math.sin(t)]; };
+  const tangentAt = p => { const r = randUnit(), d = dot(r, p); return norm([r[0]-d*p[0], r[1]-d*p[1], r[2]-d*p[2]]); };
+  const gold = (h, l, a) => `hsla(${h},100%,${l}%,${a})`;
+
+  // ---------- OUTER GOLD SHELL (unchanged look) ----------
+  const shell = Array.from({ length: 1500 }, () => { const p = randUnit(); return { p, t: tangentAt(p), len: rnd(.012,.075), h: rnd(35,49), l: rnd(55,76), a: rnd(.22,.9), rad: rnd(.95,1.05), ph: rnd(0,TAU) }; });
+  const arcs = Array.from({ length: 70 }, () => {
+    const n = randUnit(), a = tangentAt(n), b = cross(n, a), segs = []; let s = rnd(0, TAU);
+    for (let q = 0, c = Math.floor(rnd(1,4)); q < c; q++) { const sp = rnd(.25,1.3); segs.push([s, sp]); s += sp + rnd(.15,.7); }
+    return { a, b, r: rnd(.8,1.03), segs, spin: rnd(-.25,.25), w: rnd(.6,1.6), h: rnd(36,46), al: rnd(.3,.9) };
+  });
+  const rings = Array.from({ length: 4 }, (_, i) => { const n = randUnit(), a = tangentAt(n); return { a, b: cross(n, a), r: rnd(.9,1.02), spin: rnd(.05,.2)*(i%2?-1:1), ticks: 130 + i*20 }; });
+
+  // ---------- INNER: ELECTRIC CELLOPHANE ENERGY MASS ----------
+  // overlapping translucent sheets (crumpled glass) with bright edges
+  const sheets = Array.from({ length: 18 }, (_, idx) => {
+    const big = idx < 6, c = randUnit(), r = Math.cbrt(Math.random()) * (big ? .3 : .26), n = randUnit(), u = tangentAt(n), nv = Math.floor(rnd(5, 8));
+    return { c: [c[0]*r, c[1]*r, c[2]*r], n, u, v: cross(n, u), s: big ? rnd(.46, .64) : rnd(.28, .46),
+             poly: Array.from({ length: nv }, (_, i) => ({ a: i/nv*TAU + rnd(-.3, .3), r: rnd(.5, 1.18) })),
+             sp: rnd(.05, .22) * (Math.random() < .5 ? -1 : 1), ph: rnd(0, TAU), fold: rnd(.03, .08), al: big ? rnd(.7, 1) : rnd(.45, .9), big };
+  });
+  // dense fine light scratches through the volume
+  const scratches = Array.from({ length: 170 }, () => { const d = randUnit(), r = Math.pow(Math.random(), 1.35) * .74; return { c: [d[0]*r, d[1]*r, d[2]*r], dir: randUnit(), h: rnd(.03, .2), ph: rnd(0, TAU), sp: rnd(1, 6), al: rnd(.15, .55), w: rnd(.4, .9) }; });
+  const sparklets = Array.from({ length: 70 }, () => { const d = randUnit(); return { d, t: tangentAt(d), r: rnd(.8, 1.02), h: rnd(.015, .06), ph: rnd(0, TAU), sp: rnd(1, 5) }; });
+  const CORE = [.08, -.04, .1];
+  const rays = Array.from({ length: 9 }, () => ({ dir: randUnit(), len: rnd(.18, .6), ph: rnd(0, TAU), sp: rnd(2, 6) }));
+  // glowing wobbly rim loops (billboard, so the outline always reads)
+  const rims = Array.from({ length: 2 }, () => ({ r: rnd(.7, .75), m: Math.round(rnd(3, 7)), m2: Math.round(rnd(8, 14)), ph: rnd(0, TAU), ph2: rnd(0, TAU), w: rnd(1.6, 2.6), off: [rnd(-.04, .04), rnd(-.04, .04)] }));
+  const clouds = Array.from({ length: 10 }, () => ({ p: randUnit(), s: rnd(.15, .5), r: rnd(.25, .5), ph: rnd(0, TAU), sp: rnd(.2, .6) }));
+  const dust = Array.from({ length: 90 }, () => { const d = randUnit(), r = Math.cbrt(Math.random()) * .76; return { p: [d[0]*r, d[1]*r, d[2]*r], ph: rnd(0, TAU), sp: rnd(1, 4), s: rnd(.5, 1.6) }; });
+  const bolts = [];
+  let boltAcc = 0;
+
+  // ---------- STATE ----------
+  const S = {
+    idle:     { spin: .2,  morph: .45, amp: .52, act: .3, spark: .3, flash: 0,  col: [30,140,255],  label: 'idle — listening' },
+    thinking: { spin: .8,  morph: 1.8, amp: .66, act: 1,  spark: 3,  flash: 1,  col: [90,220,255],  label: 'thinking — retrieving context' },
+    speaking: { spin: .35, morph: 1.0, amp: .58, act: .6, spark: 1.1, flash: .2, col: [60,170,255],  label: 'speaking' }
+  };
+  let mode = 'idle';
+  const cur = { spin: .2, morph: .45, amp: .52, act: .3, spark: .3, flash: 0, col: [35,150,255] };
+  document.querySelectorAll('button').forEach(b => b.onclick = () => {
+    mode = b.dataset.s;
+    document.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    document.getElementById('status').textContent = S[mode].label;
+  });
+  let mx = 0, my = 0; addEventListener('pointermove', e => { mx = e.clientX/W - .5; my = e.clientY/H - .5; });
+  const sparks = [];
+  let yaw = 0, mt = 0, tilt = [0, 0], last = performance.now(), t0 = last;
+
+  const mkRot = (y, p) => { const cy = Math.cos(y), sy = Math.sin(y), cp = Math.cos(p), sp = Math.sin(p); return v => { const x = v[0]*cy + v[2]*sy, z = -v[0]*sy + v[2]*cy; return [x, v[1]*cp - z*sp, v[1]*sp + z*cp]; }; };
+  let scl = 1;
+  const pr = v => { const f = 1 / (1 - v[2]*.12); return [cx + v[0]*R*scl*f, cy + v[1]*R*scl*f]; };
+  const dA = z => .3 + .7*(z+1)/2;
+  const LIGHT = norm([-.4, -.55, .75]);
+
+  function frame(now) {
+    const dt = Math.min((now - last)/1000, .05); last = now;
+    const t = (now - t0)/1000, tg = S[mode];
+    for (const k of ['spin','morph','amp','act','spark','flash']) cur[k] += (tg[k] - cur[k]) * Math.min(dt*3, 1);
+    for (let i = 0; i < 3; i++) cur.col[i] += (tg.col[i] - cur.col[i]) * Math.min(dt*2.5, 1);
+    const [cr, cg, cb] = cur.col, ic = a => `rgba(${cr|0},${cg|0},${cb|0},${a})`;
+    const iw = (w, a) => `rgba(${(cr + (255-cr)*w)|0},${(cg + (255-cg)*w)|0},${(cb + (255-cb)*w)|0},${a})`;
+
+    yaw += dt * cur.spin; mt += dt * cur.morph;
+    tilt[0] += (my*.7 - tilt[0]) * .05; tilt[1] += (mx*.9 - tilt[1]) * .05;
+    const pit = -.28 + tilt[0];
+    const rotO = mkRot(yaw + tilt[1], pit);
+    const rotC = mkRot(-yaw*.6 + tilt[1] + .5, pit + .12);
+    const env = mode === 'speaking' ? .5 + .5*Math.sin(t*9)*Math.sin(t*2.3+1)*Math.sin(t*4.1) : 0;
+    scl = 1 + (mode === 'thinking' ? .025 : .012) * Math.sin(t*(mode === 'thinking' ? 3.2 : 1.2)) + .03*env;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+    // ambient: gold outer glow + cyan inner glow
+    let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R*1.25*scl);
+    g.addColorStop(0, 'rgba(255,170,50,.10)'); g.addColorStop(.55, 'rgba(255,140,30,.07)'); g.addColorStop(.85, 'rgba(255,120,20,.035)'); g.addColorStop(1, 'rgba(255,120,20,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R*1.25*scl, 0, TAU); ctx.fill();
+    g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R*.75*scl);
+    g.addColorStop(0, ic(.12 + .08*env + .06*cur.flash)); g.addColorStop(.6, ic(.05)); g.addColorStop(1, ic(0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R*.75*scl, 0, TAU); ctx.fill();
+
+    // ---- gold shell: streaks ----
+    for (const s of shell) {
+      const sh = .6 + .4*Math.sin(t*2 + s.ph), len = s.len*(1 + cur.flash*1.4*sh)*(1 + .5*env);
+      const rr = s.rad + (mode === 'thinking' ? .015*Math.sin(t*5 + s.ph) : 0);
+      const p0 = rotO(s.p), p1 = rotO(norm([s.p[0]+s.t[0]*len, s.p[1]+s.t[1]*len, s.p[2]+s.t[2]*len]));
+      const a = pr([p0[0]*rr, p0[1]*rr, p0[2]*rr]), b = pr([p1[0]*rr, p1[1]*rr, p1[2]*rr]);
+      const fade = (p0[2] > 0 && Math.hypot(a[0]-cx, a[1]-cy) < R*.74) ? .22 : 1;
+      ctx.strokeStyle = gold(s.h, s.l, s.a*dA(p0[2])*(.55 + .45*sh)*fade); ctx.lineWidth = .7 + dA(p0[2])*.9;
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+    // ---- gold shell: arcs ----
+    for (const c of arcs) for (const [s0, sp] of c.segs) {
+      const st = s0 + t*c.spin, n = Math.max(6, Math.round(sp*14)); ctx.lineWidth = c.w; ctx.beginPath(); let zs = 0;
+      for (let i = 0; i <= n; i++) { const th = st + sp*i/n, cs = Math.cos(th), sn = Math.sin(th), p = rotO([(c.a[0]*cs+c.b[0]*sn)*c.r, (c.a[1]*cs+c.b[1]*sn)*c.r, (c.a[2]*cs+c.b[2]*sn)*c.r]), q = pr(p); zs += p[2]; i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }
+      ctx.strokeStyle = gold(c.h, 62, c.al*dA(zs/(n+1))); ctx.stroke();
+    }
+    // ---- gold shell: tick rings ----
+    for (const rg of rings) for (let i = 0; i < rg.ticks; i++) {
+      const th = i/rg.ticks*TAU + t*rg.spin, cs = Math.cos(th), sn = Math.sin(th), d = [rg.a[0]*cs+rg.b[0]*sn, rg.a[1]*cs+rg.b[1]*sn, rg.a[2]*cs+rg.b[2]*sn], L = (i%5 === 0 ? .045 : .02)*(1 + .5*env);
+      const p0 = rotO([d[0]*rg.r, d[1]*rg.r, d[2]*rg.r]), p1 = rotO([d[0]*(rg.r+L), d[1]*(rg.r+L), d[2]*(rg.r+L)]), a = pr(p0), b = pr(p1);
+      ctx.strokeStyle = gold(42, 66, .7*dA(p0[2])); ctx.lineWidth = i%5 === 0 ? 1.4 : .7; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+
+    // ================= ELECTRIC CELLOPHANE ENERGY MASS =================
+    const act = cur.act;
+    const C0 = pr(rotC([0, 0, 0])), O = pr(rotC(CORE));
+    const mid = (p, q) => [(p[0] + q[0])/2, (p[1] + q[1])/2];
+
+    // deep blue body + bloom
+    let gb = ctx.createRadialGradient(C0[0], C0[1], 0, C0[0], C0[1], R * .95 * scl);
+    gb.addColorStop(0, 'rgba(25,120,255,' + (.34 + .08*env + .08*act) + ')'); gb.addColorStop(.6, 'rgba(15,80,230,.16)'); gb.addColorStop(1, 'rgba(10,60,200,0)');
+    ctx.fillStyle = gb; ctx.beginPath(); ctx.arc(C0[0], C0[1], R*.95*scl, 0, TAU); ctx.fill();
+    for (const c of clouds) {
+      const an = c.ph + t*c.sp, p = rotC([c.p[0]*c.s*(1 + .3*Math.sin(an)), c.p[1]*c.s*(1 + .3*Math.cos(an*1.3)), c.p[2]*c.s]), q = pr(p), rr = c.r*R*1.25;
+      const cg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], rr);
+      cg.addColorStop(0, 'rgba(20,110,255,' + (.16 + .06*act) + ')'); cg.addColorStop(1, 'rgba(10,70,220,0)');
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(q[0], q[1], rr, 0, TAU); ctx.fill();
+    }
+
+    // overlapping translucent sheets: soft fill + glowing curved edges + crease lines
+    for (const sh of sheets) {
+      const ang = sh.ph + t*sh.sp*(.6 + cur.spin), ca = Math.cos(ang), sa = Math.sin(ang), P = [];
+      let zs = 0;
+      for (const q of sh.poly) {
+        const rr = sh.s * q.r * (1 + .08*Math.sin(t*.9 + q.a*3 + sh.ph)), x = Math.cos(q.a)*rr, y = Math.sin(q.a)*rr;
+        const xr = x*ca - y*sa, yr = x*sa + y*ca;
+        const fold = sh.fold*(Math.sin(xr*7 + t*.8 + sh.ph) + Math.cos(yr*6 - t*.6))*(1 + .3*act);
+        const p3 = rotC([sh.c[0] + sh.u[0]*xr + sh.v[0]*yr + sh.n[0]*fold, sh.c[1] + sh.u[1]*xr + sh.v[1]*yr + sh.n[1]*fold, sh.c[2] + sh.u[2]*xr + sh.v[2]*yr + sh.n[2]*fold]);
+        zs += p3[2]; P.push(pr(p3));
+      }
+      const dz = dA(zs / P.length), n = P.length;
+      const lp = (p, q, f) => [p[0] + (q[0] - p[0])*f, p[1] + (q[1] - p[1])*f];
+      const path = () => {
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const a0 = lp(P[(i + n - 1) % n], P[i], .78), b0 = lp(P[i], P[(i + 1) % n], .22);
+          i ? ctx.lineTo(a0[0], a0[1]) : ctx.moveTo(a0[0], a0[1]);
+          ctx.quadraticCurveTo(P[i][0], P[i][1], b0[0], b0[1]);
+        }
+        ctx.closePath();
+      };
+      // thin translucent skin: shaded surface (brighter toward the rim) + fine ribbing, clipped to the sheet
+      {
+        const sp2 = (x, y) => { const xr = x*ca - y*sa, yr = x*sa + y*ca, fold = sh.fold*(Math.sin(xr*7 + t*.8 + sh.ph) + Math.cos(yr*6 - t*.6))*(1 + .3*act);
+          return pr(rotC([sh.c[0] + sh.u[0]*xr + sh.v[0]*yr + sh.n[0]*fold, sh.c[1] + sh.u[1]*xr + sh.v[1]*yr + sh.n[1]*fold, sh.c[2] + sh.u[2]*xr + sh.v[2]*yr + sh.n[2]*fold])); };
+        let cxs = 0, cys = 0; for (const p of P) { cxs += p[0]; cys += p[1]; } cxs /= n; cys /= n;
+        let ext = 1; for (const p of P) ext = Math.max(ext, Math.hypot(p[0] - cxs, p[1] - cys));
+        ctx.save(); path(); ctx.clip();
+        const gr = ctx.createRadialGradient(cxs, cys, 0, cxs, cys, ext);
+        gr.addColorStop(0, ic(.035*sh.al*dz)); gr.addColorStop(.6, ic(.1*sh.al*dz)); gr.addColorStop(1, iw(.3, .3*sh.al*dz));
+        ctx.fillStyle = gr; ctx.fillRect(cxs - ext, cys - ext, ext*2, ext*2);
+        ctx.beginPath();
+        for (let j = -3; j <= 3; j++) {
+          const y0 = j * sh.s * .3;
+          for (let i = 0; i <= 8; i++) { const q = sp2((i/8*2 - 1) * sh.s * 1.35, y0); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }
+        }
+        ctx.strokeStyle = iw(.45, (.14 + .1*act) * dz); ctx.lineWidth = .6; ctx.stroke();
+        ctx.restore();
+      }
+      path(); ctx.strokeStyle = ic(.09 * dz); ctx.lineWidth = 7; ctx.stroke();
+      path(); ctx.strokeStyle = iw(.25 + .4*act*sh.al, Math.min(1, (.45 + .4*sh.al + .2*act + (sh.big ? .15 : 0)) * dz)); ctx.lineWidth = (sh.big ? 1.5 : 1) + .5*sh.al; ctx.stroke();
+      path(); ctx.setLineDash([9, 24]); ctx.lineDashOffset = -t*(30 + 50*act)*(sh.sp > 0 ? 1 : -1); ctx.strokeStyle = iw(.8, Math.min(1, (.55 + .3*act) * dz)); ctx.lineWidth = 1.7; ctx.stroke(); ctx.setLineDash([]);
+      // crease lines across the sheet
+      ctx.beginPath(); for (let i = 0; i < 2; i++) { const a2 = P[i], b2 = P[(i + Math.floor(n/2)) % n]; ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); }
+      ctx.strokeStyle = iw(.4, 0); ctx.lineWidth = .7; ctx.stroke();
+    }
+
+    // fine light scratches everywhere
+    for (const sc of scratches) {
+      const fl = Math.pow(Math.max(0, Math.sin(t*sc.sp + sc.ph)), 2.5), hh = sc.h * (1 + .3*fl);
+      const p0 = rotC([sc.c[0] - sc.dir[0]*hh, sc.c[1] - sc.dir[1]*hh, sc.c[2] - sc.dir[2]*hh]), p1 = rotC([sc.c[0] + sc.dir[0]*hh, sc.c[1] + sc.dir[1]*hh, sc.c[2] + sc.dir[2]*hh]);
+      const a2 = pr(p0), b2 = pr(p1), al = (sc.al*(.3 + .5*act) + fl*.4) * dA((p0[2] + p1[2])/2);
+      ctx.strokeStyle = iw(.4 + fl*.45, Math.min(1, al)); ctx.lineWidth = sc.w * (1 + fl*.8);
+      ctx.beginPath(); ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.stroke();
+    }
+
+    // glowing, wobbling rim loops: bright where the "membrane" folds
+    for (const rm of rims) {
+      const N = 96; let prev = null;
+      for (let i = 0; i <= N; i++) {
+        const ph = i/N*TAU, rr = R*scl*rm.r*(1 + .1*Math.sin(rm.m*ph + rm.ph + mt*.6) + .05*Math.sin(rm.m2*ph + rm.ph2 - mt*.8) + .04*env);
+        const pt = [C0[0] + rm.off[0]*R + Math.cos(ph)*rr, C0[1] + rm.off[1]*R + Math.sin(ph)*rr*.96];
+        if (prev) {
+          const b0 = Math.pow(.5 + .5*Math.sin(3*ph + rm.ph*2 + mt*.7), 2);
+          ctx.strokeStyle = iw(.15 + .4*b0, .14 + .55*b0*(.7 + .3*act)); ctx.lineWidth = rm.w * (.35 + .5*b0);
+          ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(pt[0], pt[1]); ctx.stroke();
+        }
+        prev = pt;
+      }
+    }
+
+    // radiating streaks + white-hot core
+    for (const ry of rays) {
+      const fl = Math.pow(Math.max(0, Math.sin(t*ry.sp + ry.ph)), 2), l2 = ry.len * (.7 + .5*fl + .3*act);
+      const q = pr(rotC([CORE[0] + ry.dir[0]*l2, CORE[1] + ry.dir[1]*l2, CORE[2] + ry.dir[2]*l2]));
+      ctx.strokeStyle = iw(.6, (.15 + .5*fl) * (.5 + .5*act)); ctx.lineWidth = .8 + fl; ctx.beginPath(); ctx.moveTo(O[0], O[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+    }
+    const mg = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], R*.6);
+    mg.addColorStop(0, iw(.45, .3 + .1*act)); mg.addColorStop(1, ic(0));
+    ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(O[0], O[1], R*.6, 0, TAU); ctx.fill();
+    const nr = R*.34*(1 + .3*env + .12*cur.flash*Math.sin(t*9));
+    const ng = ctx.createRadialGradient(O[0], O[1], 0, O[0], O[1], nr);
+    ng.addColorStop(0, 'rgba(255,255,255,1)'); ng.addColorStop(.2, iw(.65, .8)); ng.addColorStop(.55, ic(.25)); ng.addColorStop(1, ic(0));
+    ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(O[0], O[1], nr, 0, TAU); ctx.fill();
+
+    // energy bolts from the core (soft lightning)
+    boltAcc += dt * (.35 + 4*act);
+    while (boltAcc >= 1) {
+      boltAcc -= 1; const d = randUnit(), rr = rnd(.45, .72), pts = [], N = 10;
+      for (let s2 = 0; s2 <= N; s2++) { const u = s2/N, j = s2 === 0 ? 0 : .05; pts.push([CORE[0] + (d[0]*rr - CORE[0])*u + rnd(-j, j), CORE[1] + (d[1]*rr - CORE[1])*u + rnd(-j, j), CORE[2] + (d[2]*rr - CORE[2])*u + rnd(-j, j)]); }
+      const l = rnd(.1, .3); bolts.push({ pts, life: l, max: l });
+    }
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const bo = bolts[i]; bo.life -= dt; if (bo.life <= 0) { bolts.splice(i, 1); continue; }
+      const k2 = bo.life / bo.max, q = bo.pts.map(p => pr(rotC(p)));
+      for (const [w, col] of [[5, iw(0, .2*k2)], [1.5, iw(.7, .9*k2)]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); q.forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
+      }
+    }
+    // cyan glitter drifting around the mass
+    for (const sp of sparklets) {
+      const tw = Math.pow(Math.max(0, Math.sin(t*sp.sp + sp.ph)), 2), a3 = sp.ph + t*.05;
+      const base = [sp.d[0]*sp.r, sp.d[1]*sp.r, sp.d[2]*sp.r], p0 = rotC(base), p1 = rotC([base[0] + sp.t[0]*sp.h, base[1] + sp.t[1]*sp.h, base[2] + sp.t[2]*sp.h]);
+      const a2 = pr(p0), b2 = pr(p1);
+      ctx.strokeStyle = iw(.3 + tw*.6, (.12 + tw*.75) * dA(p0[2]) * (.55 + act*.45)); ctx.lineWidth = .7 + tw*.9;
+      ctx.beginPath(); ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.stroke();
+    }
+    // glittering dust
+    for (const d of dust) {
+      const tw = Math.pow(Math.max(0, Math.sin(t*d.sp + d.ph)), 2);
+      const p = rotC([d.p[0] + .02*Math.sin(t*.8 + d.ph), d.p[1] + .02*Math.cos(t*.7 + d.ph), d.p[2]]), q = pr(p);
+      ctx.fillStyle = iw(.4 + tw*.5, (.12 + tw*.7) * dA(p[2]) * (.5 + act*.5)); ctx.beginPath(); ctx.arc(q[0], q[1], d.s*(.7 + tw*.8), 0, TAU); ctx.fill();
+    }
+
+    // sparks off the rim (cyan, white core; gold while thinking so they read on the cyan)
+    if (Math.random() < cur.spark*dt*2.2) {
+      const o = randUnit(), pts = []; for (let i = 0; i < 9; i++) pts.push([o[0]*(1+i*.035) + rnd(-.03,.03), o[1]*(1+i*.035) + rnd(-.03,.03), o[2]*(1+i*.035) + rnd(-.03,.03)]);
+      const l = rnd(.12,.3); sparks.push({ pts, life: l, max: l });
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i]; s.life -= dt; if (s.life <= 0) { sparks.splice(i, 1); continue; }
+      const k = s.life / s.max;
+      ctx.strokeStyle = mode === 'thinking' ? `rgba(255,200,90,${k})` : `rgba(110,210,255,${k})`; ctx.lineWidth = 1.4; ctx.beginPath();
+      s.pts.forEach((v, j) => { const q = pr(rotO(v)); j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,255,255,${k*.8})`; ctx.lineWidth = .6; ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

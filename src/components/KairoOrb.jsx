@@ -83,8 +83,26 @@ const deep = (c, f, a) => `rgba(${Math.round(c[0] * f)},${Math.round(c[1] * f)},
 const DASHES = [9, 24]
 const NO_DASH = []
 
+// How the shell's streaks drift when the page scrolls (all in radii of the orb): down, a little right,
+// a small spread, barely stretched (they read as sparks, not sticks); overChat is how much of their
+// brightness is left while they pass in front of the chat panel, so its text stays readable.
+const DRIFT = { down: 3.2, right: 0.15, spread: 0.3, stretch: 0.5, trail: 0.04, glow: 1.4, thick: 0.5, lift: 22, overChat: 0.18 }
+
 // onFail is called if the canvas cannot draw, so the caller can bring Kairo's own art back.
-export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail, onLight, className, style }) {
+// scrollApart (the hero orb): as the page scrolls the orb's pieces peel off, one after another, and
+// drift down and a little right (like main's AI-core orb), then come back when scrolling up. tail is
+// the extra canvas below the orb, in px, that the pieces drift through.
+export default function KairoOrb({
+  size = 310,
+  density = 1,
+  ticks = true,
+  scrollApart = false,
+  tail = 0,
+  onFail,
+  onLight,
+  className,
+  style,
+}) {
   const canvasRef = useRef(null)
   // The hero orb calls onLight(strength, innerRgb) every frame, so the page can be lit by it.
   const lightRef = useRef(onLight)
@@ -102,7 +120,8 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     }
 
     const DPR = Math.min(window.devicePixelRatio || 1, 2)
-    canvas.width = canvas.height = Math.round(size * DPR)
+    canvas.width = Math.round(size * DPR)
+    canvas.height = Math.round((size + tail) * DPR)
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
 
     const c0 = size / 2
@@ -138,6 +157,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
         l: rnd(55, 76),
         a: rnd(0.25, 1),
         rad: rnd(0.95, 1.05),
+        k: Math.random(), // when it peels off as the page scrolls (0 to 1 of the spread)
         ph: rnd(0, TAU),
       }
     })
@@ -291,6 +311,12 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     const tilt = [0, 0]
     let raf = 0
     let visible = true
+    let inFront = false
+    let sa = 0 // 0 at the top of the page, 1 once the hero has scrolled away (eased)
+    const sm = (a, b, x) => {
+      const q = clamp01((x - a) / (b - a))
+      return q * q * (3 - 2 * q)
+    }
 
     const onMove = (e) => {
       mx = e.clientX / window.innerWidth - 0.5
@@ -319,7 +345,21 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       const wS = C.wakeShell
       const shellM = WAKE.shellFrom + (1 - WAKE.shellFrom) * wS
       const innerM = WAKE.innerFrom + (1 - WAKE.innerFrom) * C.wakeInner
-      const innerA = Math.min(1, C.wakeInner)
+      if (scrollApart) {
+        const hero = canvas.closest('.hero')
+        const away = clamp01(window.scrollY / Math.max((hero?.clientHeight ?? window.innerHeight) * 0.7, 1))
+        sa += (away - sa) * Math.min(1, dt * 6)
+        if (sa < 0.001) sa = 0
+        // While the pieces fall they pass in front of the chat panel instead of dimming behind it
+        const front = sa > 0.02
+        if (front !== inFront && canvas.parentElement) {
+          inFront = front
+          canvas.parentElement.style.zIndex = front ? '3' : ''
+        }
+      }
+      const outerFade = 1 - sm(0.05, 0.6, sa) // arcs, rings and glow go first
+      const innerFade = 1 - sm(0.1, 0.7, sa) // then the glass mass and the heart
+      const innerA = Math.min(1, C.wakeInner) * innerFade
       const heartA = WAKE.heartDim + (1 - WAKE.heartDim) * innerA
       const heartK = 1 + TYPING.heartSwell * C.heart + FLASH.heartSwell * C.flashGlow
       sc =
@@ -328,13 +368,13 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       const useWaves = !small && C.waves.length > 0
       const pi = (v, m = innerM) => pr(v, m)
 
-      ctx.clearRect(0, 0, size, size)
+      ctx.clearRect(0, 0, size, size + tail)
       ctx.globalCompositeOperation = 'lighter'
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
 
       // ambient glow (outer: the accent colour)
-      ctx.globalAlpha = wS
+      ctx.globalAlpha = wS * outerFade
       const gl = 0.16 + 0.1 * env + (mode === 'thinking' ? 0.08 : 0) + FLASH.glow * C.flashGlow
       const gr = R * 1.25 * sc * shellM
       const g = ctx.createRadialGradient(c0, c0, 0, c0, c0, gr)
@@ -360,6 +400,16 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
 
       // gold shell: streaks (those in front of the glass mass are dimmed so the inside reads)
       const fadeR = R * sc * shellM * SHELL_FADE.inside
+      // where the chat panel is, in this canvas (only while the page is scrolling apart)
+      let chatBox = null
+      if (sa > 0) {
+        const ch = canvas.closest('.hero')?.querySelector('.chat')
+        if (ch) {
+          const cr = ch.getBoundingClientRect()
+          const kr = canvas.getBoundingClientRect()
+          chatBox = [cr.left - kr.left, cr.top - kr.top, cr.right - kr.left, cr.bottom - kr.top]
+        }
+      }
       const asm = !small && C.wakeT < 1
       for (const s of shell) {
         const sh = 0.6 + 0.4 * Math.sin(t * 2 + s.ph)
@@ -382,22 +432,44 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
           b[1] += dy
           fly = ASSEMBLE.fadeFrom + (1 - ASSEMBLE.fadeFrom) * q
         }
-        const fade = (p0[2] > 0 && Math.hypot(a[0] - c0, a[1] - c0) < fadeR ? SHELL_FADE.alpha : 1) * fly
+        // scrolling away: this streak peels off in its own time and drifts down, stretching as it goes
+        let aw = 0
+        if (sa > 0) {
+          aw = sm(0, 1, clamp01(sa * 1.7 - s.k * 0.7))
+          if (aw > 0) {
+            const dx = (DRIFT.right + s.p[0] * DRIFT.spread) * R * aw
+            const dy = (DRIFT.down + s.p[2] * DRIFT.spread) * R * aw
+            const vx = (b[0] - a[0]) * (1 + DRIFT.stretch * aw)
+            const vy = (b[1] - a[1]) * (1 + DRIFT.stretch * aw)
+            a[0] += dx
+            a[1] += dy
+            b[0] = a[0] + vx
+            b[1] = a[1] + vy - R * DRIFT.trail * aw // a short tail streaming up behind it
+          }
+        }
+        const fade =
+          (p0[2] > 0 && Math.hypot(a[0] - c0, a[1] - c0) < fadeR ? SHELL_FADE.alpha : 1) *
+          fly *
+          (1 - sm(0.55, 1, aw)) *
+          (chatBox && a[0] > chatBox[0] && a[0] < chatBox[2] && a[1] > chatBox[1] && a[1] < chatBox[3] ? DRIFT.overChat : 1)
         // rings and the flash light the streaks they cross; the flash also holds the whole shell brighter
-        let boost = C.uni
+        let boost = C.uni + DRIFT.glow * aw // falling pieces burn brighter, so they read against the dark
         if (useWaves) {
           const d = Math.hypot(a[0] - c0, a[1] - c0) / (R * sc)
           for (const w of C.waves) boost += w.a * Math.exp(-(((d - w.r) / w.w) ** 2))
         }
-        ctx.strokeStyle = tint(s.h, s.l, Math.min(1, s.a * dA(p0[2]) * (0.55 + 0.45 * sh) * fade * (1 + 2 * boost)))
-        ctx.lineWidth = (0.7 + dA(p0[2]) * 0.9) * k * (1 + 0.6 * boost)
+        ctx.strokeStyle = tint(s.h, Math.min(92, s.l + DRIFT.lift * aw), Math.min(1, s.a * dA(p0[2]) * (0.55 + 0.45 * sh) * fade * (1 + 2 * boost)))
+        ctx.lineWidth = (0.7 + dA(p0[2]) * 0.9) * k * (1 + 0.6 * boost) * (1 + DRIFT.thick * aw)
         ctx.beginPath()
         ctx.moveTo(a[0], a[1])
         ctx.lineTo(b[0], b[1])
         ctx.stroke()
       }
 
-      // gold shell: circuit arcs
+      // gold shell: circuit arcs (and the tick rings below) sink and fade as the page scrolls
+      ctx.globalAlpha = wS * outerFade
+      ctx.save()
+      ctx.translate(0, sa * sa * R * 0.9)
       for (const c of arcs) {
         for (const [s0, sp] of c.segs) {
           const st = s0 + t * c.spin
@@ -444,6 +516,8 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
           ctx.stroke()
         }
       }
+
+      ctx.restore()
 
       // =============== the glass mass (inner colour) ===============
       ctx.globalAlpha = innerA
@@ -745,7 +819,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       }
 
       // electric sparks off the rim (the contrasting accent; gold while thinking so they read)
-      ctx.globalAlpha = wS
+      ctx.globalAlpha = wS * outerFade
       if (Math.random() < cur.spark * dt * 2.2) {
         const o = randUnit()
         const pts = []
@@ -782,7 +856,7 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
       }
       ctx.globalAlpha = 1
       ctx.globalCompositeOperation = 'source-over'
-      if (!small) lightRef.current?.(C.light, inner)
+      if (!small) lightRef.current?.(C.light * innerFade, inner)
     }
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -804,20 +878,21 @@ export default function KairoOrb({ size = 310, density = 1, ticks = true, onFail
     io.observe(canvas)
 
     return () => {
+      if (inFront && canvas.parentElement) canvas.parentElement.style.zIndex = ""
       cancelAnimationFrame(raf)
       io.disconnect()
       mo.disconnect()
       window.removeEventListener('theme-change', onTheme)
       window.removeEventListener('pointermove', onMove)
     }
-  }, [size, density, ticks, onFail])
+  }, [size, density, ticks, scrollApart, tail, onFail])
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
       className={className}
-      style={{ width: size, height: size, pointerEvents: 'none', ...style }}
+      style={{ width: size, height: size + tail, pointerEvents: 'none', ...style }}
     />
   )
 }

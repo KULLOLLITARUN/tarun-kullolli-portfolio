@@ -99,7 +99,7 @@ export default function Nav({ recruiter, onToggleRecruiter, onPalette, onTour })
         <a className="chip chip-cta" href={profile.resume} download="Tarun-Kullolli-Resume.pdf">
           Resume <span aria-hidden="true">↓</span>
         </a>
-        <button type="button" className="icon-btn kbd-btn" data-cursor="command" onClick={onPalette} aria-label={`Open command menu (${IS_APPLE ? '⌘K' : 'Ctrl+K'})`} title={`Command menu (${IS_APPLE ? '⌘K' : 'Ctrl+K'})`}>
+        <button type="button" className="icon-btn kbd-btn" data-cursor="command" onClick={onPalette} aria-label={`Open command menu, ${IS_APPLE ? '⌘K' : 'Ctrl K'}`} title={`Command menu (${IS_APPLE ? '⌘K' : 'Ctrl+K'})`}>
           <span aria-hidden="true">{IS_APPLE ? '⌘K' : 'Ctrl K'}</span>
         </button>
         <button

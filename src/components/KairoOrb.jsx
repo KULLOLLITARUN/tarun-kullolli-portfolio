@@ -83,6 +83,9 @@ const deep = (c, f, a) => `rgba(${Math.round(c[0] * f)},${Math.round(c[1] * f)},
 const DASHES = [9, 24]
 const NO_DASH = []
 
+const SCROLL_RES = 0.5 // canvas resolution while the page is scrolling (1 = full)
+const SCROLL_RES_HOLD = 150 // ms after the last scroll before it goes back to full
+
 // How the shell's streaks drift when the page scrolls (all in radii of the orb): down, a little right,
 // a small spread, barely stretched (they read as sparks, not sticks); overChat is how much of their
 // brightness is left while they pass in front of the chat panel, so its text stays readable.
@@ -133,6 +136,21 @@ export default function KairoOrb({
     canvas.width = Math.round(size * DPR)
     canvas.height = Math.round((size + tail) * DPR)
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+    // While the page is scrolling the orb is moving apart and fading, so it is drawn at a lower
+    // resolution (the canvas keeps its CSS size) and goes back to full once scrolling has stopped.
+    let q = 1
+    const setRes = (nq) => {
+      if (nq === q) return
+      q = nq
+      canvas.width = Math.round(size * DPR * q)
+      canvas.height = Math.round((size + tail) * DPR * q)
+      ctx.setTransform(DPR * q, 0, 0, DPR * q, 0, 0)
+    }
+    let lastY = 0
+    let lastMove = -1e9
+    let scrolling = false
+    let skipFrame = false
+    let owedDt = 0
 
     const c0 = size / 2
     const R = size * 0.4
@@ -374,6 +392,13 @@ export default function KairoOrb({
       const innerM = WAKE.innerFrom + (1 - WAKE.innerFrom) * C.wakeInner
       if (scrollApart) {
         refreshLayout()
+        const nowMs = performance.now()
+        if (window.scrollY !== lastY) {
+          lastY = window.scrollY
+          lastMove = nowMs
+        }
+        scrolling = nowMs - lastMove < SCROLL_RES_HOLD
+        setRes(scrolling ? SCROLL_RES : 1)
         const away = clamp01(window.scrollY / Math.max((layout.heroH || window.innerHeight) * 0.7, 1))
         sa += (away - sa) * Math.min(1, dt * 6)
         if (sa < 0.001) sa = 0
@@ -909,7 +934,15 @@ export default function KairoOrb({
     } else {
       const loop = (now) => {
         const dt = C.tick(now) // the first orb to call this frame advances the shared clock
-        if (visible && !document.hidden) draw(dt)
+        if (visible && !document.hidden) {
+          // while scrolling, every other frame is skipped (the time it owes is added to the next one)
+          owedDt += dt
+          skipFrame = scrolling && !skipFrame
+          if (!skipFrame) {
+            draw(owedDt)
+            owedDt = 0
+          }
+        }
         raf = requestAnimationFrame(loop)
       }
       raf = requestAnimationFrame(loop)
